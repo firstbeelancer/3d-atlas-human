@@ -22,7 +22,7 @@ export function Header({ tools }: { tools?: ReactNode }) {
       <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-3 px-4 sm:px-6">
         <Link to="/" className="mr-auto flex items-center gap-2.5 text-ink no-underline" aria-label={t('nav.home')}>
           <LogoMark />
-          <span className="font-display text-[19px] font-bold tracking-[-0.02em]">{t('site.name')}</span>
+          <span className="whitespace-nowrap font-display text-[17px] font-bold tracking-[-0.02em] sm:text-[19px]">{t('site.name')}</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label={t('nav.sections')}>

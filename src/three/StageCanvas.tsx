@@ -42,6 +42,12 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], paused, time, c
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
   const { select } = useSelection();
+  // на телефоне отодвигаем камеру, чтобы модель целиком помещалась в узкий кадр
+  const [cameraPosition] = useState<[number, number, number]>(() => {
+    const p = camera?.position ?? [0, 0.6, 9];
+    const k = window.innerWidth < 640 ? 1.18 : 1;
+    return [p[0] * k, p[1] * k, p[2] * k];
+  });
 
   useEffect(() => {
     const el = host.current;
@@ -58,7 +64,7 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], paused, time, c
         frameloop={visible ? 'always' : 'never'}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
-        camera={{ position: camera?.position ?? [0, 0.6, 9], fov: camera?.fov ?? 32 }}
+        camera={{ position: cameraPosition, fov: camera?.fov ?? 32 }}
         onPointerMissed={() => select(null)}
       >
         <Clock paused={paused} time={time} />

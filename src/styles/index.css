@@ -99,10 +99,42 @@ p {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+/* ---------- Страница раздела ---------- */
+.part-row {
+  border-radius: 12px;
+}
+.part-row:hover,
+.part-row[data-hover] {
+  background: var(--c-wash);
+}
+.part-row[aria-current='true'] {
+  background: color-mix(in srgb, var(--accent) 11%, var(--c-plinth));
+}
+.part-row__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--c-ink-soft);
+  transform: translateY(-2px);
+  flex: none;
+}
+.part-row[aria-current='true'] .part-row__dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.kid-say {
+  background: color-mix(in srgb, var(--accent) 9%, var(--c-plinth));
+}
+
 /* ---------- 3D-подиум ---------- */
 .stage-plinth {
   background:
     radial-gradient(ellipse 70% 60% at 50% 40%, var(--c-plinth) 0%, color-mix(in srgb, var(--c-plinth) 55%, var(--c-wash)) 62%, var(--c-wash) 100%);
+}
+
+/* липкая колонка создаёт свой слой — во время показа поднимаем её над шапкой */
+.stage-host:has(.stage-show) {
+  z-index: 70;
 }
 
 /* Режим «Показ» — всегда тёмная витрина, независимо от темы сайта. */

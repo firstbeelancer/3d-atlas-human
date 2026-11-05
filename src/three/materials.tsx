@@ -36,8 +36,11 @@ const BASE = {
 export function Tissue({ kind, active = false, opacity }: { kind: TissueKind; active?: boolean; opacity?: number }) {
   const t = TISSUE[kind];
   const extra = opacity !== undefined ? { transparent: true, opacity, depthWrite: opacity > 0.9 } : {};
+  const transparent = opacity !== undefined || 'transparent' in t;
   return (
     <meshPhysicalMaterial
+      // смена прозрачности требует пересборки шейдера — пересоздаём материал
+      key={transparent ? 'transparent' : 'opaque'}
       {...BASE}
       {...t}
       {...extra}

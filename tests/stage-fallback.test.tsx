@@ -44,7 +44,7 @@ describe('Stage', () => {
     spy.mockRestore();
   });
 
-  it('starts animated by default', () => {
+  it('starts animated with labels on a wide screen', () => {
     vi.mocked(hasWebGL).mockReturnValue(true);
     const children = renderStage();
     expect(children.mock.calls[0][0]).toMatchObject({ paused: false, labels: true, cutaway: false });

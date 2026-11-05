@@ -1,7 +1,9 @@
 import type { SectionContent } from './types';
 
 /** Контент разделов грузится отдельными кусками, только когда раздел открыт. */
-const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {};
+const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
+  serdce: () => import('./ru/serdce'),
+};
 
 export async function loadSectionContent(slug: string): Promise<SectionContent | null> {
   const load = LOADERS[slug];

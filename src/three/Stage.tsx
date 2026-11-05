@@ -25,7 +25,8 @@ export function Stage({ label, description, hasCutaway, camera, target, children
   const [webgl] = useState(hasWebGL);
   const [paused, setPaused] = useState(prefersReducedMotion);
   const [cutaway, setCutaway] = useState(false);
-  const [labels, setLabels] = useState(true);
+  // на узких экранах подписи по умолчанию скрыты: касание части всё равно показывает её подпись
+  const [labels, setLabels] = useState(() => window.innerWidth >= 640);
   const [show, setShow] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const time = useRef(0);
@@ -76,9 +77,9 @@ export function Stage({ label, description, hasCutaway, camera, target, children
     <div
       ref={box}
       data-show={show || undefined}
-      className={`stage-plinth group relative overflow-hidden rounded-[28px] border border-line ${
-        show ? 'stage-show fixed inset-0 z-[60] rounded-none border-0' : ''
-      } ${className}`}
+      className={`stage-plinth group overflow-hidden ${
+        show ? 'stage-show fixed inset-0 z-[60] h-dvh w-screen' : `relative rounded-[28px] border border-line ${className}`
+      }`}
     >
       <p className="sr-only">{description}</p>
       <StageCanvas key={resetKey} label={label} camera={camera} target={target} paused={paused} time={time}>
@@ -135,7 +136,7 @@ function ToolButton({
       onClick={onClick}
       aria-pressed={pressed}
       title={label}
-      className={`flex h-10 items-center gap-1.5 rounded-full px-3 text-[14px] font-medium transition-colors ${
+      className={`flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[14px] font-medium transition-colors ${
         strong ? 'bg-ink text-stone hover:opacity-90' : 'text-ink hover:bg-wash aria-pressed:bg-wash'
       }`}
     >

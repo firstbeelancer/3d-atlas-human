@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import './styles/index.css';
 import { ThemeProvider } from './lib/theme';
+import { AdultProvider } from './lib/adult';
 import { Layout } from './components/layout/Layout';
 import { HomePage } from './pages/HomePage';
 import { SectionPage } from './pages/SectionPage';
@@ -25,9 +26,11 @@ export function AppRoutes() {
 export function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <AdultProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AdultProvider>
     </ThemeProvider>
   );
 }

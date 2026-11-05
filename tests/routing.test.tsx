@@ -3,13 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { AppRoutes } from '../src/App';
 import { ThemeProvider } from '../src/lib/theme';
+import { AdultProvider } from '../src/lib/adult';
 
 function renderAt(path: string) {
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
-      </MemoryRouter>
+      <AdultProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <AppRoutes />
+        </MemoryRouter>
+      </AdultProvider>
     </ThemeProvider>,
   );
 }

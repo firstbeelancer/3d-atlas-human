@@ -22,6 +22,9 @@ import { MODELS } from '../models/registry';
 import { Stage } from '../three/Stage';
 import { SelectionProvider } from '../three/selection';
 import { NotFoundPage } from './NotFoundPage';
+import { AdultOnly } from '../components/AdultOnly';
+
+const loadAdultNote = () => import('../content/adult/AdultSectionNote');
 
 export function SectionPage() {
   const { slug = '' } = useParams();
@@ -72,6 +75,7 @@ export function SectionPage() {
 
           <div className="min-w-0 lg:pt-4">
             <SectionHero section={section} systemTitle={systemTitle} />
+            {section.adultParts && <AdultOnly load={loadAdultNote} />}
             {!section.ready && <ComingSoon />}
             {content && (
               <>

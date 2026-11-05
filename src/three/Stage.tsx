@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Maximize2, Minimize2, Pause, Play, RotateCcw, Scissors, Tags } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
-import { StageCanvas } from './StageCanvas';
 import type { StageState } from './types';
+
+// three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
+const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
 
 interface Props {
   /** Короткое имя модели (для aria-label). */
@@ -84,9 +86,11 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
       }`}
     >
       <p className="sr-only">{description}</p>
-      <StageCanvas key={resetKey} label={label} camera={camera} target={target} floorY={floorY} paused={paused} time={time}>
-        {children(state)}
-      </StageCanvas>
+      <Suspense fallback={null}>
+        <StageCanvas key={resetKey} label={label} camera={camera} target={target} floorY={floorY} paused={paused} time={time}>
+          {children(state)}
+        </StageCanvas>
+      </Suspense>
 
       <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
         {t('stage.hint')}

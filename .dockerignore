@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.superpowers
+.claude
+docs
+референсы разные
+*.log
+.env
+.env.*

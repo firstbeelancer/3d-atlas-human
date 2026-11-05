@@ -3,6 +3,7 @@ import { SECTIONS } from '../content/sections';
 import { SYSTEMS } from '../content/systems';
 import { t } from '../i18n';
 import { useDocumentMeta } from '../lib/meta';
+import { OrganIcon } from '../components/icons/organs';
 
 export function HomePage() {
   useDocumentMeta(null, t('site.description'));
@@ -13,10 +14,13 @@ export function HomePage() {
         {SYSTEMS.map((sys) => (
           <div key={sys.id} className="mt-6">
             <h2 className="m-0 text-[22px]">{sys.title}</h2>
-            <ul className="m-0 mt-2 list-none p-0">
+            <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-6 gap-y-2 p-0">
               {SECTIONS.filter((s) => s.system === sys.id).map((s) => (
                 <li key={s.slug}>
-                  <Link to={`/razdel/${s.slug}`}>{s.title}</Link>
+                  <Link to={`/razdel/${s.slug}`} className="inline-flex items-center gap-2">
+                    <OrganIcon name={s.icon} size={32} />
+                    {s.title}
+                  </Link>
                 </li>
               ))}
             </ul>

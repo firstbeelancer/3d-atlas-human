@@ -7,3 +7,5 @@ dist
 .DS_Store
 .superpowers/
 референсы разные/
+*.tsbuildinfo
+.claude/

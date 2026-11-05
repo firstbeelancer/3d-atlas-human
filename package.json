@@ -1,0 +1,44 @@
+{
+  "name": "3d-atlas-human",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Открытый русскоязычный 3D-атлас тела человека",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "check:emoji": "node scripts/check-no-emoji.mjs",
+    "typecheck": "tsc -b --noEmit",
+    "build": "npm run check:emoji && tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "npm run check:emoji && vitest run"
+  },
+  "dependencies": {
+    "@fontsource/golos-text": "5.2.8",
+    "@fontsource/jetbrains-mono": "5.2.8",
+    "@fontsource/onest": "5.2.8",
+    "@react-three/drei": "10.7.7",
+    "@react-three/fiber": "9.4.2",
+    "lucide-react": "0.555.0",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "react-router": "7.10.1",
+    "three": "0.181.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.17",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "22.19.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "0.181.0",
+    "@vitejs/plugin-react": "5.1.1",
+    "jsdom": "27.2.0",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "vite": "7.2.6",
+    "vitest": "4.0.15"
+  }
+}

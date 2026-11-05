@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Превью стиля — 3D-атлас человека</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Onest:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ВАРИАНТ 1 — «Музей науки»: светлый, чистый, швейцарская типографика */
+  :root{
+    --paper:#F7F7F4; --paper-2:#ECECE7; --card:#FFFFFF;
+    --ink:#121212; --ink-2:#5F6166; --line:#E1E1DC;
+    --sys:#D7372C; --sys-soft:#FCE6E3; --on-sys:#fff;
+    --plate:radial-gradient(ellipse at 50% 40%, #FFFFFF 0%, #F1F1EE 60%, #E7E7E2 100%);
+    --display:"Onest", system-ui, sans-serif; --body:"Golos Text", system-ui, sans-serif; --mono:"JetBrains Mono", ui-monospace, monospace;
+    --h1-weight:700; --radius:16px; --card-shadow:none; --tag-style:normal; --h1-case:none;
+  }
+  /* ВАРИАНТ 2 — «Энциклопедия»: смелые цветные плашки, крупно, дружелюбно */
+  body[data-v="2"]{
+    --paper:#FFFBF5; --paper-2:#FFF1DF; --card:#FFFFFF;
+    --ink:#1A1530; --ink-2:#5B5670; --line:#EADFD0;
+    --sys:#E8483A; --sys-soft:#FFE1DA;
+    --plate:linear-gradient(160deg,#FFD9CF 0%,#FFC4B5 100%);
+    --h1-weight:800; --radius:26px; --card-shadow:0 2px 0 rgba(26,21,48,.08);
+  }
+  /* ВАРИАНТ 3 — «Тёмная витрина»: модель под прожектором, спокойно и глубоко */
+  body[data-v="3"]{
+    --paper:#101114; --paper-2:#1B1D22; --card:#17191E;
+    --ink:#F0EEE9; --ink-2:#A3A6AD; --line:#2A2D33;
+    --sys:#FF6A55; --sys-soft:#2A1C1B;
+    --plate:radial-gradient(ellipse at 50% 35%, #2B2E35 0%, #17191D 55%, #0E0F12 100%);
+    --h1-weight:600; --radius:18px; --card-shadow:none;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{ background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.55; transition:background .3s,color .3s; }
+  .switcher{position:sticky;top:0;z-index:20;display:flex;gap:6px;justify-content:center;padding:8px;background:#121212;color:#fff;font:500 13px var(--body)}
+  .switcher button{border:1px solid #444;background:transparent;color:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit}
+  .switcher button.on{background:#fff;color:#121212;border-color:#fff}
+  a{color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  /* header */
+  header{border-bottom:1px solid var(--line)}
+  .hdr{display:flex;align-items:center;gap:20px;height:64px}
+  .logo{display:flex;align-items:baseline;gap:8px;text-decoration:none}
+  .logo b{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.02em}
+  .logo::before{content:"";width:12px;height:12px;border-radius:4px;background:var(--sys);align-self:center}
+  .logo span{font-family:var(--mono);font-size:11px;color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase}
+  nav{display:flex;gap:22px;margin-left:auto;font-size:15px}
+  nav a{text-decoration:none;color:var(--ink-2)} nav a:hover{color:var(--ink)}
+  .tools{display:flex;align-items:center;gap:10px}
+  .icon-btn{width:38px;height:38px;border:1px solid var(--line);border-radius:10px;background:transparent;display:grid;place-items:center;color:var(--ink);cursor:pointer}
+  .switch{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;background:transparent;color:var(--ink)}
+  .knob{width:30px;height:18px;border-radius:99px;background:var(--line);position:relative;transition:.2s}
+  .knob::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--card);transition:.2s}
+  .switch[aria-checked=true] .knob{background:var(--ink)} .switch[aria-checked=true] .knob::after{left:14px}
+  /* section hero */
+  .crumbs{font-family:var(--mono);font-size:12px;color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase;padding:26px 0 0;display:flex;gap:10px;align-items:center}
+  .crumbs .dot{width:8px;height:8px;border-radius:50%;background:var(--sys)}
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:start;padding:14px 0 36px}
+  .plate{position:relative;border:1px solid var(--line);border-radius:calc(var(--radius) + 6px);background:var(--plate);overflow:hidden;aspect-ratio:1/1;color:var(--ink)}
+  body[data-v="2"] .plate{border:0}
+  body[data-v="3"] .plate{border-color:#24272D}
+  .plate canvas{display:block;width:100%;height:100%}
+  .plate .no{position:absolute;top:14px;left:16px;font-family:var(--mono);font-size:11px;color:var(--ink-2);letter-spacing:.08em}
+  .plate svg.lines{position:absolute;inset:0;pointer-events:none}
+  .lbl{position:absolute;transform:translateY(-50%);font-size:13px;white-space:nowrap;background:var(--card);color:var(--ink);border:1px solid var(--line);padding:3px 8px;border-radius:7px;pointer-events:auto;cursor:pointer;transition:background .15s, color .15s}
+  .lbl.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .toolbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;backdrop-filter:blur(6px)}
+  .toolbar button{border:0;background:transparent;height:36px;padding:0 10px;border-radius:10px;display:flex;align-items:center;gap:6px;font:500 13px var(--body);color:var(--ink);cursor:pointer}
+  .toolbar button:hover{background:var(--paper-2)}
+  .toolbar button.primary{background:var(--ink);color:var(--paper)}
+  h1{font-family:var(--display);font-weight:var(--h1-weight);font-size:clamp(56px,8vw,104px);line-height:.95;letter-spacing:-.045em;margin:6px 0 10px}
+  .latin{font-family:var(--mono);font-size:14px;color:var(--ink-2)}
+  .tagline{font-family:var(--display);font-weight:500;font-size:24px;line-height:1.3;letter-spacing:-.01em;margin:18px 0 24px;max-width:24ch}
+  body[data-v="2"] .tagline{background:var(--sys);color:#fff;display:inline-block;padding:10px 16px;border-radius:16px;font-weight:600;font-size:20px}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 28px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--card-shadow)}
+  body[data-v="2"] .stat:nth-child(1){background:#FFE1DA;border-color:#FFE1DA} body[data-v="2"] .stat:nth-child(2){background:#DDEBFF;border-color:#DDEBFF}
+  body[data-v="2"] .stat:nth-child(3){background:#FFF0C7;border-color:#FFF0C7} body[data-v="2"] .stat:nth-child(4){background:#E3F5E6;border-color:#E3F5E6}
+  .stat b{display:block;font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.03em;line-height:1.1}
+  .stat span{font-size:14px;color:var(--ink-2)}
+  body[data-v="1"] .stat b{color:var(--ink)} body[data-v="3"] .stat b{color:var(--sys)}
+  h2{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:-.02em;margin:0 0 12px;display:flex;align-items:baseline;gap:12px}
+  h2 small{font-family:var(--mono);font-weight:400;font-size:12px;color:var(--ink-2);letter-spacing:.06em}
+  .parts{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
+  .parts li{display:grid;grid-template-columns:30px 1fr;gap:6px;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}
+  .parts li:hover,.parts li.on{background:var(--sys-soft)}
+  .parts .n{font-family:var(--mono);font-size:12px;color:var(--ink-2);padding-top:3px}
+  .parts b{font-weight:600} .parts i{font-family:var(--mono);font-style:normal;font-size:12px;color:var(--ink-2);margin-left:6px}
+  .parts p{margin:2px 0 0;font-size:14px;color:var(--ink-2)}
+  .kid{margin:36px 0;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;border-radius:calc(var(--radius) + 6px);padding:26px;background:var(--sys-soft)}
+  body[data-v="2"] .kid{background:#2D2453;color:#fff} body[data-v="2"] .kid .tag{color:#FFC4B5}
+  .kid .tag{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;display:flex;gap:8px;align-items:center;color:var(--sys)}
+  .kid q{font-family:var(--display);font-weight:600;font-size:clamp(22px,2.6vw,30px);line-height:1.3;letter-spacing:-.02em;quotes:"«" "»"}
+  .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 40px}
+  .fact{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--card);box-shadow:var(--card-shadow)}
+  .sys{border-radius:var(--radius)!important;box-shadow:var(--card-shadow)}
+  body[data-v="2"] .sys:nth-child(1){background:#DDEBFF} body[data-v="2"] .sys:nth-child(2){background:#ECE3FF} body[data-v="2"] .sys:nth-child(3){background:#ECE3FF}
+  body[data-v="2"] .sys:nth-child(4){background:#FFF0C7} body[data-v="2"] .sys:nth-child(5){background:#D9F3EF} body[data-v="2"] .sys:nth-child(6){background:#F3E8D6}
+  body[data-v="2"] .sys{border-color:transparent}
+  .fact .k{font-family:var(--mono);font-size:12px;color:var(--sys)}
+  .fact p{margin:8px 0 0}
+  .systems{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:0 0 48px}
+  .sys{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--card);text-decoration:none;display:flex;flex-direction:column;gap:22px;transition:transform .15s,border-color .15s}
+  .sys:hover{transform:translateY(-2px);border-color:var(--ink)}
+  .sys svg{width:34px;height:34px}
+  .sys b{font-family:var(--display);font-weight:600;font-size:17px}
+  .sys span{font-family:var(--mono);font-size:11px;color:var(--ink-2);display:block;margin-top:2px}
+  footer{border-top:1px solid var(--line);padding:22px 0 30px;font-size:14px;color:var(--ink-2)}
+  .ftr{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .ftr a{color:var(--ink);text-underline-offset:3px}
+  .note{position:fixed;right:14px;bottom:14px;background:var(--ink);color:var(--paper);font:12px var(--mono);padding:8px 10px;border-radius:10px;opacity:.85}
+  dialog{border:1px solid var(--line);border-radius:20px;background:var(--card);color:var(--ink);padding:26px;max-width:380px}
+  dialog::backdrop{background:rgba(28,26,23,.45)}
+  dialog h3{font-family:var(--display);font-size:24px;margin:10px 0 6px}
+  dialog .row{display:flex;gap:8px;margin-top:18px}
+  dialog button{flex:1;height:42px;border-radius:12px;border:1px solid var(--ink);background:transparent;font:500 14px var(--body);cursor:pointer;color:var(--ink)}
+  dialog button.yes{background:var(--ink);color:var(--paper)}
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr;gap:22px} nav{display:none}
+    .facts{grid-template-columns:1fr} .systems{grid-template-columns:repeat(3,1fr)}
+    .logo span{display:none} .tagline{font-size:22px}
+    .toolbar button span{display:none}
+  }
+</style>
+</head>
+<body data-v="1">
+<div class="switcher">
+  <button class="on" data-v="1">1 · Музей науки</button>
+  <button data-v="2">2 · Энциклопедия</button>
+  <button data-v="3">3 · Тёмная витрина</button>
+</div>
+<header><div class="wrap hdr">
+  <a class="logo" href="#"><b>3D-атлас человека</b><span>открытый атлас</span></a>
+  <nav><a href="#">Разделы</a><a href="#">Клетки и белки</a><a href="#">О проекте</a></nav>
+  <div class="tools">
+    <button class="icon-btn" title="Поиск" aria-label="Поиск"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="icon-btn" title="Тема" aria-label="Тёмная тема"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg></button>
+    <button class="switch" role="switch" aria-checked="false" id="adult">18+ <span class="knob"></span></button>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <div class="crumbs"><span class="dot"></span>Кровообращение · Раздел 10 из 23</div>
+  <section class="hero">
+    <div class="plate" id="plate">
+      <div class="no">ТАБЛИЦА 10 · ВИД СПЕРЕДИ</div>
+      <svg class="lines" id="lines"></svg>
+      <div id="labels"></div>
+      <div class="toolbar">
+        <button id="pause"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></svg><span>Пауза</span></button>
+        <button id="lbls"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></svg><span>Подписи</span></button>
+        <button id="reset"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Сброс</span></button>
+        <button class="primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span>Показ</span></button>
+      </div>
+    </div>
+
+    <div>
+      <h1>Сердце</h1>
+      <div class="latin">Cor · мышечный орган</div>
+      <p class="tagline">Неутомимый насос размером с кулак — бьётся всю жизнь без выходных</p>
+      <div class="stats">
+        <div class="stat"><b>≈100 000</b><span>ударов в сутки</span></div>
+        <div class="stat"><b>≈7 000 л</b><span>крови перекачивает за сутки</span></div>
+        <div class="stat"><b>250–350 г</b><span>масса у взрослого</span></div>
+        <div class="stat"><b>4</b><span>камеры: 2 предсердия и 2 желудочка</span></div>
+      </div>
+      <h2>Из чего состоит <small>НАЖМИТЕ НА ЧАСТЬ</small></h2>
+      <ul class="parts" id="parts"></ul>
+    </div>
+  </section>
+
+  <section class="kid">
+    <div class="tag"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10M7 12h6"/><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>Как рассказать ребёнку</div>
+    <q>Сердце — это мышца-насос. Оно сжимается и толкает кровь по всему телу, а кровь несёт кислород каждой клеточке.</q>
+  </section>
+
+  <h2>Интересные факты</h2>
+  <div class="facts">
+    <div class="fact"><div class="k">01</div><p>Сердце бьётся само: у него есть собственный «генератор» импульсов — синусовый узел.</p></div>
+    <div class="fact"><div class="k">02</div><p>Если вытянуть все сосуды одного человека в линию, получится около 100 000 км — больше двух оборотов вокруг Земли.</p></div>
+    <div class="fact"><div class="k">03</div><p>Звук «тук-тук» — это хлопают, закрываясь, сердечные клапаны.</p></div>
+  </div>
+
+  <h2>Другие разделы <small>ПО СИСТЕМАМ ОРГАНИЗМА</small></h2>
+  <div class="systems">
+    <a class="sys" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="#B5322B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v5"/><path d="M12 9c-1.5 0-2.5 1-3 2.5C8 14 7 15 5.5 15 4 15 3 13.8 3 12.2 3 9 5 6.5 7.5 6.5c1.2 0 1.8.6 1.8 1.5"/><path d="M12 9c1.5 0 2.5 1 3 2.5.9 2.5 2 3.5 3.5 3.5 1.5 0 2.5-1.2 2.5-2.8 0-3.2-2-5.7-4.5-5.7-1.2 0-1.8.6-1.8 1.5"/><path d="M5 15c0 3 1.5 5 3.5 5S11 18 11 15.5M19 15c0 3-1.5 5-3.5 5S13 18 13 15.5"/></svg><div><b>Лёгкие</b><span>ДЫХАНИЕ</span></div></a>
+    <a class="sys" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="#6B4FB0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c-1-1.5-3-2-4.5-1.2C5.7 4.6 5 6.3 5.3 7.8 3.8 8.4 3 10 3.4 11.6 2.6 12.8 2.8 14.6 4 15.5c-.2 1.7.9 3.3 2.6 3.6.5 1.3 1.8 2 3.1 1.8.9.6 1.7.4 2.3-.2V5Z"/><path d="M12 5c1-1.5 3-2 4.5-1.2 1.8.8 2.5 2.5 2.2 4 1.5.6 2.3 2.2 1.9 3.8.8 1.2.6 3-.6 3.9.2 1.7-.9 3.3-2.6 3.6-.5 1.3-1.8 2-3.1 1.8-.9.6-1.7.4-2.3-.2"/><path d="M8 9c1 .2 1.8 1 2 2M16 9c-1 .2-1.8 1-2 2M7.5 14.5c1 0 2-.5 2.5-1.5M16.5 14.5c-1 0-2-.5-2.5-1.5"/></svg><div><b>Мозг</b><span>НЕРВНАЯ СИСТЕМА</span></div></a>
+    <a class="sys" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="#6B4FB0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="1.1" fill="#6B4FB0"/></svg><div><b>Глаз</b><span>ОРГАНЫ ЧУВСТВ</span></div></a>
+    <a class="sys" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="#B07A1F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5c-2 .5-3 2.5-2.6 5 .4 2.4 1.2 3.8 1.6 6.5.4 2.6.8 5.5 2.2 5.5 1.6 0 1.5-3.5 2.2-5.4.4-1 .9-1.6 1.6-1.6s1.2.6 1.6 1.6c.7 1.9.6 5.4 2.2 5.4 1.4 0 1.8-2.9 2.2-5.5.4-2.7 1.2-4.1 1.6-6.5.4-2.5-.6-4.5-2.6-5-2.2-.6-3.5.7-5 .7S8.2 2.9 6 3.5Z"/></svg><div><b>Зуб</b><span>ПИЩЕВАРЕНИЕ</span></div></a>
+    <a class="sys" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="#1F8A80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4C5.5 4 4 7.5 4 11s1.5 8 5 8c2 0 2.5-1.6 2.5-3.2 0-1.4-1.2-2-1.2-3.8s1.2-2.4 1.2-3.8C11.5 6 11 4 9 4Z"/><path d="M15 4c3.5 0 5 3.5 5 7s-1.5 8-5 8c-2 0-2.5-1.6-2.5-3.2 0-1.4 1.2-2 1.2-3.8s-1.2-2.4-1.2-3.8C12.5 6 13 4 15 4Z"/></svg><div><b>Почки</b><span>МОЧЕВЫДЕЛЕНИЕ</span></div></a>
+    <a class="sys" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="#8C6A3E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2.3"/><path d="M12 7v7M8 10h8M9 21l3-7 3 7"/><path d="M8 10l-2 5M16 10l2 5"/></svg><div><b>Скелет</b><span>ОПОРА И ДВИЖЕНИЕ</span></div></a>
+  </div>
+</main>
+
+<footer><div class="wrap ftr">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+  <span>Сайт носит информационный характер. Заметили ошибку? <a href="#">Напишите нам</a></span>
+</div></footer>
+
+<dialog id="dlg">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3Z"/><path d="M12 8v4M12 15.5h.01"/></svg>
+  <h3>Материалы 18+</h3>
+  <p style="margin:0;color:var(--ink-2)">Подробная анатомия половых органов и откровенные иллюстрации. Подтвердите, что вам исполнилось 18 лет.</p>
+  <div class="row"><button class="yes" value="yes" id="yes">Мне есть 18 лет</button><button id="no">Отмена</button></div>
+</dialog>
+
+<div class="note">Превью стиля · черновик</div>
+
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.170.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ---------- variant switcher ----------
+document.querySelectorAll('.switcher button').forEach(b=>b.onclick=()=>{
+  document.body.dataset.v=b.dataset.v;
+  document.querySelectorAll('.switcher button').forEach(x=>x.classList.toggle('on',x===b));
+  const dark=b.dataset.v==='3';
+  hemi.intensity=dark?0.55:1.25; key.intensity=dark?3.2:2.4; rim.intensity=dark?2.2:1.2;
+  shadow.material.opacity=dark?0.0:1;
+});
+// ---------- 18+ ----------
+const sw=document.getElementById('adult'), dlg=document.getElementById('dlg');
+sw.onclick=()=>{ if(sw.getAttribute('aria-checked')==='true'){sw.setAttribute('aria-checked','false');return;} dlg.showModal(); };
+document.getElementById('yes').onclick=()=>{sw.setAttribute('aria-checked','true');dlg.close();};
+document.getElementById('no').onclick=()=>dlg.close();
+
+// ---------- scene ----------
+const plate=document.getElementById('plate');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+plate.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(32,1,0.1,100);
+camera.position.set(0.5,1.0,11);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enablePan=false; controls.enableDamping=true; controls.minDistance=6.5; controls.maxDistance=15;
+controls.target.set(0,0.55,0); controls.autoRotate=true; controls.autoRotateSpeed=0.6;
+renderer.domElement.addEventListener('pointerdown',()=>controls.autoRotate=false);
+
+// soft studio light
+const hemi=new THREE.HemisphereLight(0xfff6ea,0xb8a58c,1.25); scene.add(hemi);
+const key=new THREE.DirectionalLight(0xfff1e0,2.4); key.position.set(3,5,4); scene.add(key);
+const rim=new THREE.DirectionalLight(0xdfe8ff,1.2); rim.position.set(-4,2,-3); scene.add(rim);
+const fill=new THREE.DirectionalLight(0xffe2d0,0.6); fill.position.set(-2,-3,4); scene.add(fill);
+
+// soft contact shadow
+const shCanvas=document.createElement('canvas'); shCanvas.width=shCanvas.height=128;
+const g=shCanvas.getContext('2d'); const grd=g.createRadialGradient(64,64,0,64,64,64);
+grd.addColorStop(0,'rgba(60,40,25,.32)'); grd.addColorStop(1,'rgba(60,40,25,0)'); g.fillStyle=grd; g.fillRect(0,0,128,128);
+const shadow=new THREE.Mesh(new THREE.PlaneGeometry(4.2,2.2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(shCanvas),transparent:true,depthWrite:false}));
+shadow.rotation.x=-Math.PI/2; shadow.position.y=-1.95; scene.add(shadow);
+
+const mat=(c,o={})=>new THREE.MeshPhysicalMaterial({color:c,roughness:.5,metalness:0,clearcoat:.35,clearcoatRoughness:.45,sheen:.6,sheenColor:new THREE.Color(0xffd9cc),sheenRoughness:.5,...o});
+const M={ myo:mat(0xB5463C), atrium:mat(0xA6443E), artery:mat(0xC1352D), vein:mat(0x3B5FB0), fat:mat(0xE6C77A,{roughness:.7}), cor:mat(0xD0463A) };
+
+const heart=new THREE.Group(); scene.add(heart); heart.position.y=0.15;
+const parts={};
+
+// --- ventricles: deformed sphere
+function deform(p){
+  // p on unit sphere -> heart-ish cone, apex down
+  const t=(p.y+1)/2;
+  const r=0.30+0.70*Math.pow(Math.min(1,t/0.78),0.55);
+  const v=new THREE.Vector3(p.x*r*1.18, p.y*1.25, p.z*r*0.92);
+  // flatten the posterior (diaphragmatic) surface a bit
+  if(v.z<0) v.z*=0.85;
+  // right ventricle bulge (viewer left/front)
+  v.x+= -0.06*Math.max(0,p.z)*(1-t);
+  return v;
+}
+const vg=new THREE.SphereGeometry(1,128,128); const pos=vg.attributes.position; const tmp=new THREE.Vector3();
+for(let i=0;i<pos.count;i++){tmp.fromBufferAttribute(pos,i); const d=deform(tmp); pos.setXYZ(i,d.x,d.y,d.z);}
+vg.computeVertexNormals();
+const vent=new THREE.Mesh(vg,M.myo); vent.rotation.z=0.5; vent.rotation.y=-0.25; vent.position.set(0.12,-0.1,0);
+heart.add(vent); parts['lv']=vent;
+// surface helper (same transform)
+const toWorld=(u,v,lift=0.035)=>{ const p=new THREE.Vector3().setFromSphericalCoords(1,v,u); const d=deform(p); const n=d.clone().normalize(); d.addScaledVector(n,lift); return d.applyEuler(vent.rotation).add(vent.position); };
+
+// --- atria
+const ra=new THREE.Mesh(new THREE.SphereGeometry(0.62,64,64),M.atrium); ra.scale.set(1,0.9,0.95); ra.position.set(-0.78,0.95,0.05); heart.add(ra); parts['ra']=ra;
+const la=new THREE.Mesh(new THREE.SphereGeometry(0.55,64,64),M.atrium); la.scale.set(1.1,0.8,0.9); la.position.set(0.35,1.0,-0.55); heart.add(la); parts['la']=la;
+// right auricle
+const aur=new THREE.Mesh(new THREE.SphereGeometry(0.28,48,48),M.atrium); aur.scale.set(1.4,0.7,0.8); aur.position.set(-0.45,1.15,0.55); aur.rotation.z=-0.4; heart.add(aur);
+// coronary fat in the AV groove
+
+// --- vessels
+const tube=(pts,r,m,seg=80)=>new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p))),seg,r,24,false),m);
+const capOf=(pts,r,m)=>{const s=new THREE.Mesh(new THREE.SphereGeometry(r,24,24),m); s.position.set(...pts[pts.length-1]); return s;};
+const aortaPts=[[-0.05,0.85,0.15],[-0.05,1.55,0.2],[0.15,2.15,0.05],[0.65,2.3,-0.35],[0.95,1.95,-0.75],[0.95,1.1,-0.95],[0.9,0.0,-1.0]];
+const aorta=tube(aortaPts,0.24,M.artery); heart.add(aorta); parts['ao']=aorta;
+const aortaCurve=new THREE.CatmullRomCurve3(aortaPts.map(p=>new THREE.Vector3(...p)));
+[[0.12,0.04],[0.30,0.0],[0.45,-0.1]].forEach(([t,dx],i)=>{ const a=aortaCurve.getPointAt(t+0.22); const pts=[[a.x,a.y,a.z],[a.x+dx-0.05+i*0.08,a.y+0.55,a.z],[a.x+dx-0.1+i*0.15,a.y+1.0,a.z+0.05]]; heart.add(tube(pts,0.075,M.artery,24)); heart.add(capOf(pts,0.075,M.artery)); });
+const ptPts=[[0.35,0.75,0.55],[0.42,1.35,0.55],[0.3,1.75,0.25]];
+const pt=tube(ptPts,0.22,M.vein); heart.add(pt); parts['pt']=pt;
+const lpa=[[0.3,1.75,0.25],[0.9,1.8,0.0],[1.45,1.7,-0.15]]; heart.add(tube(lpa,0.13,M.vein,30)); heart.add(capOf(lpa,0.13,M.vein));
+const rpa=[[0.3,1.75,0.25],[-0.3,1.82,-0.15],[-1.2,1.75,-0.3]]; heart.add(tube(rpa,0.13,M.vein,30)); heart.add(capOf(rpa,0.13,M.vein));
+const svcPts=[[-0.85,1.3,0.0],[-0.85,2.0,-0.05],[-0.8,2.75,-0.05]]; const svc=tube(svcPts,0.2,M.vein); heart.add(svc); heart.add(capOf(svcPts,0.2,M.vein)); parts['svc']=svc;
+const ivcPts=[[-0.85,0.55,-0.2],[-0.85,-0.2,-0.3],[-0.8,-0.9,-0.35]]; heart.add(tube(ivcPts,0.2,M.vein)); heart.add(capOf(ivcPts,0.2,M.vein));
+heart.add(capOf([[0,0,0],[0.9,0.0,-1.0]],0.24,M.artery));
+// pulmonary veins into left atrium
+[[0.9,1.15,-0.7],[0.95,0.85,-0.75],[-0.05,1.1,-0.85],[0.0,0.85,-0.9]].forEach((e,i)=>{const s=la.position; const pts=[[s.x,s.y,s.z],[(s.x+e[0])/2,e[1],(s.z+e[2])/2],[e[0]+(i<2?0.35:-0.35),e[1],e[2]]]; heart.add(tube(pts,0.08,mat(0xC0504A),20)); heart.add(capOf(pts,0.08,mat(0xC0504A)));});
+// coronary arteries on surface
+const lad=[]; for(let k=0;k<=12;k++){ lad.push(toWorld(0.25+k*0.01, 0.35+k*0.17)); }
+heart.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lad),60,0.045,10),M.cor));
+const rca=[]; for(let k=0;k<=12;k++){ rca.push(toWorld(-0.9+k*0.13, 0.45+k*0.03)); }
+heart.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rca),60,0.04,10),M.cor));
+const lcx=[]; for(let k=0;k<=8;k++){ lcx.push(toWorld(0.55+k*0.16, 0.42+k*0.02)); }
+heart.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lcx),40,0.035,10),M.cor));
+
+// blood particles
+const flows=[];
+const addFlow=(curve,color,n,speed)=>{ for(let i=0;i<n;i++){ const s=new THREE.Mesh(new THREE.SphereGeometry(0.055,12,12),new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.5,roughness:.4})); heart.add(s); flows.push({s,curve,t:i/n,speed}); } };
+addFlow(aortaCurve,0xff5a4a,10,0.22);
+addFlow(new THREE.CatmullRomCurve3(svcPts.slice().reverse().map(p=>new THREE.Vector3(...p))),0x6f8fe0,6,0.18);
+addFlow(new THREE.CatmullRomCurve3(ptPts.map(p=>new THREE.Vector3(...p))),0x6f8fe0,5,0.2);
+flows.forEach(f=>{ f.s.material.transparent=true; f.s.material.opacity=0.9; });
+
+// ---------- parts + labels ----------
+const DATA=[
+ {id:'lv',n:'Левый желудочек',l:'Ventriculus sinister',t:'Самая мощная камера: выталкивает кровь в аорту и дальше по всему телу.',a:()=>toWorld(0.9,1.6,0.02)},
+ {id:'ra',n:'Правое предсердие',l:'Atrium dextrum',t:'Принимает кровь, вернувшуюся от тела. Здесь находится «генератор» ритма.',a:()=>ra.position.clone().add(new THREE.Vector3(-0.45,0,0.2))},
+ {id:'ao',n:'Аорта',l:'Aorta',t:'Самая крупная артерия, толщиной с палец. Несёт кровь с кислородом.',a:()=>aortaCurve.getPointAt(0.35)},
+ {id:'pt',n:'Лёгочный ствол',l:'Truncus pulmonalis',t:'Ведёт кровь без кислорода в лёгкие, чтобы она там «подзарядилась».',a:()=>new THREE.Vector3(...ptPts[1])},
+ {id:'svc',n:'Верхняя полая вена',l:'Vena cava superior',t:'Возвращает кровь от головы и рук.',a:()=>new THREE.Vector3(...svcPts[2])},
+];
+const ul=document.getElementById('parts'), labels=document.getElementById('labels'), lines=document.getElementById('lines');
+let selected=null, showLabels=true;
+DATA.forEach((d,i)=>{
+  const li=document.createElement('li'); li.innerHTML=`<span class="n">${String(i+1).padStart(2,'0')}</span><div><b>${d.n}</b><i>${d.l}</i><p>${d.t}</p></div>`;
+  li.onclick=()=>select(d.id); li.dataset.id=d.id; ul.appendChild(li);
+  const lb=document.createElement('div'); lb.className='lbl'; lb.textContent=d.n; lb.onclick=()=>select(d.id); labels.appendChild(lb); d.el=lb;
+});
+const base=new Map();
+function select(id){
+  selected = selected===id?null:id;
+  ul.querySelectorAll('li').forEach(li=>li.classList.toggle('on',li.dataset.id===selected));
+  DATA.forEach(d=>d.el.classList.toggle('on',d.id===selected));
+  Object.entries(parts).forEach(([k,m])=>{ if(!base.has(m)) base.set(m,m.material); m.material = (k===selected)? Object.assign(base.get(m).clone(),{emissive:new THREE.Color(0xff8a5c),emissiveIntensity:.35}) : base.get(m); });
+}
+document.getElementById('lbls').onclick=()=>{showLabels=!showLabels;};
+let paused=false; document.getElementById('pause').onclick=e=>{paused=!paused;};
+document.getElementById('reset').onclick=()=>{camera.position.set(0.5,1.0,11);controls.target.set(0,0.55,0);controls.autoRotate=true;};
+
+function resize(){ const w=plate.clientWidth,h=plate.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); lines.setAttribute('viewBox',`0 0 ${w} ${h}`);}
+new ResizeObserver(resize).observe(plate); resize();
+
+const clock=new THREE.Clock(); let time=0;
+function beat(t){ // ~70 bpm: atria then ventricles
+  const ph=(t*70/60)%1;
+  const a=Math.exp(-Math.pow((ph-0.05)/0.05,2));
+  const v=Math.exp(-Math.pow((ph-0.22)/0.07,2));
+  return {a,v};
+}
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=clock.getDelta(); if(!paused) time+=dt;
+  const {a,v}=beat(time);
+  vent.scale.setScalar(1-0.055*v); ra.scale.set(1-0.06*a,0.9-0.05*a,0.95-0.05*a); la.scale.set(1.1-0.06*a,0.8-0.05*a,0.9-0.05*a);
+  flows.forEach(f=>{ if(!paused) f.t=(f.t+dt*f.speed*(0.6+1.4*v))%1; f.s.position.copy(f.curve.getPointAt(f.t)); });
+  controls.update(); renderer.render(scene,camera);
+  // labels
+  const w=plate.clientWidth,h=plate.clientHeight; let svg='';
+  const left=[],right=[];
+  DATA.forEach(d=>{ const p=heart.localToWorld(d.a().clone()).project(camera); d.sx=(p.x+1)/2*w; d.sy=(1-p.y)/2*h; (d.sx<w/2?left:right).push(d); });
+  const place=(arr,side)=>{ arr.sort((x,y)=>x.sy-y.sy); let last=-99; arr.forEach(d=>{ let y=Math.max(d.sy,last+32); y=Math.min(Math.max(y,58),h-76); last=y; const vis=showLabels||d.id===selected; d.el.style.display=vis?'block':'none'; if(!vis) return; const lw=d.el.offsetWidth; const x= side==='l'? 14 : w-14-lw; d.el.style.left=x+'px'; d.el.style.top=y+'px'; const ex= side==='l'? x+lw : x; svg+=`<circle cx="${d.sx}" cy="${d.sy}" r="3" fill="currentColor"/><path d="M${d.sx},${d.sy} L${ex+(side==='l'?14:-14)},${y} L${ex},${y}" stroke="currentColor" stroke-width="1" fill="none" opacity=".7"/>`; }); };
+  place(left,'l'); place(right,'r'); lines.innerHTML=svg;
+}
+loop();
+</script>
+</body>
+</html>

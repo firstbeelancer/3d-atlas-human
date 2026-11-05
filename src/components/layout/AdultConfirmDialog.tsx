@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ShieldAlert } from 'lucide-react';
 import { useAdult } from '../../lib/adult';
 import { t } from '../../i18n';
@@ -21,7 +22,8 @@ export function AdultConfirmDialog() {
 
   if (!asking) return null;
 
-  return (
+  // портал в body: у шапки есть backdrop-filter, который иначе «запирает» fixed-слой внутри неё
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-[#17203a]/45 p-4 backdrop-blur-[2px]" onClick={cancel}>
       <div
         role="dialog"
@@ -42,7 +44,7 @@ export function AdultConfirmDialog() {
           <button
             type="button"
             onClick={confirm}
-            className="h-11 flex-1 rounded-full bg-ink px-5 font-medium text-stone transition-opacity hover:opacity-90"
+            className="h-11 flex-1 whitespace-nowrap rounded-full bg-ink px-5 font-medium text-stone transition-opacity hover:opacity-90"
           >
             {t('adult.confirm')}
           </button>
@@ -56,6 +58,7 @@ export function AdultConfirmDialog() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

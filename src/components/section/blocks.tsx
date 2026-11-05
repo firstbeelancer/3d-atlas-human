@@ -22,7 +22,11 @@ export function SectionHero({ section, systemTitle }: { section: SectionMeta; sy
       <p className="m-0 text-[15px] font-semibold" style={{ color: 'var(--accent)' }}>
         {systemTitle}
       </p>
-      <h1 className="m-0 mt-2 text-[clamp(52px,8.4vw,112px)] font-extrabold leading-[0.92] tracking-[-0.05em]">
+      <h1
+        className={`m-0 mt-2 break-words font-extrabold leading-[0.92] tracking-[-0.05em] ${
+          section.title.length > 16 ? 'text-[clamp(36px,5.6vw,76px)]' : 'text-[clamp(52px,8.4vw,112px)]'
+        }`}
+      >
         {section.title}
       </h1>
       <p className="m-0 mt-3 font-display text-[17px] font-medium text-ink-soft">{section.latin}</p>

@@ -25,17 +25,17 @@
   --color-line: var(--c-line);
   --color-wash: var(--c-wash);
 
-  --color-sys-cells: #2f8a52;
-  --color-sys-support: #94733f;
+  --color-sys-cells: #2a7c4a;
+  --color-sys-support: #886a3a;
   --color-sys-overview: #3d4a6b;
   --color-sys-nervous: #6d4bc4;
-  --color-sys-respiratory: #2a76b8;
+  --color-sys-respiratory: #2871b1;
   --color-sys-circulatory: #cf3329;
-  --color-sys-digestive: #b9740f;
-  --color-sys-urinary: #17837d;
+  --color-sys-digestive: #9b610d;
+  --color-sys-urinary: #167b76;
   --color-sys-skin: #9b5c41;
-  --color-sys-reproductive: #c8465f;
-  --color-sys-endocrine: #a27c0c;
+  --color-sys-reproductive: #bc4259;
+  --color-sys-endocrine: #88680a;
 
   --radius-plinth: 28px;
 }
@@ -58,6 +58,18 @@
   --c-ink-soft: #a3a6ad;
   --c-line: #2a2d33;
   --c-wash: #1b1d22;
+  /* цвета систем светлее — чтобы текст читался на тёмном фоне (WCAG AA) */
+  --color-sys-cells: #378f59;
+  --color-sys-support: #987947;
+  --color-sys-overview: #778097;
+  --color-sys-nervous: #8a6fd0;
+  --color-sys-respiratory: #3f84bf;
+  --color-sys-circulatory: #d7544b;
+  --color-sys-digestive: #b9740f;
+  --color-sys-urinary: #2a8d87;
+  --color-sys-skin: #a9735c;
+  --color-sys-reproductive: #ce596f;
+  --color-sys-endocrine: #a27c0c;
   color-scheme: dark;
 }
 
@@ -90,7 +102,7 @@ p {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--c-ink);
   outline-offset: 3px;
   border-radius: 6px;
 }

@@ -3,6 +3,7 @@ import { Maximize2, Minimize2, Pause, Play, RotateCcw, Scissors, Tags } from 'lu
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { StageState } from './types';
+import { StageBoundary } from './StageBoundary';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -27,6 +28,9 @@ function prefersReducedMotion(): boolean {
 
 export function Stage({ label, description, hasCutaway, camera, target, floorY, children, className = '' }: Props) {
   const [webgl] = useState(hasWebGL);
+  // 3D сломалась (ошибка модели, не загрузился кусок, потерян WebGL-контекст) — показываем текстовую заглушку
+  const [failed, setFailed] = useState(false);
+  const fail = useCallback(() => setFailed(true), []);
   const [paused, setPaused] = useState(prefersReducedMotion);
   const [cutaway, setCutaway] = useState(false);
   // на узких экранах подписи по умолчанию скрыты: касание части всё равно показывает её подпись
@@ -64,12 +68,12 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
     return () => document.removeEventListener('keydown', onKey);
   }, [show]);
 
-  if (!webgl) {
+  if (!webgl || failed) {
     return (
       <div className={`stage-plinth relative grid place-items-center rounded-[28px] border border-line p-8 ${className}`}>
         <div className="max-w-[40ch] text-center">
           <p className="m-0 font-display text-[20px] font-semibold">{description}</p>
-          <p className="mb-0 mt-3 text-ink-soft">{t('stage.noWebgl')}</p>
+          <p className="mb-0 mt-3 text-ink-soft">{failed ? t('stage.failed') : t('stage.noWebgl')}</p>
         </div>
       </div>
     );
@@ -86,11 +90,22 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
       }`}
     >
       <p className="sr-only">{description}</p>
-      <Suspense fallback={null}>
-        <StageCanvas key={resetKey} label={label} camera={camera} target={target} floorY={floorY} paused={paused} time={time}>
-          {children(state)}
-        </StageCanvas>
-      </Suspense>
+      <StageBoundary onError={fail}>
+        <Suspense fallback={null}>
+          <StageCanvas
+            key={resetKey}
+            label={label}
+            camera={camera}
+            target={target}
+            floorY={floorY}
+            paused={paused}
+            time={time}
+            onContextLost={fail}
+          >
+            {children(state)}
+          </StageCanvas>
+        </Suspense>
+      </StageBoundary>
 
       <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
         {t('stage.hint')}

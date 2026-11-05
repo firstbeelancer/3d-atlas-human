@@ -8,4 +8,6 @@ export interface StageState {
 
 export interface ModelProps {
   state: StageState;
+  /** Названия частей органа (id части → название на языке сайта) для подписей на модели. */
+  names?: Record<string, string>;
 }

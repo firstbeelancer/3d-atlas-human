@@ -28,22 +28,20 @@ function ExhibitCaption() {
             to={`/razdel/${s.slug}`}
             className="shrink-0 rounded-full bg-ink px-5 py-2.5 font-medium text-stone no-underline hover:opacity-90"
           >
-            Открыть раздел
+            {t('home.open')}
           </Link>
         </div>
       ) : (
-        <p className="m-0 text-ink-soft">
-          Нажмите на орган внутри фигуры, чтобы узнать, что это. Нажмите ещё раз — откроется его раздел.
-        </p>
+        <p className="m-0 text-ink-soft">{t('home.captionHint')}</p>
       )}
     </div>
   );
 }
 
 const STEPS = [
-  { title: 'Выберите орган', text: 'На фигуре, через поиск или в списке разделов ниже.' },
-  { title: 'Покрутите модель', text: 'Нажимайте на части — они подсветятся и подпишутся. Кнопка «Показ» разворачивает модель на весь экран.' },
-  { title: 'Прочитайте вслух', text: 'В каждом разделе есть блок «Как рассказать ребёнку» — короткие точные фразы для малышей.' },
+  { title: () => t('home.step1Title'), text: () => t('home.step1Text') },
+  { title: () => t('home.step2Title'), text: () => t('home.step2Text') },
+  { title: () => t('home.step3Title'), text: () => t('home.step3Text') },
 ];
 
 export function HomePage() {
@@ -54,11 +52,10 @@ export function HomePage() {
         <section className="grid items-center gap-8 pb-6 pt-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14 lg:pt-12">
           <div className="lg:pb-24">
             <h1 className="m-0 text-[clamp(46px,7vw,96px)] font-extrabold leading-[0.93] tracking-[-0.05em]">
-              Как устроен человек
+              {t('home.title')}
             </h1>
             <p className="m-0 mt-6 max-w-[42ch] text-[19px] leading-[1.55] text-ink-soft">
-              Живые 3D-модели органов, клеток и систем тела. Их можно крутить, разбирать на части и показывать ребёнку —
-              с точными объяснениями простым языком.
+              {t('home.lead')}
             </p>
             <div className="mt-8">
               <SearchBox />
@@ -66,8 +63,8 @@ export function HomePage() {
           </div>
           <div>
             <Stage
-              label="Фигура человека"
-              description="Полупрозрачная фигура человека, внутри видны мозг, лёгкие, сердце, печень, желудок, почки, кишечник и мочевой пузырь."
+              label={t('home.figureLabel')}
+              description={t('home.figureDescription')}
               camera={{ position: [0, 0.1, 18.5], fov: 32 }}
               target={[0, -1.05, 0]}
               floorY={-4.72}
@@ -84,7 +81,7 @@ export function HomePage() {
         </section>
       </SelectionProvider>
 
-      <section id="razdely" aria-label="Разделы атласа" className="mt-16 scroll-mt-24">
+      <section id="razdely" aria-label={t('home.indexLabel')} className="mt-16 scroll-mt-24">
         <h2 className="m-0 text-[clamp(32px,4vw,48px)] font-extrabold tracking-[-0.04em]">{t('nav.sections')}</h2>
         <div className="mt-8 grid gap-x-10 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
           {SYSTEMS.map((sys) => (
@@ -124,13 +121,13 @@ export function HomePage() {
       </section>
 
       <section className="mt-20">
-        <h2 className="m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold tracking-[-0.035em]">Как смотреть атлас с ребёнком</h2>
+        <h2 className="m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold tracking-[-0.035em]">{t('home.howTitle')}</h2>
         <ol className="m-0 mt-6 grid list-none gap-6 p-0 md:grid-cols-3">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="border-t-2 border-ink pt-4">
+            <li key={step.title()} className="border-t-2 border-ink pt-4">
               <span className="font-display text-[44px] font-extrabold leading-none tracking-[-0.04em] text-line">{i + 1}</span>
-              <p className="m-0 mt-2 font-display text-[21px] font-bold tracking-[-0.015em]">{step.title}</p>
-              <p className="m-0 mt-1.5 max-w-[34ch] text-ink-soft">{step.text}</p>
+              <p className="m-0 mt-2 font-display text-[21px] font-bold tracking-[-0.015em]">{step.title()}</p>
+              <p className="m-0 mt-1.5 max-w-[34ch] text-ink-soft">{step.text()}</p>
             </li>
           ))}
         </ol>

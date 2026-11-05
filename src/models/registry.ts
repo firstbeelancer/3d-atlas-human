@@ -1,5 +1,6 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { ModelProps } from '../three/types';
+import { modelDescriptions } from '../content/ru/models';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
@@ -17,7 +18,6 @@ export const MODELS: Record<string, ModelEntry> = {
     hasCutaway: true,
     camera: { position: [0.6, 0.9, 12], fov: 32 },
     target: [0, 0.35, 0],
-    description:
-      'Модель сердца спереди: четыре камеры, аорта, лёгочный ствол и полые вены. В режиме разреза видны клапаны, перегородка и ток крови.',
+    description: modelDescriptions.serdce,
   },
 };

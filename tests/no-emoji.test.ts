@@ -15,6 +15,17 @@ describe('findEmoji', () => {
     expect(findEmoji('\u{1F9E0} мозг')).toHaveLength(1);
   });
 
+  it('finds text-default pictographs that phones still draw as emoji', () => {
+    expect(findEmoji('❤')).toHaveLength(1);
+    expect(findEmoji('✔')).toHaveLength(1);
+    expect(findEmoji('☀')).toHaveLength(1);
+    expect(findEmoji('✈')).toHaveLength(1);
+  });
+
+  it('allows arrows', () => {
+    expect(findEmoji('↔ ↕ →')).toEqual([]);
+  });
+
   it('does not flag typography', () => {
     expect(findEmoji('18+ · © — № ® ™ « » ≈ ×')).toEqual([]);
   });

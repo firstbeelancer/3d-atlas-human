@@ -2,12 +2,15 @@ import { useEffect, useRef, useState, type ReactNode, type MutableRefObject } fr
 import { Canvas, useFrame } from '@react-three/fiber';
 import { AdaptiveDpr, ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { useSelection } from './selection';
+import { frameloopFor } from './frameloop';
 
 interface Props {
   label: string;
   camera?: { position: [number, number, number]; fov?: number };
   target?: [number, number, number];
   floorY?: number;
+  /** WebGL-контекст потерян (нехватка памяти на телефоне и т.п.). */
+  onContextLost?: () => void;
   paused: boolean;
   time: MutableRefObject<number>;
   children: ReactNode;
@@ -38,7 +41,7 @@ function Studio() {
   );
 }
 
-export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, paused, time, children }: Props) {
+export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, onContextLost, paused, time, children }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
@@ -62,18 +65,25 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, 
     <div ref={host} className="absolute inset-0" onPointerDown={() => setInteracted(true)}>
       <Canvas
         aria-label={label}
-        frameloop={visible ? 'always' : 'never'}
-        dpr={[1, 2]}
+        frameloop={frameloopFor(visible, paused)}
+        dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true }}
         camera={{ position: cameraPosition, fov: camera?.fov ?? 32 }}
         onPointerMissed={() => select(null)}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            onContextLost?.();
+          });
+        }}
       >
         <Clock paused={paused} time={time} />
         <Studio />
         {children}
-        <ContactShadows position={[0, floorY, 0]} opacity={0.32} scale={9} blur={2.6} far={4.5} color="#3a2e24" />
+        <ContactShadows resolution={256} position={[0, floorY, 0]} opacity={0.32} scale={9} blur={2.6} far={4.5} color="#3a2e24" />
         <OrbitControls
           makeDefault
+          regress
           target={target}
           enablePan={false}
           enableDamping

@@ -146,7 +146,7 @@ function Valve({
   );
 }
 
-export default function HeartModel({ state }: ModelProps) {
+export default function HeartModel({ state, names = {} }: ModelProps) {
   const { selected } = useSelection();
   const cut = state.cutaway || (selected !== null && INTERIOR.has(selected));
   const wall = cut ? 0.2 : undefined;
@@ -278,21 +278,21 @@ export default function HeartModel({ state }: ModelProps) {
       )}
 
       {/* Подписи */}
-      <Label labels={state.labels} partId="right-atrium" text="Правое предсердие" at={[-1.45, 0.62, 0.25]} />
-      <Label labels={state.labels} partId="right-ventricle" text="Правый желудочек" at={[-0.45, -0.75, 0.9]} />
-      <Label labels={state.labels} partId="left-ventricle" text="Левый желудочек" at={[1.25, -0.7, 0.3]} />
-      <Label labels={state.labels} partId="aorta" text="Аорта" at={[0.4, 2.12, 0.05]} side="right" />
-      <Label labels={state.labels} partId="pulmonary-trunk" text="Лёгочный ствол" at={[0.6, 1.2, 0.8]} side="right" />
-      <Label labels={state.labels} partId="superior-vena-cava" text="Верхняя полая вена" at={[-1.2, 2.35, 0.1]} />
-      <Label labels={false} partId="left-atrium" text="Левое предсердие" at={[0.95, 0.95, -0.7]} />
-      <Label labels={false} partId="inferior-vena-cava" text="Нижняя полая вена" at={[-1.15, -0.9, -0.3]} />
-      <Label labels={false} partId="pulmonary-veins" text="Лёгочные вены" at={[1.5, 0.82, -0.85]} />
-      <Label labels={false} partId="coronary-arteries" text="Коронарные артерии" at={[0.3, -0.2, 0.95]} side="right" />
+      <Label labels={state.labels} partId="right-atrium" text={names["right-atrium"]} at={[-1.45, 0.62, 0.25]} />
+      <Label labels={state.labels} partId="right-ventricle" text={names["right-ventricle"]} at={[-0.45, -0.75, 0.9]} />
+      <Label labels={state.labels} partId="left-ventricle" text={names["left-ventricle"]} at={[1.25, -0.7, 0.3]} />
+      <Label labels={state.labels} partId="aorta" text={names["aorta"]} at={[0.4, 2.12, 0.05]} side="right" />
+      <Label labels={state.labels} partId="pulmonary-trunk" text={names["pulmonary-trunk"]} at={[0.6, 1.2, 0.8]} side="right" />
+      <Label labels={state.labels} partId="superior-vena-cava" text={names["superior-vena-cava"]} at={[-1.2, 2.35, 0.1]} />
+      <Label labels={false} partId="left-atrium" text={names["left-atrium"]} at={[0.95, 0.95, -0.7]} />
+      <Label labels={false} partId="inferior-vena-cava" text={names["inferior-vena-cava"]} at={[-1.15, -0.9, -0.3]} />
+      <Label labels={false} partId="pulmonary-veins" text={names["pulmonary-veins"]} at={[1.5, 0.82, -0.85]} />
+      <Label labels={false} partId="coronary-arteries" text={names["coronary-arteries"]} at={[0.3, -0.2, 0.95]} side="right" />
       {cut && (
         <>
-          <Label labels={state.labels} partId="tricuspid-valve" text="Трёхстворчатый клапан" at={[-0.75, 0.25, 0.5]} inner />
-          <Label labels={state.labels} partId="mitral-valve" text="Митральный клапан" at={[0.45, 0.3, -0.3]} side="right" inner />
-          <Label labels={state.labels} partId="septum" text="Перегородка" at={[0.05, -0.6, 0.55]} side="right" inner />
+          <Label labels={state.labels} partId="tricuspid-valve" text={names["tricuspid-valve"]} at={[-0.75, 0.25, 0.5]} inner />
+          <Label labels={state.labels} partId="mitral-valve" text={names["mitral-valve"]} at={[0.45, 0.3, -0.3]} side="right" inner />
+          <Label labels={state.labels} partId="septum" text={names["septum"]} at={[0.05, -0.6, 0.55]} side="right" inner />
         </>
       )}
     </group>

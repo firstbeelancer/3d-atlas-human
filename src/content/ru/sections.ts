@@ -29,7 +29,7 @@ export const sectionTexts: Record<string, SectionTexts> = {
   glaz: {
     title: 'Глаз',
     latin: 'Oculus',
-    tagline: 'Живая камера, которая наводит фокус быстрее, чем вы моргнёте',
+    tagline: 'Живая камера, которая сама наводит резкость и подстраивается под свет',
   },
   uho: {
     title: 'Ухо',

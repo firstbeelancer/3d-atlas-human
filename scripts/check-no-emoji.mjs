@@ -3,13 +3,14 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Эмодзи = символ с эмодзи-представлением по умолчанию, любой пиктограф с селектором U+FE0F,
-// или символ из астральных блоков эмодзи. Типографика (©, ®, ™, стрелки, ≈) не считается.
-const EMOJI = /\p{Emoji_Presentation}|\p{Extended_Pictographic}️|[\u{1F000}-\u{1FAFF}]/gu;
+// Эмодзи = любой пиктограф: телефоны рисуют их цветными даже без селектора U+FE0F.
+// Разрешена только типографика: копирайт, товарные знаки и стрелки.
+const EMOJI = /\p{Extended_Pictographic}|\p{Emoji_Presentation}/gu;
+const ALLOWED = new Set([0xa9, 0xae, 0x2122, 0x2194, 0x2195, 0x2196, 0x2197, 0x2198, 0x2199, 0x21a9, 0x21aa, 0x2934, 0x2935]);
 
 /** @param {string} text @returns {string[]} */
 export function findEmoji(text) {
-  return text.match(EMOJI) ?? [];
+  return (text.match(EMOJI) ?? []).filter((ch) => !ALLOWED.has(ch.codePointAt(0)));
 }
 
 const SCAN = ['src', 'scripts', 'index.html', 'public'];

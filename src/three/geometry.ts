@@ -27,7 +27,20 @@ export function blobPoint(dir: Vector3, s: BlobShape, out = new Vector3()): Vect
   return out;
 }
 
+const blobCache = new WeakMap<BlobShape, Map<number, BufferGeometry>>();
+
+/** Геометрия капли; одна на форму и детализацию — повторное включение разреза не плодит буферы на видеокарте. */
 export function blobGeometry(s: BlobShape, segments = 96): BufferGeometry {
+  let bySeg = blobCache.get(s);
+  if (!bySeg) blobCache.set(s, (bySeg = new Map()));
+  const cached = bySeg.get(segments);
+  if (cached) return cached;
+  const g = buildBlob(s, segments);
+  bySeg.set(segments, g);
+  return g;
+}
+
+function buildBlob(s: BlobShape, segments: number): BufferGeometry {
   const g = new SphereGeometry(1, segments, segments);
   const pos = g.attributes.position;
   const v = new Vector3();

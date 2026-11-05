@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { TubeGeometry, type CatmullRomCurve3 } from 'three';
 import { Tissue, type TissueKind } from './materials';
 
@@ -41,6 +41,8 @@ export function Vessel({ path, radius, kind, active, opacity, endScale = 1, caps
     }
     return g;
   }, [path, radius, endScale]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
 
   const start = path.getPointAt(0);
   const end = path.getPointAt(1);

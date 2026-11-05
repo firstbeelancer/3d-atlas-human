@@ -7,7 +7,7 @@ import { useIsActive, useSelection } from './selection';
 interface Props {
   at: [number, number, number];
   partId: string;
-  text: string;
+  text?: string;
   /** Включены ли подписи в сцене; активная часть подписана всегда. */
   labels: boolean;
   /** Подпись внутренней части (видна сквозь стенки) — не прячется при повороте. */
@@ -49,7 +49,7 @@ export function Label({ at, partId, text, labels, inner }: Props) {
     el.dataset.side = ndc.x < centerNdc.x ? 'left' : 'right';
   });
 
-  if (!labels && !active) return null;
+  if (!text || (!labels && !active)) return null;
   return (
     <group ref={anchor} position={at}>
       <Html zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>

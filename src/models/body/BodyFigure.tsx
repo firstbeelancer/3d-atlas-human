@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { CapsuleGeometry, LatheGeometry, Quaternion, Vector2, Vector3, type Group, type Mesh } from 'three';
@@ -35,6 +35,7 @@ function Limb({ from, to, radius }: { from: Vec3; to: Vec3; radius: number }) {
       quaternion: new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), dir.normalize()),
     };
   }, [from, to, radius]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh geometry={geometry} position={position} quaternion={quaternion} raycast={() => null}>
       <meshPhysicalMaterial {...GLASS} />
@@ -50,6 +51,7 @@ function Torso() {
     ];
     return new LatheGeometry(profile.map(([r, y]) => new Vector2(r, y)), 64);
   }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh geometry={geometry} scale={[1, 1, 0.62]} raycast={() => null}>
       <meshPhysicalMaterial {...GLASS} />

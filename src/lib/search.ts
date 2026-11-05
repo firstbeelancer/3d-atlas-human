@@ -9,7 +9,7 @@ export interface SearchResult {
 }
 
 export function normalize(s: string): string {
-  return s.toLowerCase().replace(/ё/g, 'е').trim();
+  return s.toLowerCase().replace(/\u0451/g, '\u0435').trim();
 }
 
 /** Поиск по названиям, латыни и подзаголовкам разделов, а также по названиям частей органов. */

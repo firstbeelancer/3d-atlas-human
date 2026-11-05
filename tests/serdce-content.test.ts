@@ -33,6 +33,16 @@ describe('heart content', () => {
     expect(serdce.related).toEqual(expect.arrayContaining(['krovenosnaya-sistema', 'legkie']));
   });
 
+  it('tells the child to feel the heartbeat with a palm, not to hear the valves', () => {
+    const text = serdce.kidSay.join(' ');
+    expect(text).toContain('почувствуешь');
+    expect(text).not.toContain('услышишь');
+  });
+
+  it('says the septum separates the ventricles', () => {
+    expect(serdce.parts.find((p) => p.id === 'septum')!.text).toMatch(/желудочк/);
+  });
+
   it('contains no emoji', () => {
     expect(findEmoji(JSON.stringify(serdce))).toEqual([]);
   });

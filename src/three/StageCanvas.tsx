@@ -7,6 +7,7 @@ interface Props {
   label: string;
   camera?: { position: [number, number, number]; fov?: number };
   target?: [number, number, number];
+  floorY?: number;
   paused: boolean;
   time: MutableRefObject<number>;
   children: ReactNode;
@@ -37,7 +38,7 @@ function Studio() {
   );
 }
 
-export function StageCanvas({ label, camera, target = [0, 0, 0], paused, time, children }: Props) {
+export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, paused, time, children }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
@@ -70,14 +71,14 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], paused, time, c
         <Clock paused={paused} time={time} />
         <Studio />
         {children}
-        <ContactShadows position={[0, -2.2, 0]} opacity={0.32} scale={9} blur={2.6} far={4.5} color="#3a2e24" />
+        <ContactShadows position={[0, floorY, 0]} opacity={0.32} scale={9} blur={2.6} far={4.5} color="#3a2e24" />
         <OrbitControls
           makeDefault
           target={target}
           enablePan={false}
           enableDamping
           minDistance={4.5}
-          maxDistance={16}
+          maxDistance={Math.max(16, Math.hypot(...cameraPosition) * 1.35)}
           minPolarAngle={0.35}
           maxPolarAngle={Math.PI - 0.5}
           autoRotate={!interacted && !paused}

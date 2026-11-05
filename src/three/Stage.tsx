@@ -13,6 +13,8 @@ interface Props {
   hasCutaway?: boolean;
   camera?: { position: [number, number, number]; fov?: number };
   target?: [number, number, number];
+  /** Высота пола (для мягкой тени). */
+  floorY?: number;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -21,7 +23,7 @@ function prefersReducedMotion(): boolean {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Stage({ label, description, hasCutaway, camera, target, children, className = '' }: Props) {
+export function Stage({ label, description, hasCutaway, camera, target, floorY, children, className = '' }: Props) {
   const [webgl] = useState(hasWebGL);
   const [paused, setPaused] = useState(prefersReducedMotion);
   const [cutaway, setCutaway] = useState(false);
@@ -82,7 +84,7 @@ export function Stage({ label, description, hasCutaway, camera, target, children
       }`}
     >
       <p className="sr-only">{description}</p>
-      <StageCanvas key={resetKey} label={label} camera={camera} target={target} paused={paused} time={time}>
+      <StageCanvas key={resetKey} label={label} camera={camera} target={target} floorY={floorY} paused={paused} time={time}>
         {children(state)}
       </StageCanvas>
 

@@ -75,6 +75,8 @@ export function SectionPage() {
                 hasCutaway={model.hasCutaway}
                 camera={model.camera}
                 target={model.target}
+                orbit={model.orbit}
+                explorer={model.explorer && content ? { parts: content.parts, groups: content.groups } : undefined}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
               >
                 {(state) => (

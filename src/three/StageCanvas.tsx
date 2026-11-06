@@ -9,6 +9,8 @@ interface Props {
   camera?: { position: [number, number, number]; fov?: number };
   target?: [number, number, number];
   floorY?: number;
+  /** Пределы приближения и свободное вращение (для мелких моделей, которые рассматривают вблизи). */
+  orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
   /** WebGL-контекст потерян (нехватка памяти на телефоне и т.п.). */
   onContextLost?: () => void;
   paused: boolean;
@@ -41,7 +43,7 @@ function Studio() {
   );
 }
 
-export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, onContextLost, paused, time, children }: Props) {
+export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, orbit, onContextLost, paused, time, children }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
@@ -71,6 +73,8 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, 
         camera={{ position: cameraPosition, fov: camera?.fov ?? 32 }}
         onPointerMissed={() => select(null)}
         onCreated={({ gl }) => {
+          // локальные плоскости разреза у моделей, которые умеют «резаться»
+          gl.localClippingEnabled = true;
           gl.domElement.addEventListener('webglcontextlost', (e) => {
             e.preventDefault();
             onContextLost?.();
@@ -87,10 +91,10 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, 
           target={target}
           enablePan={false}
           enableDamping
-          minDistance={4.5}
-          maxDistance={Math.max(16, Math.hypot(...cameraPosition) * 1.35)}
-          minPolarAngle={0.35}
-          maxPolarAngle={Math.PI - 0.5}
+          minDistance={orbit?.minDistance ?? 4.5}
+          maxDistance={orbit?.maxDistance ?? Math.max(16, Math.hypot(...cameraPosition) * 1.35)}
+          minPolarAngle={orbit?.free ? 0.05 : 0.35}
+          maxPolarAngle={orbit?.free ? Math.PI - 0.05 : Math.PI - 0.5}
           autoRotate={!interacted && !paused}
           autoRotateSpeed={0.55}
         />

@@ -1,9 +1,19 @@
+/** Вид разреза у моделей, у которых их несколько: боковой (по оси взгляда) и «дно» (поперёк оси). */
+export type CutKind = 'side' | 'fundus';
+
 export interface StageState {
   paused: boolean;
   cutaway: boolean;
   labels: boolean;
   /** Время анимации в секундах; стоит на месте, пока paused. Модели читают time.current в useFrame. */
   time: { current: number };
+  /** Разнос на части, 0..1 (только у моделей, которые это умеют). */
+  explode?: number;
+  /** Выбранная часть показывается отдельно, остальные становятся призрачными. */
+  isolate?: boolean;
+  /** Части, скрытые пользователем в списке слоёв. */
+  hidden?: ReadonlySet<string>;
+  cutKind?: CutKind;
 }
 
 export interface ModelProps {

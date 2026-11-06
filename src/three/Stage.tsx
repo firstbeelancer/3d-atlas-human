@@ -2,7 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { Maximize2, Minimize2, Pause, Play, RotateCcw, Scissors, Tags } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
-import type { StageState } from './types';
+import type { CutKind, StageState } from './types';
+import { ExplorerPanel, PartCard, type ExplorerProps } from './StageExplorer';
 import { StageBoundary } from './StageBoundary';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
@@ -18,6 +19,10 @@ interface Props {
   target?: [number, number, number];
   /** Высота пола (для мягкой тени). */
   floorY?: number;
+  /** Пределы приближения камеры и свободное вращение. */
+  orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
+  /** Панель «Рассмотреть детали» (слои, разнос, режим «отдельно») и карточка выбранной части. */
+  explorer?: ExplorerProps;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -26,7 +31,7 @@ function prefersReducedMotion(): boolean {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Stage({ label, description, hasCutaway, camera, target, floorY, children, className = '' }: Props) {
+export function Stage({ label, description, hasCutaway, camera, target, floorY, orbit, explorer, children, className = '' }: Props) {
   const [webgl] = useState(hasWebGL);
   // 3D сломалась (ошибка модели, не загрузился кусок, потерян WebGL-контекст) — показываем текстовую заглушку
   const [failed, setFailed] = useState(false);
@@ -36,6 +41,10 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
   // на узких экранах подписи по умолчанию скрыты: касание части всё равно показывает её подпись
   const [labels, setLabels] = useState(() => window.innerWidth >= 640);
   const [show, setShow] = useState(false);
+  const [explode, setExplode] = useState(0);
+  const [isolate, setIsolate] = useState(true);
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
+  const [cutKind, setCutKind] = useState<CutKind>('side');
   const [resetKey, setResetKey] = useState(0);
   const time = useRef(0);
   const box = useRef<HTMLDivElement>(null);
@@ -79,7 +88,7 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
     );
   }
 
-  const state: StageState = { paused, cutaway, labels, time };
+  const state: StageState = explorer ? { paused, cutaway, labels, time, explode, isolate, hidden, cutKind } : { paused, cutaway, labels, time };
 
   return (
     <div
@@ -98,6 +107,7 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
             camera={camera}
             target={target}
             floorY={floorY}
+            orbit={orbit}
             paused={paused}
             time={time}
             onContextLost={fail}
@@ -106,6 +116,27 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
           </StageCanvas>
         </Suspense>
       </StageBoundary>
+
+      {explorer && (
+        <>
+          <ExplorerPanel
+            {...explorer}
+            cutaway={cutaway}
+            cutKind={cutKind}
+            onView={(on, kind) => {
+              setCutaway(on);
+              setCutKind(kind);
+            }}
+            explode={explode}
+            onExplode={setExplode}
+            isolate={isolate}
+            onIsolate={setIsolate}
+            hidden={hidden}
+            onHidden={(next) => setHidden(next)}
+          />
+          <PartCard {...explorer} />
+        </>
+      )}
 
       <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
         {t('stage.hint')}
@@ -127,7 +158,18 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
         <ToolButton onClick={() => setLabels((v) => !v)} pressed={labels} label={t('stage.labels')}>
           <Tags size={17} aria-hidden />
         </ToolButton>
-        <ToolButton onClick={() => setResetKey((k) => k + 1)} label={t('stage.reset')}>
+        <ToolButton
+          onClick={() => {
+            setResetKey((k) => k + 1);
+            if (explorer) {
+              setExplode(0);
+              setHidden(new Set());
+              setCutaway(false);
+              setIsolate(true);
+            }
+          }}
+          label={t('stage.reset')}
+        >
           <RotateCcw size={17} aria-hidden />
         </ToolButton>
         <ToolButton onClick={toggleShow} pressed={show} label={show ? t('stage.exitShow') : t('stage.show')} strong>

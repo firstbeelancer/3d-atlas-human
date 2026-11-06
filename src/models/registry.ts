@@ -17,6 +17,8 @@ export interface ModelEntry {
   /** Своя подпись второго разреза в панели «Рассмотреть детали». */
   explorerFundusKey?: MessageKey;
   target?: [number, number, number];
+  /** Высота пола для мягкой тени (по умолчанию — для небольших органов). */
+  floorY?: number;
   /** Куда можно сдвигать центр камеры. */
   bounds?: Box;
   /** Насколько близко можно подлететь. */
@@ -110,5 +112,19 @@ export const MODELS: Record<string, ModelEntry> = {
     bounds: { min: [-3.6, -3.6, -2.6], max: [3.6, 3.6, 2.6] },
     orbit: { minDistance: 2.4, maxDistance: 30, free: true },
     description: modelDescriptions['mochevoj-puzyr'],
+  },
+  kishechnik: {
+    Component: lazy(() => import('./intestine/IntestineModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusIntestine',
+    isolate: true,
+    camera: { position: [5.2, -0.1, 30.1], fov: 32 },
+    target: [0.2, -2.6, -0.3],
+    floorY: -11.6,
+    bounds: { min: [-8, -13.5, -6], max: [8, 8, 6] },
+    orbit: { minDistance: 2.2, maxDistance: 70, free: true },
+    modes: [{ id: 'wall', icon: 'lobule' }],
+    description: modelDescriptions.kishechnik,
   },
 };

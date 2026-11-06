@@ -42,6 +42,8 @@ export const ru = {
   'stage.mode.segments': 'Сегменты',
   'stage.mode.inside': 'Сосуды внутри',
   'stage.mode.lobule': 'Долька под микроскопом',
+  'stage.mode.layers': 'Слои стенки',
+  'stage.mode.gland': 'Железа под микроскопом',
   'stage.isolate': 'Рассмотреть отдельно',
   'stage.isolateOff': 'Вернуть на место',
   'stage.isolated': 'Отдельно:',

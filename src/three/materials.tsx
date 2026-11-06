@@ -34,6 +34,17 @@ export const TISSUE = {
   sinusoid: { color: '#d63f3f', transparent: true, opacity: 0.5, depthWrite: false },
   kupffer: { color: '#7d2d3a', roughness: 0.5 },
   canaliculus: { color: '#58bd6c', roughness: 0.4 },
+  esophagus: { color: '#ffffff', roughness: 0.42, clearcoat: 0.7, clearcoatRoughness: 0.25 },
+  cut: { color: '#ffffff', roughness: 0.82, clearcoat: 0, sheen: 0 },
+  omentum: { color: '#f0d38c', roughness: 0.6, transparent: true, opacity: 0.55, depthWrite: false, side: DoubleSide },
+  lesserOmentum: { color: '#f4dfcb', roughness: 0.6, transparent: true, opacity: 0.5, depthWrite: false, side: DoubleSide },
+  cellMucous: { color: '#d8cadb', roughness: 0.5, clearcoat: 0.5 },
+  cellParietal: { color: '#e0586a', roughness: 0.45, clearcoat: 0.6 },
+  cellChief: { color: '#6f62ad', roughness: 0.5, clearcoat: 0.5 },
+  cellEndocrine: { color: '#eec43a', roughness: 0.4, clearcoat: 0.6 },
+  pitWall: { color: '#f4cfc4', roughness: 0.4, transparent: true, opacity: 0.38, depthWrite: false, side: DoubleSide },
+  gel: { color: '#efe3a0', roughness: 0.2, transparent: true, opacity: 0.55, depthWrite: false },
+  slab: { color: '#f0c9be', transparent: true, opacity: 0.1, depthWrite: false, side: DoubleSide },
   glass: { color: '#cfe3ee', transparent: true, opacity: 0.1, depthWrite: false, side: DoubleSide },
 } as const;
 

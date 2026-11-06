@@ -2,6 +2,7 @@ import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { ModelProps } from '../three/types';
 import type { StageMode } from '../three/Stage';
 import type { Box } from '../three/cameraBounds';
+import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
 
 export interface ModelEntry {
@@ -27,6 +28,21 @@ export interface ModelEntry {
 
 /** 3D-модель каждого раздела грузится отдельным куском, только когда раздел открыт. */
 export const MODELS: Record<string, ModelEntry> = {
+  zub: {
+    Component: lazy(() => import('./teeth/TeethModel')),
+    hasCutaway: true,
+    explorer: true,
+    isolate: true,
+    camera: { position: [0, 0.9, 16.5], fov: 36 },
+    target: [0, -0.1, 0],
+    bounds: { min: [-3.6, -3.2, -2], max: [3.6, 3.2, 2] },
+    orbit: { minDistance: 2, maxDistance: 26, free: true },
+    modes: [
+      { id: 'jaw', icon: 'jaw', group: 'view' },
+      { id: 'arch', icon: 'arch', group: 'view' },
+    ],
+    description: teethText.description,
+  },
   glaz: {
     Component: lazy(() => import('./eye/EyeModel')),
     hasCutaway: true,

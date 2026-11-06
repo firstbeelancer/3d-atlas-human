@@ -65,6 +65,14 @@ export interface Part {
   latin?: string;
   text: string;
   adult?: boolean;
+  /** Группа частей (id из SectionContent.groups) — для больших моделей вроде скелета. */
+  group?: string;
+}
+
+/** Группа частей модели: заголовок в списке «Из чего состоит», по нажатию подсвечивает всю группу. */
+export interface PartGroup {
+  id: string;
+  name: string;
 }
 
 export interface SectionContent {
@@ -72,6 +80,7 @@ export interface SectionContent {
   stats: Stat[];
   does: string[];
   parts: Part[];
+  groups?: PartGroup[];
   kidSay: string[];
   facts: string[];
   care: string[];

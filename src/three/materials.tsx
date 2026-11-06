@@ -19,6 +19,9 @@ export const TISSUE = {
   valve: { color: '#f1ddd2', roughness: 0.6 },
   inner: { color: '#d9776b', roughness: 0.65 },
   membrane: { color: '#efb7a8', transparent: true, opacity: 0.32, depthWrite: false },
+  cartilage: { color: '#cddfe4', roughness: 0.34, clearcoat: 0.6 },
+  marrow: { color: '#a8352e', roughness: 0.62 },
+  periosteum: { color: '#d98a74', transparent: true, opacity: 0.62, depthWrite: false },
 } as const;
 
 export type TissueKind = keyof typeof TISSUE;
@@ -33,14 +36,26 @@ const BASE = {
   sheenColor: '#ffd9cc',
 };
 
-export function Tissue({ kind, active = false, opacity }: { kind: TissueKind; active?: boolean; opacity?: number }) {
+export function Tissue({
+  kind,
+  active = false,
+  opacity,
+  vertexColors = false,
+}: {
+  kind: TissueKind;
+  active?: boolean;
+  opacity?: number;
+  /** Умножать цвет ткани на цвет вершин (запечённое затенение углублений). */
+  vertexColors?: boolean;
+}) {
   const t = TISSUE[kind];
   const extra = opacity !== undefined ? { transparent: true, opacity, depthWrite: opacity > 0.9 } : {};
   const transparent = opacity !== undefined || 'transparent' in t;
   return (
     <meshPhysicalMaterial
       // смена прозрачности требует пересборки шейдера — пересоздаём материал
-      key={transparent ? 'transparent' : 'opaque'}
+      key={`${transparent ? 'transparent' : 'opaque'}-${vertexColors ? 'vc' : 'plain'}`}
+      vertexColors={vertexColors}
       {...BASE}
       {...t}
       {...extra}

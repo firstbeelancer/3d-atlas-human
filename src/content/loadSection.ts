@@ -2,6 +2,7 @@ import type { SectionContent } from './types';
 
 /** Контент разделов грузится отдельными кусками, только когда раздел открыт. */
 const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
+  skelet: () => import('./ru/skelet'),
   serdce: () => import('./ru/serdce'),
 };
 

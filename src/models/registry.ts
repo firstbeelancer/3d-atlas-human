@@ -13,6 +13,13 @@ export interface ModelEntry {
 
 /** 3D-модель каждого раздела грузится отдельным куском, только когда раздел открыт. */
 export const MODELS: Record<string, ModelEntry> = {
+  skelet: {
+    Component: lazy(() => import('./skeleton/SkeletonModel')),
+    hasCutaway: true,
+    camera: { position: [0, 0.75, 11.6], fov: 32 },
+    target: [0, 0.3, 0],
+    description: modelDescriptions.skelet,
+  },
   serdce: {
     Component: lazy(() => import('./heart/HeartModel')),
     hasCutaway: true,

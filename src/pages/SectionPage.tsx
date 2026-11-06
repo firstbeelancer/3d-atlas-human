@@ -49,7 +49,10 @@ export function SectionPage() {
   }, [section, attempt]);
 
   const names = useMemo(
-    () => (content ? Object.fromEntries(content.parts.map((p) => [p.id, p.name])) : undefined),
+    () =>
+      content
+        ? Object.fromEntries([...(content.groups ?? []), ...content.parts].map((p) => [p.id, p.name]))
+        : undefined,
     [content],
   );
 
@@ -106,7 +109,7 @@ export function SectionPage() {
                   <Paragraphs items={content.does} />
                 </Block>
                 <Block title={t('section.parts')}>
-                  <PartsList parts={content.parts} />
+                  <PartsList parts={content.parts} groups={content.groups} />
                 </Block>
                 <Block title={t('section.kid')}>
                   <KidSay lines={content.kidSay} />

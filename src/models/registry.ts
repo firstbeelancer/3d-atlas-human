@@ -111,4 +111,19 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 2.4, maxDistance: 30, free: true },
     description: modelDescriptions['mochevoj-puzyr'],
   },
+  legkie: {
+    Component: lazy(() => import('./lungs/LungsModel')),
+    hasCutaway: true,
+    explorer: true,
+    camera: { position: [0.4, 1.3, 11.5], fov: 32 },
+    target: [0, 0.55, 0],
+    bounds: { min: [-3.2, -3.0, -2.2], max: [3.2, 4.2, 2.2] },
+    orbit: { minDistance: 2.6, maxDistance: 30, free: true },
+    modes: [
+      { id: 'explode', icon: 'explode' },
+      { id: 'inside', icon: 'inside' },
+    ],
+    isolate: true,
+    description: modelDescriptions.legkie,
+  },
 };

@@ -89,7 +89,7 @@ function skullField(): Sdf {
 function mandibleField(): Sdf {
   const O = SKULL_ORIGIN;
   const p = (x: number, y: number, z: number): V3 => off(O, [x, y, z]);
-  const arc: [number, number, number][] = [[0, 0.74, -1.12], [0.15, 0.67, -1.09], [0.28, 0.5, -1.04], [0.38, 0.24, -0.97], [0.44, -0.08, -0.89]];
+  const arc: [number, number, number][] = [[0, 0.7, -1.1], [0.15, 0.64, -1.07], [0.28, 0.48, -1.02], [0.38, 0.23, -0.96], [0.44, -0.08, -0.89]];
   const low = arc.map(([x, z, y]) => p(x, y, z));
   const high = arc.map(([x, z]) => p(x * 0.95, -0.8, z - 0.03));
   const A = p(0.445, -0.88, -0.12);
@@ -107,7 +107,7 @@ function mandibleField(): Sdf {
   );
   let jaw = mirrorX(half);
   jaw = smoothSubtract(0.02, jaw, mirrorX(sphere(p(0.46, -0.32, -0.02), 0.1)));
-  jaw = smooth(0.05, jaw, ellipsoid(p(0, -1.07, 0.73), [0.12, 0.05, 0.05]));
+  jaw = smooth(0.05, jaw, ellipsoid(p(0, -1.05, 0.7), [0.12, 0.05, 0.05]));
   const teeth: Sdf[] = [];
   for (const side of [1, -1]) {
     for (let k = 0; k < 8; k++) {

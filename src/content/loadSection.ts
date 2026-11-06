@@ -4,6 +4,7 @@ import type { SectionContent } from './types';
 const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
   skelet: () => import('./ru/skelet'),
   serdce: () => import('./ru/serdce'),
+  pechen: () => import('./ru/pechen'),
 };
 
 export async function loadSectionContent(slug: string): Promise<SectionContent | null> {

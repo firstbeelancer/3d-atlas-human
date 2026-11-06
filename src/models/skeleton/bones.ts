@@ -46,6 +46,7 @@ function merge(list: BufferGeometry[]): BufferGeometry {
 function skullField(): Sdf {
   const O = SKULL_ORIGIN;
   const p = (x: number, y: number, z: number): V3 => off(O, [x, y, z]);
+  // мозговой череп: лоб, темя, затылок и основание
   const cranium = smooth(
     0.16,
     ellipsoid(p(0, 0.32, -0.18), [0.72, 0.82, 0.96]),
@@ -53,72 +54,97 @@ function skullField(): Sdf {
     ellipsoid(p(0, 0.05, -0.72), [0.5, 0.45, 0.42]),
     ellipsoid(p(0, -0.2, -0.2), [0.58, 0.34, 0.6]),
   );
-  const orbitalFrame = ellipsoid(p(0, -0.04, 0.48), [0.56, 0.27, 0.36]);
-  const brow = mirrorX(capsule(p(0.0, 0.16, 0.76), p(0.44, 0.15, 0.68), 0.07, 0.06));
-  const cheek = mirrorX(ellipsoid(p(0.5, -0.25, 0.54), [0.15, 0.13, 0.14]));
-  const arch = mirrorX(capsule(p(0.58, -0.25, 0.4), p(0.68, -0.19, -0.12), 0.05, 0.045));
-  const maxilla = smooth(0.08, roundBox(p(0, -0.36, 0.56), [0.29, 0.2, 0.24], 0.14), ellipsoid(p(0, -0.52, 0.44), [0.3, 0.08, 0.37]));
-  const mastoid = mirrorX(ellipsoid(p(0.52, -0.5, -0.36), [0.09, 0.15, 0.11]));
-  let skull = smooth(0.1, cranium, orbitalFrame, brow, cheek, arch, maxilla, mastoid);
+  // лицевой череп: края глазниц, скуловые кости и дуги, верхняя челюсть
+  const brow = mirrorX(capsule(p(0.05, 0.14, 0.8), p(0.43, 0.13, 0.67), 0.062, 0.05));
+  const lateralRim = mirrorX(capsule(p(0.46, 0.11, 0.64), p(0.49, -0.16, 0.6), 0.048, 0.052));
+  const lowerRim = mirrorX(capsule(p(0.13, -0.18, 0.8), p(0.45, -0.19, 0.64), 0.04, 0.046));
+  const zygoma = mirrorX(ellipsoid(p(0.47, -0.25, 0.58), [0.1, 0.085, 0.085]));
+  const arch = mirrorX(capsule(p(0.56, -0.25, 0.44), p(0.67, -0.22, -0.12), 0.042, 0.038));
+  const maxilla = smooth(
+    0.07,
+    roundBox(p(0, -0.36, 0.58), [0.27, 0.19, 0.22], 0.13),
+    ellipsoid(p(0, -0.53, 0.5), [0.27, 0.075, 0.31]),
+  );
+  const mastoid = mirrorX(ellipsoid(p(0.53, -0.42, -0.34), [0.06, 0.11, 0.075]));
+  let skull = smooth(0.09, cranium, brow, lateralRim, lowerRim, zygoma, arch, maxilla, mastoid);
 
-  const orbits = mirrorX(union(ellipsoid(p(0.33, -0.02, 0.92), [0.19, 0.17, 0.42]), ellipsoid(p(0.3, -0.03, 0.55), [0.13, 0.12, 0.3]), ellipsoid(p(0.26, -0.03, 0.32), [0.08, 0.08, 0.25])));
-  const nose = union(ellipsoid(p(0, -0.29, 0.9), [0.1, 0.17, 0.32]), ellipsoid(p(0, -0.41, 0.88), [0.125, 0.085, 0.3]));
+  // глазницы: глубокие воронки, сужающиеся к зрительному каналу
+  const orbits = mirrorX(
+    smooth(
+      0.06,
+      flatCapsule(p(0.28, -0.02, 1.08), p(0.26, -0.03, 0.64), 0.19, 0.155, [1.06, 0.9, 1]),
+      capsule(p(0.26, -0.03, 0.64), p(0.17, -0.03, 0.24), 0.13, 0.045),
+    ),
+  );
+  // грушевидное отверстие носа: узкое вверху, широкое внизу
+  const nose = smooth(
+    0.06,
+    capsule(p(0, -0.17, 1.08), p(0, -0.17, 0.58), 0.05),
+    capsule(p(0, -0.33, 1.08), p(0, -0.33, 0.55), 0.085),
+  );
   const fossa = mirrorX(ellipsoid(p(0.22, -0.42, 0.8), [0.1, 0.08, 0.06]));
   const temple = mirrorX(ellipsoid(p(0.8, 0.0, 0.16), [0.15, 0.3, 0.3]));
-  const ear = mirrorX(capsule(p(0.8, -0.3, -0.22), p(0.52, -0.3, -0.22), 0.06));
-  skull = smoothSubtract(0.06, skull, orbits, nose);
+  const ear = mirrorX(capsule(p(0.8, -0.3, -0.22), p(0.52, -0.3, -0.22), 0.055));
+  skull = smoothSubtract(0.05, skull, orbits, nose);
   skull = smoothSubtract(0.08, skull, temple, fossa);
   skull = subtract(skull, ear);
   // носовые кости — мостик над грушевидным отверстием
-  skull = smooth(0.03, skull, capsule(p(0, 0.04, 0.8), p(0, -0.11, 0.88), 0.036, 0.03));
+  skull = smooth(0.04, skull, flatCapsule(p(0, 0.06, 0.8), p(0, -0.13, 0.86), 0.055, 0.05, [1.15, 1, 0.5]));
 
   // верхние зубы: резцы, клыки, премоляры и моляры по дуге
   const teeth: Sdf[] = [];
   for (const side of [1, -1]) {
     for (let k = 0; k < 8; k++) {
       const u = (k + 0.5) / 8;
-      const x = side * (0.045 + 0.25 * Math.pow(Math.sin((u * Math.PI) / 2), 0.85));
-      const z = 0.75 - 0.44 * Math.pow(u, 1.5);
-      const r = k < 2 ? 0.032 : k < 3 ? 0.035 : k < 5 ? 0.038 : 0.048;
-      teeth.push(capsule(p(x, -0.56, z - 0.02), p(x, -0.675, z), r * 0.85, r));
+      const x = side * (-0.004 + 0.29 * Math.pow(Math.sin((u * Math.PI) / 2), 0.85));
+      const z = 0.76 - 0.45 * Math.pow(u, 1.5);
+      const r = k < 2 ? 0.034 : k < 3 ? 0.036 : k < 5 ? 0.038 : 0.048;
+      teeth.push(capsule(p(x, -0.56, z - 0.02), p(x, -0.68, z), r * 0.85, r));
     }
   }
-  return union(skull, bounded(union(...teeth), p(-0.4, -0.75, 0.2), p(0.4, -0.5, 0.82)));
+  return union(skull, bounded(union(...teeth), p(-0.4, -0.75, 0.2), p(0.4, -0.5, 0.84)));
 }
 
 function mandibleField(): Sdf {
   const O = SKULL_ORIGIN;
   const p = (x: number, y: number, z: number): V3 => off(O, [x, y, z]);
-  const arc: [number, number, number][] = [[0, 0.7, -1.1], [0.15, 0.64, -1.07], [0.28, 0.48, -1.02], [0.38, 0.23, -0.96], [0.44, -0.08, -0.89]];
+  // тело челюсти: подкова от подбородка к углу
+  const arc: [number, number, number][] = [[0, 0.72, -1.1], [0.15, 0.66, -1.07], [0.28, 0.49, -1.02], [0.38, 0.24, -0.96], [0.44, -0.04, -0.89]];
   const low = arc.map(([x, z, y]) => p(x, y, z));
   const high = arc.map(([x, z]) => p(x * 0.95, -0.8, z - 0.03));
-  const A = p(0.445, -0.88, -0.12);
-  const B = p(0.43, -0.8, 0.08);
-  const C = p(0.42, -0.42, 0.1);
-  const N = p(0.49, -0.44, -0.12);
+  // ветвь: угол, венечный отросток спереди, мыщелок сзади, между ними вырезка
+  const angle = p(0.45, -0.87, -0.1);
+  const front = p(0.43, -0.8, 0.08);
+  const coronoid = p(0.43, -0.32, 0.12);
+  const neck = p(0.49, -0.43, -0.19);
   const half = smooth(
     0.05,
     strip(low, high, 0.045),
-    chain(low, [0.06, 0.058, 0.055, 0.052, 0.05]),
-    triangle(A, B, C, 0.035),
-    triangle(A, C, N, 0.035),
-    chain([A, N], 0.045),
-    ellipsoid(p(0.5, -0.37, -0.12), [0.1, 0.05, 0.06]),
+    chain(low, [0.065, 0.06, 0.056, 0.053, 0.05]),
+    triangle(angle, front, coronoid, 0.034),
+    triangle(angle, coronoid, neck, 0.034),
+    // задний край ветви и скруглённый угол
+    chain([p(0.44, -0.86, 0.02), p(0.455, -0.88, -0.08), p(0.47, -0.78, -0.17), neck], [0.05, 0.052, 0.045, 0.04]),
+    chain([p(0.43, -0.62, 0.11), coronoid], [0.035, 0.022]),
+    // мыщелок — суставная головка, входит в ямку перед слуховым проходом
+    ellipsoid(p(0.5, -0.36, -0.18), [0.1, 0.045, 0.06]),
   );
   let jaw = mirrorX(half);
-  jaw = smoothSubtract(0.02, jaw, mirrorX(sphere(p(0.46, -0.32, -0.02), 0.1)));
-  jaw = smooth(0.05, jaw, ellipsoid(p(0, -1.05, 0.7), [0.12, 0.05, 0.05]));
+  // вырезка между венечным отростком и мыщелком
+  jaw = smoothSubtract(0.02, jaw, mirrorX(sphere(p(0.46, -0.27, -0.04), 0.11)));
+  // подбородочный выступ
+  jaw = smooth(0.05, jaw, ellipsoid(p(0, -1.05, 0.72), [0.13, 0.06, 0.05]));
   const teeth: Sdf[] = [];
   for (const side of [1, -1]) {
     for (let k = 0; k < 8; k++) {
       const u = (k + 0.5) / 8;
-      const x = side * (0.042 + 0.25 * Math.pow(Math.sin((u * Math.PI) / 2), 0.85));
-      const z = 0.71 - 0.44 * Math.pow(u, 1.5);
-      const r = k < 2 ? 0.028 : k < 3 ? 0.033 : k < 5 ? 0.037 : 0.047;
-      teeth.push(capsule(p(x, -0.8, z), p(x, -0.675, z + 0.01), r, r * 0.85));
+      const x = side * (-0.022 + 0.3 * Math.pow(Math.sin((u * Math.PI) / 2), 0.85));
+      const z = 0.73 - 0.45 * Math.pow(u, 1.5);
+      const r = k < 2 ? 0.032 : k < 3 ? 0.034 : k < 5 ? 0.037 : 0.047;
+      teeth.push(capsule(p(x, -0.8, z), p(x, -0.68, z + 0.01), r, r * 0.85));
     }
   }
-  return union(jaw, bounded(union(...teeth), p(-0.4, -0.86, 0.2), p(0.4, -0.64, 0.8)));
+  return union(jaw, bounded(union(...teeth), p(-0.4, -0.86, 0.2), p(0.4, -0.64, 0.82)));
 }
 
 /* ---------------- Позвонки ---------------- */
@@ -302,17 +328,24 @@ function handGeometry(): BufferGeometry {
   const P = (x: number, y: number, z: number): V3 => off(W, [x, y, z]);
   const parts: BufferGeometry[] = [];
   // запястье: проксимальный и дистальный ряды
+  // кости запястья плотно уложены в два ряда и упираются в лучевую кость
   const carpals: [V3, V3][] = [
-    [P(0.17, -0.1, 0.0), [0.085, 0.06, 0.07]],
-    [P(0.04, -0.09, 0.0), [0.07, 0.065, 0.075]],
-    [P(-0.08, -0.1, -0.01), [0.065, 0.06, 0.065]],
-    [P(-0.12, -0.12, 0.07), [0.045, 0.045, 0.045]],
-    [P(0.2, -0.25, 0.03), [0.07, 0.06, 0.065]],
-    [P(0.1, -0.26, 0.0), [0.05, 0.06, 0.06]],
-    [P(0.0, -0.25, -0.01), [0.065, 0.08, 0.075]],
-    [P(-0.12, -0.24, 0.0), [0.07, 0.075, 0.07]],
+    [P(0.16, -0.045, 0.0), [0.09, 0.06, 0.075]], // ладьевидная
+    [P(0.03, -0.04, 0.0), [0.075, 0.062, 0.078]], // полулунная
+    [P(-0.09, -0.05, -0.01), [0.068, 0.058, 0.068]], // трёхгранная
+    [P(-0.12, -0.075, 0.07), [0.045, 0.045, 0.045]], // гороховидная
+    [P(0.2, -0.15, 0.03), [0.07, 0.06, 0.068]], // кость-трапеция
+    [P(0.1, -0.16, 0.0), [0.055, 0.058, 0.062]], // трапециевидная
+    [P(0.0, -0.155, -0.01), [0.068, 0.075, 0.078]], // головчатая
+    [P(-0.12, -0.15, 0.0), [0.072, 0.072, 0.072]], // крючковидная
   ];
-  for (const [c, r] of carpals) parts.push(blob(c, r, 12));
+  parts.push(
+    meshSdf(smooth(0.012, ...carpals.map(([c, r]) => ellipsoid(c, r))), {
+      min: P(-0.24, -0.26, -0.12),
+      max: P(0.31, 0.04, 0.16),
+      cell: 0.012,
+    }),
+  );
 
   const fingers = [
     { x: 0.15, meta: 0.66, prox: 0.42, mid: 0.25, dist: 0.18, r: 0.042 },
@@ -321,7 +354,7 @@ function handGeometry(): BufferGeometry {
     { x: -0.17, meta: 0.52, prox: 0.34, mid: 0.2, dist: 0.17, r: 0.036 },
   ];
   for (const f of fingers) {
-    const base = P(f.x * 0.75, -0.34, 0.0);
+    const base = P(f.x * 0.75, -0.25, 0.0);
     const spread = f.x * 0.22;
     let cur = base;
     const segs = [f.meta, f.prox, f.mid, f.dist];
@@ -335,7 +368,7 @@ function handGeometry(): BufferGeometry {
     });
   }
   // большой палец: смотрит наружу и немного вперёд
-  let cur = P(0.22, -0.3, 0.07);
+  let cur = P(0.23, -0.2, 0.07);
   const thumb = [0.36, 0.27, 0.2];
   const tr = [0.048, 0.042, 0.034];
   thumb.forEach((len, i) => {
@@ -375,14 +408,16 @@ function patellaField(): Sdf {
 }
 
 function tibiaField(): Sdf {
-  const med = ellipsoid([0.41, 4.6, -0.04], [0.2, 0.13, 0.25]);
-  const lat = ellipsoid([0.75, 4.6, -0.06], [0.2, 0.13, 0.24]);
+  // мыщелки плато плавно сужаются в стержень, а не нависают «грибом»
+  const med = ellipsoid([0.43, 4.62, -0.04], [0.17, 0.1, 0.22]);
+  const lat = ellipsoid([0.74, 4.62, -0.06], [0.16, 0.1, 0.21]);
+  const flare = ellipsoid([0.58, 4.42, -0.03], [0.27, 0.26, 0.2]);
   const tub = ellipsoid([0.58, 4.36, 0.17], [0.08, 0.11, 0.07]);
   const shaft = chain([[0.58, 4.45, -0.03], [0.55, 2.6, 0.04], [0.53, 1.0, 0.0]], [0.15, 0.11, 0.12]);
   const crest = chain([[0.6, 4.3, 0.12], [0.56, 2.6, 0.13], [0.54, 1.3, 0.08]], 0.035);
   const distal = ellipsoid([0.53, 0.86, -0.02], [0.17, 0.14, 0.17]);
   const malleolus = ellipsoid([0.38, 0.7, -0.02], [0.07, 0.13, 0.09]);
-  let t = smooth(0.1, med, lat, tub, shaft, crest);
+  let t = smooth(0.12, med, lat, flare, tub, shaft, crest);
   t = smooth(0.08, t, distal, malleolus);
   t = smoothSubtract(0.02, t, ellipsoid([0.58, 4.76, -0.05], [0.06, 0.05, 0.3]));
   return t;
@@ -455,15 +490,27 @@ function sternumField(): Sdf {
   const top = STERNUM.top;
   const tilt = Math.atan2(STERNUM.bottomZ - STERNUM.topZ, STERNUM.top - STERNUM.bottom);
   const c: V3 = [0, top, STERNUM.topZ];
-  const local = smooth(
-    0.05,
-    roundBox([0, top - 0.25, STERNUM.topZ], [0.25, 0.23, 0.055], 0.05),
-    roundBox([0, top - 0.96, STERNUM.topZ], [0.16, 0.48, 0.05], 0.05),
-    roundBox([0, top - 1.3, STERNUM.topZ], [0.18, 0.18, 0.05], 0.05),
-    capsule([0, top - 1.5, STERNUM.topZ], [0, top - 1.88, STERNUM.topZ + 0.02], 0.07, 0.03),
+  const z = STERNUM.topZ;
+  // рукоятка — широкая трапеция, тело — длинная пластинка, мечевидный отросток — узкий хвостик
+  const manubrium = smooth(
+    0.06,
+    flatCapsule([-0.13, top - 0.12, z], [0.13, top - 0.12, z], 0.13, 0.13, [1, 1, 0.38]),
+    flatCapsule([0, top - 0.16, z], [0, top - 0.44, z], 0.16, 0.12, [1, 1, 0.38]),
   );
-  const notch = sphere([0, top + 0.04, STERNUM.topZ], 0.09);
-  return rotateX(subtract(local, notch), tilt, c);
+  const body = smooth(
+    0.06,
+    flatCapsule([0, top - 0.5, z], [0, top - 1.0, z], 0.12, 0.13, [1, 1, 0.4]),
+    flatCapsule([0, top - 1.0, z], [0, top - 1.42, z], 0.13, 0.1, [1, 1, 0.4]),
+  );
+  const angle = capsule([-0.13, top - 0.47, z + 0.02], [0.13, top - 0.47, z + 0.02], 0.035);
+  const xiphoid = flatCapsule([0, top - 1.48, z + 0.005], [0, top - 1.86, z + 0.03], 0.06, 0.025, [1, 1, 0.45]);
+  // яремная и ключичные вырезки
+  const notches = union(sphere([0, top + 0.03, z], 0.085), mirrorX(sphere([0.19, top - 0.01, z], 0.07)));
+  // вырезки для рёберных хрящей по краям тела
+  const facets: Sdf[] = [];
+  for (const ys of STERNAL_Y.slice(1)) facets.push(mirrorX(sphere([0.17, ys + (top - STERNUM.top), z], 0.035)));
+  const local = smoothSubtract(0.02, smooth(0.05, manubrium, body, angle, xiphoid), notches, ...facets);
+  return rotateX(local, tilt, c);
 }
 
 interface RibSpec {
@@ -525,24 +572,30 @@ function ribsGeometry(): BufferGeometry {
   return merge(list);
 }
 
-/** Рёберные хрящи: 1–7 идут к грудине, 8–10 — к хрящу ребра выше. */
+/** Рёберные хрящи: 1–7 идут к грудине, 8–10 — к хрящу ребра выше и вместе образуют рёберную дугу. */
+function cartilagePath(i: number): CatmullRomCurve3 {
+  const a = v(RIBS[i].xf, RIB_END_Y[i], RIBS[i].zf);
+  const ys = STERNAL_Y[i];
+  const b = v(0.13 + (i === 0 ? 0.08 : 0.03), ys, sternumZ(ys) - 0.01);
+  const rise = ys - a.y;
+  // сначала хрящ продолжает ребро к середине, у нижних рёбер затем круто поднимается к грудине
+  const m1 = v(a.x - (a.x - b.x) * 0.45, a.y + rise * (i < 3 ? 0.45 : 0.18), Math.max(a.z, b.z) + 0.02);
+  const m2 = v(b.x + (i < 3 ? 0.06 : 0.12), ys - rise * (i < 3 ? 0.05 : 0.22), b.z + 0.015);
+  return new CatmullRomCurve3([a, m1, m2, b], false, 'centripetal');
+}
+
 function cartilageGeometry(): BufferGeometry {
   const list: BufferGeometry[] = [];
-  const end = (i: number) => v(RIBS[i].xf, RIB_END_Y[i], RIBS[i].zf);
+  const flat = (w: number, h: number) => () => [w, h] as [number, number];
   for (let i = 0; i < 7; i++) {
-    const a = end(i);
-    const ys = STERNAL_Y[i];
-    const b = v(0.13 + (i === 0 ? 0.08 : 0.02), ys, sternumZ(ys) - 0.01);
-    const midY = i < 4 ? (a.y + ys) / 2 : a.y + (ys - a.y) * 0.35;
-    const mid = v((a.x + b.x) / 2 + 0.04, midY, Math.max(a.z, b.z) + 0.03);
-    list.push(sweep(new CatmullRomCurve3([a, mid, b], false, 'centripetal'), { radius: () => [0.03, 0.045], segments: 24, radial: 10 }));
+    list.push(sweep(cartilagePath(i), { radius: flat(0.032, 0.05 - i * 0.002), segments: 32, radial: 10 }));
   }
-  const joinTo: V3[] = [[0.48, 12.12, 1.13], [0.74, 11.9, 1.02], [0.98, 11.68, 0.86]];
+  // хрящи 8–10 вливаются в хрящ ребра выше, образуя рёберную дугу
   for (let i = 7; i < 10; i++) {
-    const a = end(i);
-    const b = v(...joinTo[i - 7]);
-    const mid = v((a.x + b.x) / 2, (a.y + b.y) / 2 - 0.02, (a.z + b.z) / 2 + 0.06);
-    list.push(sweep(new CatmullRomCurve3([a, mid, b], false, 'centripetal'), { radius: () => [0.028, 0.04], segments: 20, radial: 10 }));
+    const a = v(RIBS[i].xf, RIB_END_Y[i], RIBS[i].zf);
+    const target = cartilagePath(6).getPointAt([0.45, 0.3, 0.17][i - 7]);
+    const mid = v((a.x + target.x) / 2 + 0.03, (a.y + target.y) / 2 - 0.05, Math.max(a.z, target.z) + 0.03);
+    list.push(sweep(new CatmullRomCurve3([a, mid, target], false, 'centripetal'), { radius: flat(0.028, 0.042), segments: 22, radial: 10 }));
   }
   return merge(list);
 }
@@ -585,8 +638,8 @@ export function skeletonGeometry(): SkeletonGeometry {
   disc.deleteAttribute('uv');
   disc.scale(1, 0.32, 0.78);
   cache = {
-    skull: meshSdf(skullField(), { min: off(O, [-0.82, -0.9, -1.16]), max: off(O, [0.82, 1.18, 1.0]), cell: 0.024, ao: 0.05 }),
-    mandible: meshSdf(mandibleField(), { min: off(O, [-0.62, -1.22, -0.36]), max: off(O, [0.62, -0.25, 0.92]), cell: 0.022, ao: 0.03 }),
+    skull: meshSdf(skullField(), { min: off(O, [-0.82, -0.9, -1.16]), max: off(O, [0.82, 1.18, 1.0]), cell: 0.02, ao: 0.05 }),
+    mandible: meshSdf(mandibleField(), { min: off(O, [-0.62, -1.22, -0.36]), max: off(O, [0.62, -0.2, 0.92]), cell: 0.018, ao: 0.03 }),
     cervical: meshSdf(cervicalField(), { min: [-0.32, -0.14, -0.52], max: [0.32, 0.14, 0.16], cell: 0.016, ao: 0.018 }),
     thoracic: meshSdf(thoracicField(), { min: [-0.34, -0.36, -0.64], max: [0.34, 0.18, 0.2], cell: 0.018, ao: 0.02 }),
     lumbar: meshSdf(lumbarField(), { min: [-0.46, -0.2, -0.68], max: [0.46, 0.22, 0.25], cell: 0.02, ao: 0.022 }),
@@ -602,7 +655,7 @@ export function skeletonGeometry(): SkeletonGeometry {
     radius: meshSdf(radiusField(), { min: [1.84, 8.3, -0.4], max: [2.3, 10.92, 0.0], cell: 0.018, ao: 0.02 }),
     ulna: meshSdf(ulnaField(), { min: [1.56, 8.32, -0.56], max: [2.0, 11.14, -0.12], cell: 0.018, ao: 0.02 }),
     hand: handGeometry(),
-    hipBone: meshSdf(hipBoneField(), { min: [-0.05, 8.26, -0.7], max: [1.6, 10.56, 0.66], cell: 0.026, ao: 0.04 }),
+    hipBone: meshSdf(hipBoneField(), { min: [-0.05, 8.26, -0.7], max: [1.6, 10.56, 0.66], cell: 0.021, ao: 0.04 }),
     femur: meshSdf(femurField(), { min: [0.18, 4.68, -0.4], max: [1.54, 9.42, 0.34], cell: 0.026, ao: 0.03 }),
     patella: meshSdf(patellaField(), { min: [0.34, 4.74, 0.16], max: [0.82, 5.3, 0.44], cell: 0.014, ao: 0.02 }),
     tibia: meshSdf(tibiaField(), { min: [0.16, 0.52, -0.34], max: [0.99, 4.76, 0.3], cell: 0.024, ao: 0.03 }),

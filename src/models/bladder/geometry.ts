@@ -45,8 +45,8 @@ interface ShellOptions {
  * UV: u — вокруг, v — по высоте. Нормали считаются по сетке.
  */
 export function shellGeometry(o: ShellOptions): BufferGeometry {
-  const ySegs = o.ySegs ?? 48;
-  const thetaSegs = o.thetaSegs ?? 96;
+  const ySegs = o.ySegs ?? 40;
+  const thetaSegs = o.thetaSegs ?? 80;
   const theta0 = o.theta0 ?? 0;
   const theta1 = o.theta1 ?? Math.PI * 2;
   const off = o.off ?? 0;
@@ -94,8 +94,10 @@ export function shellGeometry(o: ShellOptions): BufferGeometry {
 }
 
 /** Трубка вдоль кривой с радиусом от r0 (начало) до r1 (конец). */
-export function tubeGeometry(points: V3[], r0: number, r1 = r0, tubular = 64, radial = 20): BufferGeometry {
+export function tubeGeometry(points: V3[], r0: number, r1 = r0, tubular = 0, radial = 14): BufferGeometry {
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)), false, 'centripetal');
+  // сегментов вдоль — по длине трубки: коротким веточкам сосуды/нервов 64 не нужны (было 2 560 треугольников на ветку)
+  if (!tubular) tubular = Math.max(12, Math.min(56, Math.round(curve.getLength() * 9)));
   const frames = curve.computeFrenetFrames(tubular, false);
   const pos: number[] = [];
   const uvArr: number[] = [];
@@ -131,9 +133,9 @@ export function tubeGeometry(points: V3[], r0: number, r1 = r0, tubular = 64, ra
 }
 
 /** Замкнутая трубка-петля по точкам (складки слизистой, кольца сфинктеров заданной формы). */
-export function loopGeometry(points: V3[], radius: number, radial = 12): BufferGeometry {
+export function loopGeometry(points: V3[], radius: number, radial = 10): BufferGeometry {
   const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)), true, 'centripetal');
-  const tubular = Math.max(48, points.length * 8);
+  const tubular = Math.max(44, Math.min(84, Math.round(curve.getLength() * 11)));
   const frames = curve.computeFrenetFrames(tubular, true);
   const pos: number[] = [];
   const idx: number[] = [];

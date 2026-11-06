@@ -33,6 +33,15 @@ export interface MeshDef {
   noPick?: boolean;
   /** Обрезается плоскостью уровня мочи (только объём мочи). */
   fillClip?: boolean;
+  /** Лёгкая геометрия для raycast: большие оболочки нельзя пересекать лучом по полной сетке. */
+  proxy?: BufferGeometry;
+}
+
+/** Оболочка стенки + её лёгкий двойник для наведения (20×10 вместо 80×40). */
+function shell(opts: Parameters<typeof shellGeometry>[0], pick = true): { g: BufferGeometry; proxy?: BufferGeometry } {
+  const g = shellGeometry(opts);
+  if (!pick) return { g };
+  return { g, proxy: shellGeometry({ ...opts, ySegs: 10, thetaSegs: 22, wobble: 0, displace: undefined }) };
 }
 
 export type BladderGeometry = Record<string, MeshDef[]>;
@@ -61,30 +70,56 @@ export function buildBladder(): BladderGeometry {
   };
 
   /* ---------- Отделы пузыря (наружная поверхность) ---------- */
-  put('apex', [{ g: shellGeometry({ y0: 1.38, y1: Y_TOP, off: 0.014, wobble: 0.018, seed: 3 }), m: 'surface' }]);
-  put('body', [{ g: shellGeometry({ y0: -1.98, y1: 1.45, off: 0, wobble: 0.02, seed: 5 }), m: 'surface' }]);
-  put('neck', [{ g: shellGeometry({ y0: Y_BOTTOM, y1: -1.9, off: 0.007, wobble: 0.012, seed: 9 }), m: 'surface' }]);
+  put('apex', [{ ...shell({ y0: 1.38, y1: Y_TOP, off: 0.014, wobble: 0.018, seed: 3 }), m: 'surface' }]);
+  put('body', [{ ...shell({ y0: -1.98, y1: 1.45, off: 0, wobble: 0.02, seed: 5 }), m: 'surface' }]);
+  put('neck', [
+    { ...shell({ y0: Y_BOTTOM, y1: -1.9, off: 0.007, wobble: 0.012, seed: 9 }), m: 'surface' },
+    // лобково-пузырные связки: шейка привязана к лобковым костям
+    ...both((side) => [
+      {
+        g: tubeGeometry([[side * 0.52, -2.68, 0.72], [side * 0.44, -2.52, 1.85], [side * 0.3, -2.5, 3.02]], 0.085, 0.115),
+        m: 'fibrous' as MatKey,
+      },
+    ]),
+  ]);
   put('fundus', [
     {
-      g: shellGeometry({ y0: -2.32, y1: -0.42, off: 0.028, theta0: Math.PI / 2 - 0.3, theta1: (Math.PI * 3) / 2 + 0.3, wobble: 0.015, seed: 13 }),
+      ...shell({ y0: -2.32, y1: -0.42, off: 0.028, theta0: Math.PI / 2 - 0.3, theta1: (Math.PI * 3) / 2 + 0.3, wobble: 0.015, seed: 13 }),
       m: 'surfaceBack',
     },
   ]);
   put('urachus', [
     { g: tubeGeometry([[0, 3.02, 0.32], [0, 3.7, 0.58], [0, 4.5, 0.98], [0, 5.1, 1.22]], 0.105, 0.07), m: 'fibrous' },
+    // срединная пупочная складка брюшины — гребешок от верхушки к пупку поверх стенки
+    {
+      g: tubeGeometry([wallPoint(1.45, 0, 0.05), wallPoint(2.3, 0, 0.05), wallPoint(2.92, 0, 0.05), [0, 3.55, 0.52]], 0.055, 0.045),
+      m: 'serosa',
+      noPick: true,
+    },
   ]);
 
   /* ---------- Слои стенки ---------- */
   put('serosa', [
-    { g: shellGeometry({ y0: 0.02, y1: Y_TOP - 0.02, off: WALL_OFF.serosa, wobble: 0.008, seed: 17 }), m: 'serosa', noPick: true },
+    { g: shellGeometry({ y0: 0.02, y1: Y_TOP - 0.02, off: WALL_OFF.serosa, wobble: 0.008, seed: 17, ySegs: 26, thetaSegs: 56 }), m: 'serosa', noPick: true },
     // нижний край брюшины — свободная «юбка» у линии отражения
-    { g: shellGeometry({ y0: -0.38, y1: 0.06, off: WALL_OFF.serosa, displace: (y) => Math.max(0, 0.08 - y) * 0.55, seed: 19 }), m: 'serosa', noPick: true },
+    { g: shellGeometry({ y0: -0.38, y1: 0.06, off: WALL_OFF.serosa, displace: (y) => Math.max(0, 0.08 - y) * 0.55, seed: 19, ySegs: 8, thetaSegs: 56 }), m: 'serosa', noPick: true },
   ]);
   put('adventitia', [
-    { g: shellGeometry({ y0: Y_BOTTOM + 0.04, y1: 0.14, off: WALL_OFF.adventitia, wobble: 0.01, seed: 23 }), m: 'adventitia', noPick: true },
+    { g: shellGeometry({ y0: Y_BOTTOM + 0.04, y1: 0.14, off: WALL_OFF.adventitia, wobble: 0.01, seed: 23, ySegs: 26, thetaSegs: 56 }), m: 'adventitia', noPick: true },
   ]);
+  // трабекулы детрузора: переплетающиеся пучки на внутренней стороне мышцы, видны в разрезе под слизистой
+  const trabeculae: MeshDef[] = [];
+  for (const ty of [-1.0, -0.25, 0.5, 1.2]) {
+    const pts: V3[] = [];
+    for (let j = 0; j < 20; j++) {
+      const th = (j / 20) * Math.PI * 2;
+      pts.push(wallPoint(ty + 0.13 * Math.sin(4 * th + ty * 1.7), th, -0.4));
+    }
+    trabeculae.push({ g: loopGeometry(pts, 0.07), m: 'detrusor', noPick: true });
+  }
   put('detrusor', [
-    { g: shellGeometry({ y0: Y_BOTTOM + 0.02, y1: Y_TOP - 0.03, off: WALL_OFF.detrusor, wobble: 0.014, seed: 29 }), m: 'detrusor' },
+    { ...shell({ y0: Y_BOTTOM + 0.02, y1: Y_TOP - 0.03, off: WALL_OFF.detrusor, wobble: 0.014, seed: 29 }), m: 'detrusor' },
+    ...trabeculae,
     { g: frontalCapGeometry(0.03, -0.19), m: 'cutA', cap: 'side' },
     { g: frontalCapGeometry(-0.19, -0.35), m: 'cutB', cap: 'side' },
     { g: frontalCapGeometry(-0.35, -0.48), m: 'cutC', cap: 'side' },
@@ -93,10 +128,10 @@ export function buildBladder(): BladderGeometry {
     { g: transverseCapGeometry(-0.35, -0.48), m: 'cutC', cap: 'fundus' },
   ]);
   put('submucosa', [
-    { g: shellGeometry({ y0: Y_BOTTOM + 0.03, y1: Y_TOP - 0.05, off: WALL_OFF.submucosa, seed: 31 }), m: 'submucosa' },
+    { ...shell({ y0: Y_BOTTOM + 0.03, y1: Y_TOP - 0.05, off: WALL_OFF.submucosa, seed: 31, ySegs: 34, thetaSegs: 68 }), m: 'submucosa' },
   ]);
   put('mucosa', [
-    { g: shellGeometry({ y0: Y_BOTTOM + 0.04, y1: Y_TOP - 0.06, off: WALL_OFF.mucosa, wobble: 0.02, seed: 37 }), m: 'mucosa' },
+    { ...shell({ y0: Y_BOTTOM + 0.04, y1: Y_TOP - 0.06, off: WALL_OFF.mucosa, wobble: 0.02, seed: 37 }), m: 'mucosa' },
   ]);
   const rugae: MeshDef[] = [];
   for (const ry of [-1.15, -0.45, 0.25, 0.95, 1.6]) {
@@ -118,7 +153,7 @@ export function buildBladder(): BladderGeometry {
 
   /* ---------- Просвет и его детали ---------- */
   put('urine', [
-    { g: shellGeometry({ y0: -2.92, y1: 3.02, off: WALL_OFF.lumen, seed: 41 }), m: 'urine', fillClip: true },
+    { ...shell({ y0: -2.92, y1: 3.02, off: WALL_OFF.lumen, seed: 41, ySegs: 30, thetaSegs: 60 }), m: 'urine', fillClip: true },
   ]);
   put('trigone', [{ g: trigoneGeometry(), m: 'trigone' }]);
   const ridgePts: V3[] = [];
@@ -132,7 +167,7 @@ export function buildBladder(): BladderGeometry {
   put('ureteric-orifices', []);
   put('urethral-orifice', []);
   put('uvula', [
-    { g: new SphereGeometry(1, 24, 18).scale(0.36, 0.2, 0.3).translate(0, -2.58, -0.5), m: 'mucosaDark' },
+    { g: new SphereGeometry(1, 20, 14).scale(0.36, 0.2, 0.3).translate(0, -2.58, -0.5), m: 'mucosaDark' },
   ]);
 
   /* ---------- Трубы: вход и выход ---------- */
@@ -221,7 +256,7 @@ export function buildBladder(): BladderGeometry {
       [[side * 3.3, -0.55, 1.05], 0.22],
     ];
     for (const [p, r] of nodes) {
-      lymph.push({ g: new SphereGeometry(r, 20, 14).scale(1, 1.25, 0.85).translate(...p), m: 'lymph' });
+      lymph.push({ g: new SphereGeometry(r, 16, 12).scale(1, 1.25, 0.85).translate(...p), m: 'lymph' });
     }
     for (let i = 0; i < nodes.length - 1; i++) {
       lymph.push({ g: tubeGeometry([nodes[i][0], nodes[i + 1][0]], 0.032, 0.032), m: 'lymphDuct', noPick: true });
@@ -234,11 +269,11 @@ export function buildBladder(): BladderGeometry {
   const pubis: MeshDef[] = [];
   for (const side of [1, -1] as const) {
     pubis.push({
-      g: new SphereGeometry(1, 24, 18).scale(0.37, 0.85, 0.3).rotateZ(side * 0.1).translate(side * 0.31, -2.52, 3.32),
+      g: new SphereGeometry(1, 20, 14).scale(0.37, 0.85, 0.3).rotateZ(side * 0.1).translate(side * 0.31, -2.52, 3.32),
       m: 'bone',
     });
   }
-  pubis.push({ g: new SphereGeometry(1, 20, 14).scale(0.13, 0.74, 0.27).translate(0, -2.52, 3.32), m: 'cartilage' });
+  pubis.push({ g: new SphereGeometry(1, 16, 12).scale(0.13, 0.74, 0.27).translate(0, -2.52, 3.32), m: 'cartilage' });
   put('pubic-symphysis', pubis);
 
   for (const id of BLADDER_PART_IDS) if (!out[id]) out[id] = [];

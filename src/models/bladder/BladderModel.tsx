@@ -34,51 +34,51 @@ function BMaterial({ kind, tex }: { kind: MatKey; tex: Record<string, Tex> }) {
     case 'surfaceBack':
       return <meshPhysicalMaterial map={tex.surface} color="#e6c3ae" roughness={0.42} clearcoat={0.45} clearcoatRoughness={0.35} sheen={0.4} sheenColor="#ffd9cc" />;
     case 'serosa':
-      return <meshPhysicalMaterial map={tex.serosa} transparent opacity={0.5} roughness={0.16} clearcoat={0.9} clearcoatRoughness={0.15} depthWrite={false} side={DoubleSide} />;
+      return <meshStandardMaterial map={tex.serosa} transparent opacity={0.5} roughness={0.25} metalness={0} depthWrite={false} side={DoubleSide} />;
     case 'adventitia':
-      return <meshPhysicalMaterial map={tex.adventitia} roughness={0.82} clearcoat={0.05} side={DoubleSide} />;
+      return <meshStandardMaterial map={tex.adventitia} roughness={0.85} side={DoubleSide} />;
     case 'detrusor':
       return <meshPhysicalMaterial map={tex.detrusor} bumpMap={tex.detrusor} bumpScale={1.1} roughness={0.55} clearcoat={0.25} clearcoatRoughness={0.4} sheen={0.4} sheenColor="#ff9d8a" />;
     case 'submucosa':
-      return <meshPhysicalMaterial map={tex.submucosa} roughness={0.6} clearcoat={0.15} side={DoubleSide} />;
+      return <meshStandardMaterial map={tex.submucosa} roughness={0.65} side={DoubleSide} />;
     case 'mucosa':
       return <meshPhysicalMaterial map={tex.mucosa} bumpMap={tex.mucosa} bumpScale={0.8} roughness={0.3} clearcoat={0.8} clearcoatRoughness={0.18} sheen={0.6} sheenColor="#ffb7a8" side={DoubleSide} />;
     case 'mucosaDark':
-      return <meshPhysicalMaterial map={tex.mucosa} color="#c98a76" roughness={0.42} clearcoat={0.6} sheen={0.4} sheenColor="#ffb7a8" />;
+      return <meshStandardMaterial map={tex.mucosa} color="#c98a76" roughness={0.45} />;
     case 'trigone':
       return <meshPhysicalMaterial map={tex.mucosa} color="#f0c0ab" roughness={0.32} clearcoat={0.75} clearcoatRoughness={0.2} sheen={0.5} sheenColor="#ffd2c2" side={DoubleSide} />;
     case 'ridge':
-      return <meshPhysicalMaterial color="#eab09c" roughness={0.38} clearcoat={0.6} sheen={0.4} sheenColor="#ffd2c2" />;
+      return <meshStandardMaterial color="#eab09c" roughness={0.4} />;
     case 'urine':
-      return <meshPhysicalMaterial color="#e7b93e" transparent opacity={0.36} roughness={0.06} clearcoat={1} clearcoatRoughness={0.08} depthWrite={false} side={DoubleSide} />;
+      return <meshStandardMaterial color="#e7b93e" transparent opacity={0.36} roughness={0.12} metalness={0} depthWrite={false} side={DoubleSide} />;
     case 'artery':
-      return <meshPhysicalMaterial color="#c3362e" roughness={0.35} clearcoat={0.6} emissive="#300000" emissiveIntensity={0.08} />;
+      return <meshStandardMaterial color="#c3362e" roughness={0.4} emissive="#300000" emissiveIntensity={0.08} />;
     case 'vein':
-      return <meshPhysicalMaterial color="#46589e" roughness={0.38} clearcoat={0.55} />;
+      return <meshStandardMaterial color="#46589e" roughness={0.42} />;
     case 'nerve':
-      return <meshPhysicalMaterial color="#e2bd45" roughness={0.5} clearcoat={0.3} />;
+      return <meshStandardMaterial color="#e2bd45" roughness={0.55} />;
     case 'lymph':
-      return <meshPhysicalMaterial color="#8fa653" roughness={0.5} clearcoat={0.35} sheen={0.4} sheenColor="#d8e6a0" />;
+      return <meshStandardMaterial color="#8fa653" roughness={0.55} />;
     case 'lymphDuct':
-      return <meshPhysicalMaterial color="#a9bd76" roughness={0.5} />;
+      return <meshStandardMaterial color="#a9bd76" roughness={0.55} />;
     case 'bone':
-      return <meshPhysicalMaterial color="#eadfc6" roughness={0.68} clearcoat={0.15} />;
+      return <meshStandardMaterial color="#eadfc6" roughness={0.72} />;
     case 'cartilage':
-      return <meshPhysicalMaterial color="#cddfe4" roughness={0.34} clearcoat={0.6} />;
+      return <meshStandardMaterial color="#cddfe4" roughness={0.38} />;
     case 'striated':
-      return <meshPhysicalMaterial map={tex.striated} bumpMap={tex.striated} bumpScale={0.7} roughness={0.55} clearcoat={0.2} sheen={0.4} sheenColor="#ff9a8a" side={DoubleSide} />;
+      return <meshStandardMaterial map={tex.striated} bumpMap={tex.striated} bumpScale={0.7} roughness={0.6} side={DoubleSide} />;
     case 'sphincterIn':
-      return <meshPhysicalMaterial map={tex.detrusor} color="#d8a58f" roughness={0.5} clearcoat={0.3} sheen={0.4} sheenColor="#ff9d8a" />;
+      return <meshStandardMaterial map={tex.detrusor} color="#d8a58f" roughness={0.55} />;
     case 'fibrous':
-      return <meshPhysicalMaterial color="#e6d7bd" roughness={0.7} clearcoat={0.1} />;
+      return <meshStandardMaterial color="#e6d7bd" roughness={0.75} />;
     case 'lumenDark':
       return <meshStandardMaterial color="#4a2320" roughness={0.65} side={DoubleSide} />;
     case 'ureterWall':
-      return <meshPhysicalMaterial map={tex.surface} color="#e2b49c" roughness={0.45} clearcoat={0.5} sheen={0.4} sheenColor="#ffd9cc" />;
+      return <meshStandardMaterial map={tex.surface} color="#e2b49c" roughness={0.5} />;
     case 'ureterSheath':
-      return <meshPhysicalMaterial color="#e8dcc8" transparent opacity={0.32} roughness={0.5} depthWrite={false} />;
+      return <meshStandardMaterial color="#e8dcc8" transparent opacity={0.32} roughness={0.55} depthWrite={false} />;
     case 'urethraWall':
-      return <meshPhysicalMaterial map={tex.mucosa} color="#dfb49f" roughness={0.5} clearcoat={0.45} sheen={0.4} sheenColor="#ffb7a8" />;
+      return <meshStandardMaterial map={tex.mucosa} color="#dfb49f" roughness={0.55} />;
     case 'cutA':
       return <meshStandardMaterial color="#cf9a80" roughness={0.82} side={DoubleSide} />;
     case 'cutB':
@@ -150,6 +150,43 @@ function CameraRig({ ctrl, selected, explode }: { ctrl: RefObject<BladderControl
 }
 
 /** Поверхность мочи: плоский диск на текущем уровне наполнения. */
+/** Волна перистальтики: вздутие стенки бежит по мочеточнику сверху вниз и приносит порцию мочи. */
+function Peristalsis({ curves, state, tex }: { curves: CatmullRomCurve3[]; state: ModelProps['state']; tex: Record<string, Tex> }) {
+  const refs = useRef<(Mesh | null)[]>([]);
+  const pos = useMemo(() => new Vector3(), []);
+  const tan = useMemo(() => new Vector3(), []);
+  useFrame(() => {
+    const t = state.time.current;
+    curves.forEach((cv, i) => {
+      const m = refs.current[i];
+      if (!m) return;
+      const u = (t * 0.05 + i * 0.5) % 1;
+      cv.getPointAt(u, pos);
+      cv.getTangentAt(u, tan);
+      m.position.copy(pos);
+      m.lookAt(pos.x + tan.x, pos.y + tan.y, pos.z + tan.z);
+      const s = 0.8 + 0.35 * Math.sin(u * Math.PI);
+      m.scale.set(s, s, 1.3);
+    });
+  });
+  return (
+    <>
+      {curves.map((_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          userData={{ noPick: true }}
+        >
+          <sphereGeometry args={[0.205, 14, 10]} />
+          <BMaterial kind="ureterWall" tex={tex} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
 function UrineSurface({ ctrl }: { ctrl: RefObject<BladderControl> }) {
   const mesh = useRef<Mesh>(null);
   useFrame(() => {
@@ -223,7 +260,7 @@ export default function BladderModel({ state, names = {} }: ModelProps) {
   );
   useEffect(
     () => () => {
-      for (const defs of Object.values(G)) for (const d of defs) d.g.dispose();
+      for (const defs of Object.values(G)) for (const d of defs) { d.g.dispose(); d.proxy?.dispose(); }
       Object.values(tex).forEach((t) => t.dispose());
     },
     [G, tex],
@@ -280,7 +317,7 @@ export default function BladderModel({ state, names = {} }: ModelProps) {
         {BLADDER_PART_IDS.map((id) => (
           <BladderPart key={id} id={id}>
             {G[id].map((d, i) => (
-              <mesh key={i} geometry={d.g} userData={{ cap: d.cap, noPick: d.noPick, fillClip: d.fillClip }}>
+              <mesh key={i} geometry={d.g} userData={{ cap: d.cap, noPick: d.noPick, fillClip: d.fillClip, pickProxy: d.proxy }}>
                 <BMaterial kind={d.m} tex={tex} />
               </mesh>
             ))}
@@ -303,10 +340,14 @@ export default function BladderModel({ state, names = {} }: ModelProps) {
                 </mesh>
               </group>
             )}
-            {id === 'ureters' &&
-              ureterCurves.map((path, i) => (
-                <Flow key={i} path={path} count={9} speed={0.1} color="#eec95e" size={0.055} state={state} pulse={(t) => 0.7 + 0.6 * Math.max(0, Math.sin(t * 2.2 + i * 2.4))} />
-              ))}
+            {id === 'ureters' && (
+              <>
+                {ureterCurves.map((path, i) => (
+                  <Flow key={i} path={path} count={9} speed={0.1} color="#eec95e" size={0.055} state={state} pulse={(t) => 0.7 + 0.6 * Math.max(0, Math.sin(t * 2.2 + i * 2.4))} />
+                ))}
+                <Peristalsis curves={ureterCurves} state={state} tex={tex} />
+              </>
+            )}
             <PartLabel id={id} names={names} />
           </BladderPart>
         ))}

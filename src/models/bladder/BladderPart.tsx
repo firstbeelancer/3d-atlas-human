@@ -82,12 +82,21 @@ export function BladderPart({ id, children }: { id: string; children: ReactNode 
           m.emissiveIntensity = 0;
         }
       }
-      // выбор мышью не должен попадать в обрезанную половину, в скрытые, призрачные и служебные части
+      // выбор мышью не должен попадать в обрезанную половину, в скрытые, призрачные и служебные части;
+      // большие оболочки пересекаем лучом по лёгкой прокси-геометрии — полная сетка на каждое движение мыши это главный лаг
       const original = o.raycast.bind(o);
+      const proxy = (o.userData as { pickProxy?: import('three').BufferGeometry }).pickProxy;
       o.raycast = (raycaster, intersects) => {
         if (!interactive.current || !o.visible || (o.userData as { noPick?: boolean }).noPick) return;
         const start = intersects.length;
-        original(raycaster, intersects);
+        if (proxy) {
+          const real = o.geometry;
+          o.geometry = proxy;
+          original(raycaster, intersects);
+          o.geometry = real;
+        } else {
+          original(raycaster, intersects);
+        }
         if (ref.current.cut) {
           for (let i = intersects.length - 1; i >= start; i--) {
             if (!(o.userData as { cap?: string }).cap && planes[0].distanceToPoint(intersects[i].point) < -1e-4) intersects.splice(i, 1);
@@ -104,6 +113,8 @@ export function BladderPart({ id, children }: { id: string; children: ReactNode 
   useEffect(() => {
     invalidate();
   });
+
+  const lastKey = useRef('');
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -127,9 +138,27 @@ export function BladderPart({ id, children }: { id: string; children: ReactNode 
     g.visible = a > 0.012;
     interactive.current = !hiddenByUser && a > 0.5;
 
+    // материалы и срезы трогаем только когда что-то реально изменилось:
+    // раньше каждый кадр переписывал свойства ~90 материалов и считал мировые матрицы всех частей
+    const key = [
+      c.cut ? c.kind : '-',
+      c.isolate ? 1 : 0,
+      active ? 1 : 0,
+      hot ? 1 : 0,
+      hiddenByUser ? 1 : 0,
+      focus ? 1 : 0,
+      Math.round(a * 250),
+      Math.round(c.explode * 40),
+      fillMats.current.size ? Math.round(c.fillY * 400) : 0,
+    ].join('|');
+    if (key === lastKey.current) return;
+    lastKey.current = key;
+
     const plane = c.kind === 'side' ? SIDE_PLANE : FUNDUS_PLANE;
-    g.updateWorldMatrix(true, false);
-    planes[0].copy(plane).applyMatrix4(g.matrixWorld);
+    if (c.cut) {
+      g.updateWorldMatrix(true, false);
+      planes[0].copy(plane).applyMatrix4(g.matrixWorld);
+    }
 
     for (const m of meshes.current) {
       const cap = (m.userData as { cap?: CutKind }).cap;

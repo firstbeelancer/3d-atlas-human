@@ -8,7 +8,7 @@ const BASE: SectionBase[] = [
   { slug: 'myshcy', system: 'support', icon: 'muscle', ready: false },
   { slug: 'vnutrennie-organy', system: 'overview', icon: 'organs', ready: false },
   { slug: 'mozg', system: 'nervous', icon: 'brain', ready: false },
-  { slug: 'glaz', system: 'nervous', icon: 'eye', ready: false },
+  { slug: 'glaz', system: 'nervous', icon: 'eye', ready: true },
   { slug: 'uho', system: 'nervous', icon: 'ear', ready: false },
   { slug: 'zub', system: 'digestive', icon: 'tooth', ready: false },
   { slug: 'legkie', system: 'respiratory', icon: 'lungs', ready: false },

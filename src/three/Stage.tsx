@@ -2,9 +2,11 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { FlaskConical, Focus, Layers, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
-import type { StageState } from './types';
+import type { CutKind, StageState } from './types';
+import { ExplorerPanel, PartCard, type ExplorerProps } from './StageExplorer';
 import { StageBoundary } from './StageBoundary';
 import { useSelection } from './selection';
+import type { Box } from './cameraBounds';
 
 /** Дополнительные режимы модели (кнопки над основной панелью). */
 export interface StageMode {
@@ -13,7 +15,6 @@ export interface StageMode {
 }
 
 const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical } as const;
-import type { Box } from './cameraBounds';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -28,6 +29,10 @@ interface Props {
   target?: [number, number, number];
   /** Высота пола (для мягкой тени). */
   floorY?: number;
+  /** Пределы приближения камеры и свободное вращение. */
+  orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
+  /** Панель «Рассмотреть детали» (слои, разнос, режим «отдельно») и карточка выбранной части. */
+  explorer?: ExplorerProps;
   /** Режимы модели помимо разреза: «Разобрать», «Сегменты» и т. п. */
   modes?: StageMode[];
   /** Названия частей — для плашки «Отдельно: …». */
@@ -49,6 +54,8 @@ export function Stage({
   camera,
   target,
   floorY,
+  orbit,
+  explorer,
   bounds,
   minDistance,
   modes = [],
@@ -67,6 +74,11 @@ export function Stage({
   // на узких экранах подписи по умолчанию скрыты: касание части всё равно показывает её подпись
   const [labels, setLabels] = useState(() => window.innerWidth >= 640);
   const [show, setShow] = useState(false);
+  const [explode, setExplode] = useState(0);
+  // «призрачный» режим панели «Рассмотреть детали»: выбранная часть видна, остальные полупрозрачны
+  const [ghost, setGhost] = useState(true);
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
+  const [cutKind, setCutKind] = useState<CutKind>('side');
   const [resetKey, setResetKey] = useState(0);
   const time = useRef(0);
   const box = useRef<HTMLDivElement>(null);
@@ -110,7 +122,14 @@ export function Stage({
     );
   }
 
-  const state: StageState = { paused, cutaway, labels, modes: activeModes, time };
+  const state: StageState = {
+    paused,
+    cutaway,
+    labels,
+    modes: activeModes,
+    time,
+    ...(explorer ? { explode, isolate: ghost, hidden, cutKind } : {}),
+  };
 
   return (
     <div
@@ -129,6 +148,7 @@ export function Stage({
             camera={camera}
             target={target}
             floorY={floorY}
+            orbit={orbit}
             bounds={bounds}
             minDistance={minDistance}
             paused={paused}
@@ -140,12 +160,35 @@ export function Stage({
         </Suspense>
       </StageBoundary>
 
-      <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
-        {t('stage.hint')}
-      </p>
+      {explorer && (
+        <>
+          <ExplorerPanel
+            {...explorer}
+            cutaway={cutaway}
+            cutKind={cutKind}
+            onView={(on, kind) => {
+              setCutaway(on);
+              setCutKind(kind);
+            }}
+            explode={explode}
+            onExplode={setExplode}
+            isolate={ghost}
+            onIsolate={setGhost}
+            hidden={hidden}
+            onHidden={(next) => setHidden(next)}
+          />
+          <PartCard {...explorer} />
+        </>
+      )}
+
+      {!explorer && (
+        <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
+          {t('stage.hint')}
+        </p>
+      )}
 
       {isolate && selected && (
-        <div className="absolute left-1/2 top-4 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-plinth/95 py-1 pl-4 pr-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur">
+        <div className="absolute left-1/2 top-4 z-40 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-plinth/95 py-1 pl-4 pr-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur">
           <Focus size={16} aria-hidden className="shrink-0" />
           <span className="truncate text-[14px]">
             <span className="text-ink-soft">{t('stage.isolated')} </span>
@@ -166,7 +209,7 @@ export function Stage({
         <div
           role="toolbar"
           aria-label={t('stage.modes')}
-          className="absolute right-3 top-3 flex flex-col items-end gap-1"
+          className="absolute right-3 top-3 z-40 flex flex-col items-end gap-1"
         >
           {modes.map((m) => {
             const Icon = MODE_ICONS[m.icon];
@@ -190,7 +233,7 @@ export function Stage({
       <div
         role="toolbar"
         aria-label={label}
-        className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-plinth/95 p-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur"
+        className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-plinth/95 p-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur"
       >
         <ToolButton onClick={() => setPaused((v) => !v)} pressed={paused} label={paused ? t('stage.play') : t('stage.pause')}>
           {paused ? <Play size={17} aria-hidden /> : <Pause size={17} aria-hidden />}
@@ -203,7 +246,18 @@ export function Stage({
         <ToolButton onClick={() => setLabels((v) => !v)} pressed={labels} label={t('stage.labels')}>
           <Tags size={17} aria-hidden />
         </ToolButton>
-        <ToolButton onClick={() => setResetKey((k) => k + 1)} label={t('stage.reset')}>
+        <ToolButton
+          onClick={() => {
+            setResetKey((k) => k + 1);
+            if (explorer) {
+              setExplode(0);
+              setHidden(new Set());
+              setCutaway(false);
+              setGhost(true);
+            }
+          }}
+          label={t('stage.reset')}
+        >
           <RotateCcw size={17} aria-hidden />
         </ToolButton>
         <ToolButton onClick={toggleShow} pressed={show} label={show ? t('stage.exitShow') : t('stage.show')} strong>

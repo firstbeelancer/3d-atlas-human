@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { FlaskConical, Focus, Layers, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
+import { Box as BoxIcon, FlaskConical, Focus, Layers, Smile, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { CutKind, StageState } from './types';
@@ -11,10 +11,12 @@ import type { Box } from './cameraBounds';
 /** Дополнительные режимы модели (кнопки над основной панелью). */
 export interface StageMode {
   id: string;
-  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland';
+  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland' | 'jaw' | 'arch';
+  /** Режимы одной группы взаимоисключающие: включение одного выключает остальные. */
+  group?: string;
 }
 
-const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical } as const;
+const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile } as const;
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -209,7 +211,7 @@ export function Stage({
         <div
           role="toolbar"
           aria-label={t('stage.modes')}
-          className="absolute right-3 top-3 z-40 flex flex-col items-end gap-1"
+          className={`absolute top-3 z-40 flex flex-col gap-1 ${explorer ? 'left-3 items-start' : 'right-3 items-end'}`}
         >
           {modes.map((m) => {
             const Icon = MODE_ICONS[m.icon];
@@ -219,7 +221,14 @@ export function Stage({
                 key={m.id}
                 type="button"
                 aria-pressed={on}
-                onClick={() => setActiveModes((v) => ({ ...v, [m.id]: !v[m.id] }))}
+                onClick={() =>
+                  setActiveModes((v) => {
+                    const next = { ...v, [m.id]: !v[m.id] };
+                    if (next[m.id] && m.group)
+                      for (const other of modes) if (other.group === m.group && other.id !== m.id) next[other.id] = false;
+                    return next;
+                  })
+                }
                 className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-plinth/95 px-3 text-[13.5px] font-medium text-ink shadow-[0_6px_18px_-12px_rgba(23,32,58,0.4)] backdrop-blur transition-colors hover:bg-wash aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-stone"
               >
                 <Icon size={16} aria-hidden />

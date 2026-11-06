@@ -33,10 +33,14 @@ export const MODELS: Record<string, ModelEntry> = {
     hasCutaway: true,
     explorer: true,
     isolate: true,
-    camera: { position: [0, 0.9, 15.5], fov: 36 },
+    camera: { position: [0, 0.9, 16.5], fov: 36 },
     target: [0, -0.1, 0],
-    bounds: { min: [-3.4, -2.1, -1], max: [3.4, 2.1, 1] },
+    bounds: { min: [-3.6, -3.2, -2], max: [3.6, 3.2, 2] },
     orbit: { minDistance: 2, maxDistance: 26, free: true },
+    modes: [
+      { id: 'jaw', icon: 'jaw', group: 'view' },
+      { id: 'arch', icon: 'arch', group: 'view' },
+    ],
     description: teethText.description,
   },
   glaz: {

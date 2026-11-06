@@ -54,6 +54,19 @@ describe('skeleton content', () => {
     for (const slug of skelet.related) expect(getSection(slug), slug).toBeDefined();
   });
 
+  it('names the bone cells that take down and build up bone', () => {
+    const all = JSON.stringify(skelet);
+    expect(all).toMatch(/остеокласт/);
+    expect(all).toMatch(/остеобласт/);
+  });
+
+  it('gives the daily scale of the red marrow blood factory', () => {
+    const marrow = skelet.parts.find((p) => p.id === 'red-marrow')!.text;
+    expect(marrow).toMatch(/200 миллиардов эритроцитов/);
+    expect(marrow).toMatch(/лейкоцит/);
+    expect(marrow).toMatch(/тромбоцит/);
+  });
+
   it('contains no emoji', () => {
     expect(findEmoji(JSON.stringify(skelet))).toEqual([]);
   });

@@ -1,131 +1,48 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, use, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { CapsuleGeometry, LatheGeometry, Quaternion, Vector2, Vector3, type Group, type Mesh } from 'three';
+import { CanvasTexture, MeshPhysicalMaterial, Object3D, SRGBColorSpace, type BufferGeometry, type Group, type InstancedMesh } from 'three';
 import type { ModelProps } from '../../three/types';
-import { blobGeometry, heartbeat, type BlobShape, type Vec3 } from '../../three/geometry';
+import { heartbeat } from '../../three/geometry';
 import { Label } from '../../three/Label';
 import { useIsActive, useSelection } from '../../three/selection';
 import { getSection } from '../../content/sections';
+import { JOINTS, VERTEBRAE, type VertebraSpot } from '../skeleton/anatomy';
+import type { SkeletonGeometry } from '../skeleton/bones';
+import type { V3 } from '../skeleton/sdf';
+import { loadBodyPart } from './loader';
+import { LABEL_AT, MATERIALS, PARTS, PIVOTS, type PartSpec } from './meta';
+import { ARM_ABDUCTION } from './skin';
 
 /*
-  Стеклянная фигура человека с органами внутри — витрина главной страницы.
-  Первое касание органа подписывает его, второе открывает раздел.
+  Стеклянная фигура человека с настоящими органами внутри — витрина главной страницы.
+  Кожа — гладкая оболочка из поля расстояний; под ней скелет (общий с разделом «Скелет»), мозг с извилинами,
+  глаза, уши, лёгкие и бронхи, сердце с коронарными сосудами, печень, желудок, кишечник, почки,
+  сосуды и нервы. Первое касание органа подписывает его, второе открывает раздел.
+  Все тяжёлые сетки строятся в фоновых потоках (build.ts), поэтому страница не замирает.
 */
 
-const GLASS = {
-  color: '#b9c6dc',
-  transparent: true,
-  opacity: 0.3,
-  roughness: 0.2,
-  clearcoat: 1,
-  clearcoatRoughness: 0.15,
-  depthWrite: false,
-} as const;
+/** Модель строится в дециметрах (рост 17,5); на сцене фигура высотой 8 единиц, стопы на y = −4,3. */
+const SCALE = 8 / 17.5;
+const FOOT_Y = -4.3;
 
-function Limb({ from, to, radius }: { from: Vec3; to: Vec3; radius: number }) {
-  const { geometry, position, quaternion } = useMemo(() => {
-    const a = new Vector3(...from);
-    const b = new Vector3(...to);
-    const dir = b.clone().sub(a);
-    const len = dir.length();
-    return {
-      geometry: new CapsuleGeometry(radius, len, 8, 24),
-      position: a.clone().add(b).multiplyScalar(0.5),
-      quaternion: new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), dir.normalize()),
-    };
-  }, [from, to, radius]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh geometry={geometry} position={position} quaternion={quaternion} raycast={() => null}>
-      <meshPhysicalMaterial {...GLASS} />
-    </mesh>
-  );
-}
+const HIGHLIGHT = { emissive: '#ffb38a', emissiveIntensity: 0.45 } as const;
+const NO_RAY = () => null;
 
-function Torso() {
-  const geometry = useMemo(() => {
-    const profile: [number, number][] = [
-      [0.0, -1.05], [0.55, -1.0], [0.76, -0.62], [0.7, -0.1], [0.6, 0.35], [0.66, 0.9],
-      [0.8, 1.5], [0.93, 1.92], [0.8, 2.16], [0.32, 2.28], [0.23, 2.45], [0.0, 2.52],
-    ];
-    return new LatheGeometry(profile.map(([r, y]) => new Vector2(r, y)), 64);
-  }, []);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh geometry={geometry} scale={[1, 1, 0.62]} raycast={() => null}>
-      <meshPhysicalMaterial {...GLASS} />
-    </mesh>
-  );
-}
-
-interface OrganSpec {
-  slug: string;
-  shape: BlobShape;
-  position: Vec3;
-  rotation?: Vec3;
-  color: string;
-  label: Vec3;
-  breathe?: boolean;
-  beat?: boolean;
-  mirror?: boolean;
-}
-
-const ROUND: BlobShape = { taper: 1, power: 1, sx: 1, sy: 1, sz: 1 };
-
-const ORGANS: OrganSpec[] = [
-  { slug: 'mozg', shape: { ...ROUND, sx: 0.52, sy: 0.42, sz: 0.6 }, position: [0, 3.08, -0.03], color: '#e6a9ad', label: [0.4, 3.35, 0] },
-  { slug: 'glaz', shape: { ...ROUND, sx: 0.085, sy: 0.085, sz: 0.085 }, position: [0.2, 2.9, 0.5], color: '#f4f1ea', label: [0.3, 2.9, 0.5], mirror: true },
-  { slug: 'uho', shape: { ...ROUND, sx: 0.05, sy: 0.14, sz: 0.09 }, position: [0.62, 2.88, -0.02], color: '#e3b29c', label: [0.75, 2.88, 0], mirror: true },
-  { slug: 'legkie', shape: { taper: 0.55, power: 0.8, sx: 0.36, sy: 0.6, sz: 0.34 }, position: [0.44, 1.42, 0.0], color: '#ec9c9a', label: [0.75, 1.6, 0.1], breathe: true, mirror: true },
-  { slug: 'serdce', shape: { taper: 0.2, power: 0.6, sx: 0.24, sy: 0.32, sz: 0.22 }, position: [0.12, 1.2, 0.2], rotation: [0, 0, 0.5], color: '#c3362e', label: [0.1, 1.15, 0.45], beat: true },
-  { slug: 'pechen', shape: { taper: 0.35, power: 0.9, sx: 0.6, sy: 0.26, sz: 0.36 }, position: [-0.3, 0.6, 0.12], rotation: [0, 0, -0.25], color: '#8f3d2e', label: [-0.75, 0.62, 0.15] },
-  { slug: 'zhelchnyj-puzyr', shape: { ...ROUND, sx: 0.07, sy: 0.12, sz: 0.07 }, position: [-0.2, 0.42, 0.36], color: '#4f8f52', label: [-0.25, 0.38, 0.4] },
-  { slug: 'zheludok', shape: { taper: 0.5, power: 0.8, sx: 0.3, sy: 0.32, sz: 0.24 }, position: [0.36, 0.56, 0.14], rotation: [0, 0, 0.6], color: '#e0a36b', label: [0.7, 0.62, 0.2] },
-  { slug: 'podzheludochnaya', shape: { ...ROUND, sx: 0.36, sy: 0.08, sz: 0.1 }, position: [0.12, 0.3, -0.06], rotation: [0, 0, 0.15], color: '#e8c47c', label: [0.4, 0.28, -0.05] },
-  { slug: 'pochki', shape: { ...ROUND, sx: 0.12, sy: 0.19, sz: 0.09 }, position: [0.36, 0.2, -0.28], color: '#9c3c33', label: [0.5, 0.15, -0.3], mirror: true },
-  { slug: 'kishechnik', shape: { taper: 0.9, power: 1, sx: 0.5, sy: 0.42, sz: 0.3 }, position: [0, -0.35, 0.1], color: '#e5b28d', label: [0.55, -0.4, 0.15] },
-  { slug: 'mochevoj-puzyr', shape: { ...ROUND, sx: 0.15, sy: 0.13, sz: 0.13 }, position: [0, -0.92, 0.18], color: '#e7c264', label: [0.2, -0.95, 0.2] },
-];
-
-function Organ({ spec, state, x = 1 }: { spec: OrganSpec; state: ModelProps['state']; x?: 1 | -1 }) {
-  const geometry = useMemo(() => blobGeometry(spec.shape, 48), [spec.shape]);
-  const ref = useRef<Mesh>(null);
-  const active = useIsActive(spec.slug);
+/** Общие обработчики: наведение, первое касание — подпись, второе — переход в раздел. */
+function Interactive({ slug, children }: { slug: string; children: ReactNode }) {
   const { selected, select, hover } = useSelection();
   const navigate = useNavigate();
-
-  useFrame(() => {
-    const m = ref.current;
-    if (!m) return;
-    const time = state.time.current;
-    if (spec.breathe) {
-      const b = 0.5 + 0.5 * Math.sin(time * 1.4);
-      m.scale.set(1 + 0.05 * b, 1 + 0.07 * b, 1 + 0.05 * b);
-    } else if (spec.beat) {
-      m.scale.setScalar(1 - 0.08 * heartbeat(time).v);
-    }
-  });
-
-  const onClick = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    if (selected === spec.slug) navigate(`/razdel/${spec.slug}`);
-    else select(spec.slug);
-  };
-
-  const pos: Vec3 = [spec.position[0] * x, spec.position[1], spec.position[2]];
-  const rot: Vec3 = spec.rotation ? [spec.rotation[0], spec.rotation[1], spec.rotation[2] * x] : [0, 0, 0];
-
   return (
-    <mesh
-      ref={ref}
-      geometry={geometry}
-      position={pos}
-      rotation={rot}
-      onClick={onClick}
-      onPointerOver={(e) => {
+    <group
+      onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
-        hover(spec.slug);
+        if (selected === slug) navigate(`/razdel/${slug}`);
+        else select(slug);
+      }}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        hover(slug);
         document.body.style.cursor = 'pointer';
       }}
       onPointerOut={() => {
@@ -133,17 +50,355 @@ function Organ({ spec, state, x = 1 }: { spec: OrganSpec; state: ModelProps['sta
         document.body.style.cursor = '';
       }}
     >
+      {children}
+    </group>
+  );
+}
+
+/** Материал органа; подсвечивается, когда раздел выбран или на него навели курсор. */
+function Tissue({ slug, kind, geometry }: { slug: string; kind: string; geometry?: BufferGeometry }) {
+  const active = useIsActive(slug);
+  const m = MATERIALS[kind];
+  return (
+    <meshPhysicalMaterial
+      {...m}
+      vertexColors={!!geometry?.attributes.color}
+      emissive={active ? HIGHLIGHT.emissive : '#000000'}
+      emissiveIntensity={active ? HIGHLIGHT.emissiveIntensity : 0}
+    />
+  );
+}
+
+/* ---------------- Кожа ---------------- */
+
+/** Стекло с «каёмкой»: края оболочки плотнее, середина прозрачнее — видны и силуэт, и органы внутри. */
+function useGlass(): MeshPhysicalMaterial {
+  const material = useMemo(() => {
+    const m = new MeshPhysicalMaterial({
+      color: '#b9c6dc',
+      transparent: true,
+      opacity: 0.16,
+      roughness: 0.2,
+      clearcoat: 1,
+      clearcoatRoughness: 0.15,
+      depthWrite: false,
+    });
+    m.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <opaque_fragment>',
+        `float rim = pow(1.0 - saturate(dot(normalize(normal), normalize(vViewPosition))), 2.4);
+         diffuseColor.a = clamp(diffuseColor.a + rim * 0.5, 0.0, 1.0);
+         outgoingLight += vec3(0.5, 0.64, 0.9) * rim * 0.5;
+         #include <opaque_fragment>`,
+      );
+    };
+    return m;
+  }, []);
+  useEffect(() => () => material.dispose(), [material]);
+  return material;
+}
+
+function Skin() {
+  const { skin } = use(loadBodyPart('skin'));
+  const glass = useGlass();
+  return <mesh geometry={skin} material={glass} raycast={NO_RAY} renderOrder={10} />;
+}
+
+/* ---------------- Скелет ---------------- */
+
+type Geo = SkeletonGeometry;
+const neg = (p: V3): V3 => [-p[0], -p[1], -p[2]];
+
+function Pivot({ at, rotation, children }: { at: V3; rotation?: V3; children: ReactNode }) {
+  return (
+    <group position={at}>
+      <group rotation={rotation ?? [0, 0, 0]}>
+        <group position={neg(at)}>{children}</group>
+      </group>
+    </group>
+  );
+}
+
+function Bone({ geometry, kind = 'bone', ray = false, glass = false }: { geometry: BufferGeometry; kind?: string; ray?: boolean; glass?: boolean }) {
+  const active = useIsActive('skelet');
+  const m = MATERIALS[kind];
+  return (
+    <mesh geometry={geometry} raycast={ray ? undefined : NO_RAY} renderOrder={glass ? 5 : 0}>
       <meshPhysicalMaterial
-        color={spec.color}
-        roughness={0.5}
-        clearcoat={0.35}
-        clearcoatRoughness={0.4}
-        sheen={0.4}
-        sheenColor="#ffd9cc"
-        emissive={active ? '#ffb38a' : '#000000'}
-        emissiveIntensity={active ? 0.45 : 0}
+        {...m}
+        vertexColors={!!geometry.attributes.color}
+        transparent={glass}
+        opacity={glass ? 0.4 : 1}
+        depthWrite={!glass}
+        emissive={active ? HIGHLIGHT.emissive : '#000000'}
+        emissiveIntensity={active ? HIGHLIGHT.emissiveIntensity : 0}
       />
     </mesh>
+  );
+}
+
+const dummy = new Object3D();
+
+function Vertebrae({ geometry, spots }: { geometry: BufferGeometry; spots: VertebraSpot[] }) {
+  const ref = useRef<InstancedMesh>(null);
+  const active = useIsActive('skelet');
+  useLayoutEffect(() => {
+    const m = ref.current;
+    if (!m) return;
+    spots.forEach((s, i) => {
+      dummy.position.set(0, s.y, s.z);
+      dummy.rotation.set(s.tilt, 0, 0);
+      dummy.scale.setScalar(s.scale);
+      dummy.updateMatrix();
+      m.setMatrixAt(i, dummy.matrix);
+    });
+    m.instanceMatrix.needsUpdate = true;
+    m.computeBoundingSphere();
+  }, [spots]);
+  return (
+    <instancedMesh ref={ref} args={[geometry, undefined, spots.length]} raycast={NO_RAY}>
+      <meshPhysicalMaterial
+        {...MATERIALS.bone}
+        vertexColors={!!geometry.attributes.color}
+        emissive={active ? HIGHLIGHT.emissive : '#000000'}
+        emissiveIntensity={active ? HIGHLIGHT.emissiveIntensity : 0}
+      />
+    </instancedMesh>
+  );
+}
+
+function Discs({ geometry }: { geometry: BufferGeometry }) {
+  const ref = useRef<InstancedMesh>(null);
+  const items = useMemo(() => {
+    const all = [
+      ...VERTEBRAE.cervical.map((s) => ({ s, r: 0.13, h: 0.035 })),
+      ...VERTEBRAE.thoracic.map((s) => ({ s, r: 0.135, h: 0.04 })),
+      ...VERTEBRAE.lumbar.map((s) => ({ s, r: 0.2, h: 0.055 })),
+    ];
+    const out: { y: number; z: number; tilt: number; r: number; h: number }[] = [];
+    for (let i = 0; i < all.length - 1; i++) {
+      const a = all[i];
+      const b = all[i + 1];
+      out.push({ y: (a.s.y + b.s.y) / 2, z: (a.s.z + b.s.z) / 2, tilt: (a.s.tilt + b.s.tilt) / 2, r: b.r * b.s.scale, h: b.h });
+    }
+    const last = all[all.length - 1].s;
+    out.push({ y: last.y - 0.19, z: last.z - 0.06, tilt: last.tilt - 0.3, r: 0.2, h: 0.05 });
+    return out;
+  }, []);
+  useLayoutEffect(() => {
+    const m = ref.current;
+    if (!m) return;
+    items.forEach((d, i) => {
+      dummy.position.set(0, d.y, d.z);
+      dummy.rotation.set(d.tilt, 0, 0);
+      dummy.scale.set(d.r, d.h / 0.32, d.r);
+      dummy.updateMatrix();
+      m.setMatrixAt(i, dummy.matrix);
+    });
+    m.instanceMatrix.needsUpdate = true;
+    m.computeBoundingSphere();
+  }, [items]);
+  return (
+    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} raycast={NO_RAY}>
+      <meshPhysicalMaterial {...MATERIALS.cartilage} />
+    </instancedMesh>
+  );
+}
+
+function Arm({ g }: { g: Geo }) {
+  return (
+    <Pivot at={JOINTS.sternoclavicular}>
+      <Bone geometry={g.clavicle} ray />
+      <Bone geometry={g.scapula} />
+      <Pivot at={JOINTS.shoulder} rotation={[0, 0, ARM_ABDUCTION]}>
+        <Bone geometry={g.humerus} ray />
+        <Bone geometry={g.radius} ray />
+        <Bone geometry={g.ulna} ray />
+        <Bone geometry={g.hand} />
+      </Pivot>
+    </Pivot>
+  );
+}
+
+function Leg({ g }: { g: Geo }) {
+  return (
+    <>
+      <Bone geometry={g.hipBone} ray />
+      <Bone geometry={g.femur} ray />
+      <Bone geometry={g.patella} ray />
+      <Bone geometry={g.tibia} ray />
+      <Bone geometry={g.fibula} ray />
+      <Bone geometry={g.foot} />
+    </>
+  );
+}
+
+function Skeleton() {
+  const g = use(loadBodyPart('bones')) as unknown as Geo;
+  return (
+    <Interactive slug="skelet">
+      <Bone geometry={g.skull} glass />
+      <Bone geometry={g.mandible} glass />
+      <Vertebrae geometry={g.cervical} spots={VERTEBRAE.cervical} />
+      <Vertebrae geometry={g.thoracic} spots={VERTEBRAE.thoracic} />
+      <Vertebrae geometry={g.lumbar} spots={VERTEBRAE.lumbar} />
+      <Discs geometry={g.disc} />
+      <Bone geometry={g.sacrum} />
+      <Bone geometry={g.coccyx} />
+      <Bone geometry={g.sternum} ray />
+      {([1, -1] as const).map((s) => (
+        <group key={s} scale={[s, 1, 1]}>
+          <Bone geometry={g.ribs} ray />
+          <Bone geometry={g.cartilage} kind="cartilage" ray />
+          <Arm g={g} />
+          <Leg g={g} />
+        </group>
+      ))}
+    </Interactive>
+  );
+}
+
+/* ---------------- Глаза ---------------- */
+
+function eyeTexture(): CanvasTexture {
+  const W = 1024;
+  const H = 512;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const x = c.getContext('2d')!;
+  x.fillStyle = '#f2eee6';
+  x.fillRect(0, 0, W, H);
+  // сосуды склеры
+  x.strokeStyle = 'rgba(190,70,70,0.22)';
+  x.lineWidth = 1.2;
+  for (let i = 0; i < 60; i++) {
+    let px = Math.random() * W;
+    let py = Math.random() * H;
+    x.beginPath();
+    x.moveTo(px, py);
+    for (let k = 0; k < 6; k++) {
+      px += (Math.random() - 0.5) * 40;
+      py += (Math.random() - 0.5) * 30;
+      x.lineTo(px, py);
+    }
+    x.stroke();
+  }
+  const cx = W * 0.25;
+  const cy = H * 0.5;
+  const R = 66;
+  const iris = x.createRadialGradient(cx, cy, 10, cx, cy, R);
+  iris.addColorStop(0, '#5d3b1d');
+  iris.addColorStop(0.55, '#8a5a2b');
+  iris.addColorStop(0.9, '#4a3a2a');
+  iris.addColorStop(1, '#241a12');
+  x.fillStyle = iris;
+  x.beginPath();
+  x.arc(cx, cy, R, 0, Math.PI * 2);
+  x.fill();
+  // радужка: лучевые волокна
+  for (let i = 0; i < 160; i++) {
+    const a = (i / 160) * Math.PI * 2;
+    const r0 = 26 + Math.random() * 8;
+    x.strokeStyle = `rgba(${Math.random() > 0.5 ? '230,190,120' : '60,36,16'},${0.12 + Math.random() * 0.22})`;
+    x.lineWidth = 1.5;
+    x.beginPath();
+    x.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    x.lineTo(cx + Math.cos(a + 0.05) * (R - 4), cy + Math.sin(a + 0.05) * (R - 4));
+    x.stroke();
+  }
+  x.fillStyle = '#050505';
+  x.beginPath();
+  x.arc(cx, cy, 25, 0, Math.PI * 2);
+  x.fill();
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+function Eye({ side }: { side: 1 | -1 }) {
+  const map = useMemo(eyeTexture, []);
+  useEffect(() => () => map.dispose(), [map]);
+  const active = useIsActive('glaz');
+  return (
+    <group position={[0.3 * side, 16.33, 0.76]} rotation={[0, 0.1 * side, 0]}>
+      <mesh>
+        <sphereGeometry args={[0.118, 40, 28]} />
+        <meshPhysicalMaterial map={map} roughness={0.28} clearcoat={1} clearcoatRoughness={0.1} emissive={active ? HIGHLIGHT.emissive : '#000000'} emissiveIntensity={active ? 0.35 : 0} />
+      </mesh>
+      <mesh position={[0, 0, 0.066]}>
+        <sphereGeometry args={[0.06, 28, 18]} />
+        <meshPhysicalMaterial color="#ffffff" transparent opacity={0.22} roughness={0} clearcoat={1} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function Eyes() {
+  return (
+    <Interactive slug="glaz">
+      <Eye side={1} />
+      <Eye side={-1} />
+    </Interactive>
+  );
+}
+
+/* ---------------- Органы ---------------- */
+
+function Part({ spec, geometry, state }: { spec: PartSpec; geometry: BufferGeometry; state: ModelProps['state'] }) {
+  const group = useRef<Group>(null);
+  const pivot = PIVOTS[spec.key];
+  useFrame(() => {
+    const g = group.current;
+    if (!g || !spec.anim) return;
+    const time = state.time.current;
+    if (spec.anim === 'breathe') {
+      const b = 0.5 + 0.5 * Math.sin(time * 1.4);
+      g.scale.set(1 + 0.035 * b, 1 + 0.05 * b, 1 + 0.04 * b);
+    } else {
+      g.scale.setScalar(1 - 0.07 * heartbeat(time).v);
+    }
+  });
+  const mesh = (
+    <group ref={group} position={pivot}>
+      <mesh geometry={geometry}>
+        <Tissue slug={spec.slug} kind={spec.mat} geometry={geometry} />
+      </mesh>
+    </group>
+  );
+  return (
+    <Interactive slug={spec.slug}>
+      {spec.mirror ? (
+        <>
+          {mesh}
+          <group scale={[-1, 1, 1]}>{mesh}</group>
+        </>
+      ) : (
+        mesh
+      )}
+    </Interactive>
+  );
+}
+
+function OrganSet({ name, state }: { name: 'thorax' | 'abdomen' | 'vessels'; state: ModelProps['state'] }) {
+  const geoms = use(loadBodyPart(name));
+  return (
+    <>
+      {PARTS.filter((p) => p.set === name && geoms[p.key]).map((p) => (
+        <Part key={p.key} spec={p} geometry={geoms[p.key]} state={state} />
+      ))}
+    </>
+  );
+}
+
+function Labels({ labels }: { labels: boolean }) {
+  return (
+    <>
+      {Object.entries(LABEL_AT).map(([slug, at]) => (
+        <Label key={slug} labels={labels} partId={slug} text={getSection(slug)?.title ?? slug} at={at} inner />
+      ))}
+    </>
   );
 }
 
@@ -157,43 +412,26 @@ export default function BodyFigure({ state }: ModelProps) {
 
   return (
     <group ref={group} position={[0, -0.35, 0]}>
-      {/* голова и шея */}
-      <mesh position={[0, 2.95, 0]} scale={[0.62, 0.74, 0.66]} raycast={() => null}>
-        <sphereGeometry args={[1, 48, 32]} />
-        <meshPhysicalMaterial {...GLASS} />
-      </mesh>
-      <Torso />
-      {/* руки */}
-      {([1, -1] as const).map((s) => (
-        <group key={s}>
-          <Limb from={[0.98 * s, 1.95, 0]} to={[1.22 * s, 0.6, 0]} radius={0.19} />
-          <Limb from={[1.22 * s, 0.6, 0]} to={[1.38 * s, -0.62, 0.12]} radius={0.15} />
-          <Limb from={[1.38 * s, -0.7, 0.12]} to={[1.42 * s, -1.05, 0.14]} radius={0.12} />
-        </group>
-      ))}
-      {/* ноги */}
-      {([1, -1] as const).map((s) => (
-        <group key={s}>
-          <Limb from={[0.38 * s, -0.85, 0]} to={[0.42 * s, -2.55, 0.02]} radius={0.27} />
-          <Limb from={[0.42 * s, -2.55, 0.02]} to={[0.45 * s, -4.1, -0.04]} radius={0.2} />
-          <Limb from={[0.45 * s, -4.25, 0.0]} to={[0.48 * s, -4.3, 0.32]} radius={0.12} />
-        </group>
-      ))}
-
-      {ORGANS.map((spec) =>
-        spec.mirror ? (
-          <group key={spec.slug}>
-            <Organ spec={spec} state={state} x={1} />
-            <Organ spec={spec} state={state} x={-1} />
-          </group>
-        ) : (
-          <Organ key={spec.slug} spec={spec} state={state} />
-        ),
-      )}
-
-      {ORGANS.map((spec) => (
-        <Label key={spec.slug} labels={false} partId={spec.slug} text={getSection(spec.slug)?.title ?? spec.slug} at={spec.label} />
-      ))}
+      <group position={[0, FOOT_Y, 0]} scale={SCALE}>
+        <Suspense fallback={null}>
+          <Skin />
+        </Suspense>
+        <Suspense fallback={null}>
+          <Skeleton />
+        </Suspense>
+        <Suspense fallback={null}>
+          <OrganSet name="thorax" state={state} />
+        </Suspense>
+        <Suspense fallback={null}>
+          <OrganSet name="abdomen" state={state} />
+        </Suspense>
+        <Suspense fallback={null}>
+          <OrganSet name="vessels" state={state} />
+        </Suspense>
+        <Eyes />
+        <Labels labels={false} />
+      </group>
     </group>
   );
 }
+

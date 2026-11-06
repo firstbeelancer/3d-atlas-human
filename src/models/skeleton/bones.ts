@@ -628,40 +628,43 @@ export interface SkeletonGeometry {
   foot: BufferGeometry;
 }
 
-let cache: SkeletonGeometry | null = null;
+const cache = new Map<number, SkeletonGeometry>();
 
-/** Строит все кости один раз за сессию; повторное открытие раздела берёт готовые буферы. */
-export function skeletonGeometry(): SkeletonGeometry {
-  if (cache) return cache;
+/** Строит все кости один раз за сессию; повторное открытие раздела берёт готовые буферы. detail > 1 — грубее сетка (главная страница). */
+export function skeletonGeometry(detail = 1): SkeletonGeometry {
+  const hit = cache.get(detail);
+  if (hit) return hit;
+  const K = detail;
   const O = SKULL_ORIGIN;
   const disc = new SphereGeometry(1, 18, 8);
   disc.deleteAttribute('uv');
   disc.scale(1, 0.32, 0.78);
-  cache = {
-    skull: meshSdf(skullField(), { min: off(O, [-0.82, -0.9, -1.16]), max: off(O, [0.82, 1.18, 1.0]), cell: 0.02, ao: 0.05 }),
-    mandible: meshSdf(mandibleField(), { min: off(O, [-0.62, -1.22, -0.36]), max: off(O, [0.62, -0.2, 0.92]), cell: 0.018, ao: 0.03 }),
-    cervical: meshSdf(cervicalField(), { min: [-0.32, -0.14, -0.52], max: [0.32, 0.14, 0.16], cell: 0.016, ao: 0.018 }),
-    thoracic: meshSdf(thoracicField(), { min: [-0.34, -0.36, -0.64], max: [0.34, 0.18, 0.2], cell: 0.018, ao: 0.02 }),
-    lumbar: meshSdf(lumbarField(), { min: [-0.46, -0.2, -0.68], max: [0.46, 0.22, 0.25], cell: 0.02, ao: 0.022 }),
+  const built: SkeletonGeometry = {
+    skull: meshSdf(skullField(), { min: off(O, [-0.82, -0.9, -1.16]), max: off(O, [0.82, 1.18, 1.0]), cell: 0.02 * K, ao: 0.05 }),
+    mandible: meshSdf(mandibleField(), { min: off(O, [-0.62, -1.22, -0.36]), max: off(O, [0.62, -0.2, 0.92]), cell: 0.018 * K, ao: 0.03 }),
+    cervical: meshSdf(cervicalField(), { min: [-0.32, -0.14, -0.52], max: [0.32, 0.14, 0.16], cell: 0.016 * K, ao: 0.018 }),
+    thoracic: meshSdf(thoracicField(), { min: [-0.34, -0.36, -0.64], max: [0.34, 0.18, 0.2], cell: 0.018 * K, ao: 0.02 }),
+    lumbar: meshSdf(lumbarField(), { min: [-0.46, -0.2, -0.68], max: [0.46, 0.22, 0.25], cell: 0.02 * K, ao: 0.022 }),
     disc,
-    sacrum: meshSdf(sacrumField(), { min: [-0.64, 8.85, -1.04], max: [0.64, 9.9, -0.24], cell: 0.02, ao: 0.03 }),
-    coccyx: meshSdf(coccyxField(), { min: [-0.14, 8.56, -1.0], max: [0.14, 9.0, -0.72], cell: 0.012, ao: 0.015 }),
-    sternum: meshSdf(sternumField(), { min: [-0.32, 12.3, 0.78], max: [0.32, 14.34, 1.35], cell: 0.018, ao: 0.02 }),
+    sacrum: meshSdf(sacrumField(), { min: [-0.64, 8.85, -1.04], max: [0.64, 9.9, -0.24], cell: 0.02 * K, ao: 0.03 }),
+    coccyx: meshSdf(coccyxField(), { min: [-0.14, 8.56, -1.0], max: [0.14, 9.0, -0.72], cell: 0.012 * K, ao: 0.015 }),
+    sternum: meshSdf(sternumField(), { min: [-0.32, 12.3, 0.78], max: [0.32, 14.34, 1.35], cell: 0.018 * K, ao: 0.02 }),
     ribs: ribsGeometry(),
     cartilage: cartilageGeometry(),
     clavicle: clavicleGeometry(),
-    scapula: meshSdf(scapulaField(), { min: [0.6, 12.42, -1.12], max: [1.9, 14.56, 0.04], cell: 0.022, ao: 0.03 }),
-    humerus: meshSdf(humerusField(), { min: [1.38, 10.72, -0.58], max: [2.2, 14.3, 0.04], cell: 0.022, ao: 0.025 }),
-    radius: meshSdf(radiusField(), { min: [1.84, 8.3, -0.4], max: [2.3, 10.92, 0.0], cell: 0.018, ao: 0.02 }),
-    ulna: meshSdf(ulnaField(), { min: [1.56, 8.32, -0.56], max: [2.0, 11.14, -0.12], cell: 0.018, ao: 0.02 }),
+    scapula: meshSdf(scapulaField(), { min: [0.6, 12.42, -1.12], max: [1.9, 14.56, 0.04], cell: 0.022 * K, ao: 0.03 }),
+    humerus: meshSdf(humerusField(), { min: [1.38, 10.72, -0.58], max: [2.2, 14.3, 0.04], cell: 0.022 * K, ao: 0.025 }),
+    radius: meshSdf(radiusField(), { min: [1.84, 8.3, -0.4], max: [2.3, 10.92, 0.0], cell: 0.018 * K, ao: 0.02 }),
+    ulna: meshSdf(ulnaField(), { min: [1.56, 8.32, -0.56], max: [2.0, 11.14, -0.12], cell: 0.018 * K, ao: 0.02 }),
     hand: handGeometry(),
-    hipBone: meshSdf(hipBoneField(), { min: [-0.05, 8.26, -0.7], max: [1.6, 10.56, 0.66], cell: 0.021, ao: 0.04 }),
-    femur: meshSdf(femurField(), { min: [0.18, 4.68, -0.4], max: [1.54, 9.42, 0.34], cell: 0.026, ao: 0.03 }),
-    patella: meshSdf(patellaField(), { min: [0.34, 4.74, 0.16], max: [0.82, 5.3, 0.44], cell: 0.014, ao: 0.02 }),
-    tibia: meshSdf(tibiaField(), { min: [0.16, 0.52, -0.34], max: [0.99, 4.76, 0.3], cell: 0.024, ao: 0.03 }),
-    fibula: meshSdf(fibulaField(), { min: [0.68, 0.5, -0.27], max: [1.0, 4.5, 0.0], cell: 0.016, ao: 0.02 }),
+    hipBone: meshSdf(hipBoneField(), { min: [-0.05, 8.26, -0.7], max: [1.6, 10.56, 0.66], cell: 0.021 * K, ao: 0.04 }),
+    femur: meshSdf(femurField(), { min: [0.18, 4.68, -0.4], max: [1.54, 9.42, 0.34], cell: 0.026 * K, ao: 0.03 }),
+    patella: meshSdf(patellaField(), { min: [0.34, 4.74, 0.16], max: [0.82, 5.3, 0.44], cell: 0.014 * K, ao: 0.02 }),
+    tibia: meshSdf(tibiaField(), { min: [0.16, 0.52, -0.34], max: [0.99, 4.76, 0.3], cell: 0.024 * K, ao: 0.03 }),
+    fibula: meshSdf(fibulaField(), { min: [0.68, 0.5, -0.27], max: [1.0, 4.5, 0.0], cell: 0.016 * K, ao: 0.02 }),
     foot: footGeometry(),
   };
-  return cache;
+  cache.set(detail, built);
+  return built;
 }
 

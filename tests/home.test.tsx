@@ -35,9 +35,9 @@ describe('home page', () => {
     renderHome();
     const index = screen.getByRole('region', { name: 'Разделы атласа' });
     const heart = within(index).getByRole('link', { name: /Сердце/ });
-    const liver = within(index).getByRole('link', { name: /Печень/ });
+    const unready = within(index).getByRole('link', { name: /Мозг/ });
     expect(within(heart).queryByText('Скоро')).not.toBeInTheDocument();
-    expect(within(liver).getByText('Скоро')).toBeInTheDocument();
+    expect(within(unready).getByText('Скоро')).toBeInTheDocument();
   });
 
   it('has a search field', () => {

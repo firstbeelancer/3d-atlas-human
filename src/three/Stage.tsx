@@ -1,9 +1,18 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Maximize2, Minimize2, Pause, Play, RotateCcw, Scissors, Tags } from 'lucide-react';
+import { Focus, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { StageState } from './types';
 import { StageBoundary } from './StageBoundary';
+import { useSelection } from './selection';
+
+/** Дополнительные режимы модели (кнопки над основной панелью). */
+export interface StageMode {
+  id: string;
+  icon: 'explode' | 'segments' | 'inside' | 'lobule';
+}
+
+const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope } as const;
 import type { Box } from './cameraBounds';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
@@ -19,6 +28,10 @@ interface Props {
   target?: [number, number, number];
   /** Высота пола (для мягкой тени). */
   floorY?: number;
+  /** Режимы модели помимо разреза: «Разобрать», «Сегменты» и т. п. */
+  modes?: StageMode[];
+  /** Названия частей — для плашки «Отдельно: …». */
+  names?: Record<string, string>;
   bounds?: Box;
   minDistance?: number;
   children: (state: StageState) => ReactNode;
@@ -38,9 +51,13 @@ export function Stage({
   floorY,
   bounds,
   minDistance,
+  modes = [],
+  names = {},
   children,
   className = '',
 }: Props) {
+  const { selected, isolate, setIsolate } = useSelection();
+  const [activeModes, setActiveModes] = useState<Record<string, boolean>>({});
   const [webgl] = useState(hasWebGL);
   // 3D сломалась (ошибка модели, не загрузился кусок, потерян WebGL-контекст) — показываем текстовую заглушку
   const [failed, setFailed] = useState(false);
@@ -93,7 +110,7 @@ export function Stage({
     );
   }
 
-  const state: StageState = { paused, cutaway, labels, time };
+  const state: StageState = { paused, cutaway, labels, modes: activeModes, time };
 
   return (
     <div
@@ -126,6 +143,49 @@ export function Stage({
       <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
         {t('stage.hint')}
       </p>
+
+      {isolate && selected && (
+        <div className="absolute left-1/2 top-4 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-plinth/95 py-1 pl-4 pr-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur">
+          <Focus size={16} aria-hidden className="shrink-0" />
+          <span className="truncate text-[14px]">
+            <span className="text-ink-soft">{t('stage.isolated')} </span>
+            <strong className="font-semibold">{names[selected] ?? selected}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsolate(false)}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 text-[14px] font-medium text-stone hover:opacity-90"
+          >
+            <Undo2 size={15} aria-hidden />
+            {t('stage.isolateOff')}
+          </button>
+        </div>
+      )}
+
+      {modes.length > 0 && (
+        <div
+          role="toolbar"
+          aria-label={t('stage.modes')}
+          className="absolute right-3 top-3 flex flex-col items-end gap-1"
+        >
+          {modes.map((m) => {
+            const Icon = MODE_ICONS[m.icon];
+            const on = !!activeModes[m.id];
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setActiveModes((v) => ({ ...v, [m.id]: !v[m.id] }))}
+                className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-plinth/95 px-3 text-[13.5px] font-medium text-ink shadow-[0_6px_18px_-12px_rgba(23,32,58,0.4)] backdrop-blur transition-colors hover:bg-wash aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-stone"
+              >
+                <Icon size={16} aria-hidden />
+                {t(`stage.mode.${m.id}` as never)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div
         role="toolbar"

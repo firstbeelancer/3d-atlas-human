@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { MessageCircleHeart, Stethoscope } from 'lucide-react';
+import { Focus, MessageCircleHeart, Stethoscope, Undo2 } from 'lucide-react';
 import type { Part, PartGroup, SectionMeta, Stat } from '../../content/types';
 import { getSection } from '../../content/sections';
 import { t } from '../../i18n';
@@ -66,7 +66,23 @@ export function Paragraphs({ items }: { items: string[] }) {
   );
 }
 
-export function PartsList({ parts, groups }: { parts: Part[]; groups?: PartGroup[] }) {
+/** Кнопка «Рассмотреть отдельно»: на сцене остаётся только выбранная часть. */
+function IsolateButton() {
+  const { isolate, setIsolate } = useSelection();
+  return (
+    <button
+      type="button"
+      onClick={() => setIsolate(!isolate)}
+      aria-pressed={isolate}
+      className="mb-3 ml-[30px] mt-1 inline-flex cursor-pointer items-center gap-2 rounded-full border border-ink bg-plinth px-4 py-2 text-[15px] font-medium text-ink transition-colors hover:bg-wash aria-pressed:bg-ink aria-pressed:text-stone"
+    >
+      {isolate ? <Undo2 size={16} aria-hidden /> : <Focus size={16} aria-hidden />}
+      {isolate ? t('stage.isolateOff') : t('stage.isolate')}
+    </button>
+  );
+}
+
+export function PartsList({ parts, groups, canIsolate }: { parts: Part[]; groups?: PartGroup[]; canIsolate?: boolean }) {
   const { selected, hovered, select, hover } = useSelection();
   const refs = useRef(new Map<string, HTMLButtonElement>());
   const groupName = new Map((groups ?? []).map((g) => [g.id, g.name]));
@@ -109,6 +125,7 @@ export function PartsList({ parts, groups }: { parts: Part[]; groups?: PartGroup
                 </span>
               </button>
             )}
+            {g && canIsolate && selected === g && <IsolateButton />}
             <button
               type="button"
               ref={setRef(p.id)}
@@ -128,6 +145,7 @@ export function PartsList({ parts, groups }: { parts: Part[]; groups?: PartGroup
               </span>
               <span className="mt-1 block pl-[18px] text-[16px] leading-[1.55] text-ink-soft">{p.text}</span>
             </button>
+            {canIsolate && isSel && <IsolateButton />}
           </li>
         );
       })}

@@ -74,9 +74,13 @@ export function SectionPage() {
                 description={model.description}
                 hasCutaway={model.hasCutaway}
                 camera={model.camera}
+                modes={model.modes}
+                names={names}
                 target={model.target}
                 orbit={model.orbit}
                 explorer={model.explorer && content ? { parts: content.parts, groups: content.groups } : undefined}
+                bounds={model.bounds}
+                minDistance={model.minDistance}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
               >
                 {(state) => (
@@ -111,7 +115,7 @@ export function SectionPage() {
                   <Paragraphs items={content.does} />
                 </Block>
                 <Block title={t('section.parts')}>
-                  <PartsList parts={content.parts} groups={content.groups} />
+                  <PartsList parts={content.parts} groups={content.groups} canIsolate={!!model?.isolate} />
                 </Block>
                 <Block title={t('section.kid')}>
                   <KidSay lines={content.kidSay} />

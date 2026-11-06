@@ -9,3 +9,5 @@ dist
 референсы разные/
 *.tsbuildinfo
 .claude/
+.playwright-mcp/
+.scratch/

@@ -1,10 +1,20 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Maximize2, Minimize2, Pause, Play, RotateCcw, Scissors, Tags } from 'lucide-react';
+import { FlaskConical, Focus, Layers, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { CutKind, StageState } from './types';
 import { ExplorerPanel, PartCard, type ExplorerProps } from './StageExplorer';
 import { StageBoundary } from './StageBoundary';
+import { useSelection } from './selection';
+import type { Box } from './cameraBounds';
+
+/** Дополнительные режимы модели (кнопки над основной панелью). */
+export interface StageMode {
+  id: string;
+  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland';
+}
+
+const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical } as const;
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -23,6 +33,12 @@ interface Props {
   orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
   /** Панель «Рассмотреть детали» (слои, разнос, режим «отдельно») и карточка выбранной части. */
   explorer?: ExplorerProps;
+  /** Режимы модели помимо разреза: «Разобрать», «Сегменты» и т. п. */
+  modes?: StageMode[];
+  /** Названия частей — для плашки «Отдельно: …». */
+  names?: Record<string, string>;
+  bounds?: Box;
+  minDistance?: number;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -31,7 +47,24 @@ function prefersReducedMotion(): boolean {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Stage({ label, description, hasCutaway, camera, target, floorY, orbit, explorer, children, className = '' }: Props) {
+export function Stage({
+  label,
+  description,
+  hasCutaway,
+  camera,
+  target,
+  floorY,
+  orbit,
+  explorer,
+  bounds,
+  minDistance,
+  modes = [],
+  names = {},
+  children,
+  className = '',
+}: Props) {
+  const { selected, isolate, setIsolate } = useSelection();
+  const [activeModes, setActiveModes] = useState<Record<string, boolean>>({});
   const [webgl] = useState(hasWebGL);
   // 3D сломалась (ошибка модели, не загрузился кусок, потерян WebGL-контекст) — показываем текстовую заглушку
   const [failed, setFailed] = useState(false);
@@ -42,7 +75,8 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
   const [labels, setLabels] = useState(() => window.innerWidth >= 640);
   const [show, setShow] = useState(false);
   const [explode, setExplode] = useState(0);
-  const [isolate, setIsolate] = useState(true);
+  // «призрачный» режим панели «Рассмотреть детали»: выбранная часть видна, остальные полупрозрачны
+  const [ghost, setGhost] = useState(true);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const [cutKind, setCutKind] = useState<CutKind>('side');
   const [resetKey, setResetKey] = useState(0);
@@ -88,13 +122,20 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
     );
   }
 
-  const state: StageState = explorer ? { paused, cutaway, labels, time, explode, isolate, hidden, cutKind } : { paused, cutaway, labels, time };
+  const state: StageState = {
+    paused,
+    cutaway,
+    labels,
+    modes: activeModes,
+    time,
+    ...(explorer ? { explode, isolate: ghost, hidden, cutKind } : {}),
+  };
 
   return (
     <div
       ref={box}
       data-show={show || undefined}
-      className={`stage-plinth group overflow-hidden ${
+      className={`stage-plinth group @container overflow-hidden ${
         show ? 'stage-show fixed inset-0 z-[60] h-dvh w-screen' : `relative rounded-[28px] border border-line ${className}`
       }`}
     >
@@ -108,6 +149,8 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
             target={target}
             floorY={floorY}
             orbit={orbit}
+            bounds={bounds}
+            minDistance={minDistance}
             paused={paused}
             time={time}
             onContextLost={fail}
@@ -129,8 +172,8 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
             }}
             explode={explode}
             onExplode={setExplode}
-            isolate={isolate}
-            onIsolate={setIsolate}
+            isolate={ghost}
+            onIsolate={setGhost}
             hidden={hidden}
             onHidden={(next) => setHidden(next)}
           />
@@ -138,14 +181,59 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
         </>
       )}
 
-      <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
-        {t('stage.hint')}
-      </p>
+      {!explorer && (
+        <p className="pointer-events-none absolute left-5 top-4 m-0 max-w-[34ch] text-[13px] leading-snug text-ink-soft max-sm:hidden">
+          {t('stage.hint')}
+        </p>
+      )}
+
+      {isolate && selected && (
+        <div className="absolute left-1/2 top-4 z-40 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-plinth/95 py-1 pl-4 pr-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur">
+          <Focus size={16} aria-hidden className="shrink-0" />
+          <span className="truncate text-[14px]">
+            <span className="text-ink-soft">{t('stage.isolated')} </span>
+            <strong className="font-semibold">{names[selected] ?? selected}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsolate(false)}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-ink px-3 text-[14px] font-medium text-stone hover:opacity-90"
+          >
+            <Undo2 size={15} aria-hidden />
+            {t('stage.isolateOff')}
+          </button>
+        </div>
+      )}
+
+      {modes.length > 0 && (
+        <div
+          role="toolbar"
+          aria-label={t('stage.modes')}
+          className="absolute right-3 top-3 z-40 flex flex-col items-end gap-1"
+        >
+          {modes.map((m) => {
+            const Icon = MODE_ICONS[m.icon];
+            const on = !!activeModes[m.id];
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setActiveModes((v) => ({ ...v, [m.id]: !v[m.id] }))}
+                className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-plinth/95 px-3 text-[13.5px] font-medium text-ink shadow-[0_6px_18px_-12px_rgba(23,32,58,0.4)] backdrop-blur transition-colors hover:bg-wash aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-stone"
+              >
+                <Icon size={16} aria-hidden />
+                {t(`stage.mode.${m.id}` as never)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div
         role="toolbar"
         aria-label={label}
-        className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-plinth/95 p-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur"
+        className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-plinth/95 p-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur"
       >
         <ToolButton onClick={() => setPaused((v) => !v)} pressed={paused} label={paused ? t('stage.play') : t('stage.pause')}>
           {paused ? <Play size={17} aria-hidden /> : <Pause size={17} aria-hidden />}
@@ -165,7 +253,7 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
               setExplode(0);
               setHidden(new Set());
               setCutaway(false);
-              setIsolate(true);
+              setGhost(true);
             }
           }}
           label={t('stage.reset')}
@@ -204,7 +292,7 @@ function ToolButton({
       }`}
     >
       {children}
-      <span className="max-md:sr-only">{label}</span>
+      <span className="@max-[38rem]:sr-only">{label}</span>
     </button>
   );
 }

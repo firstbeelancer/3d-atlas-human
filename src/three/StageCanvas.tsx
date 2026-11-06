@@ -1,8 +1,32 @@
 import { useEffect, useRef, useState, type ReactNode, type MutableRefObject } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AdaptiveDpr, ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { useSelection } from './selection';
 import { frameloopFor } from './frameloop';
+import { clampTarget, defaultBounds, type Box } from './cameraBounds';
+
+/** Только в режиме разработки: доступ к камере из консоли для осмотра моделей. */
+function DevHandle() {
+  const state = useThree();
+  useEffect(() => {
+    (window as unknown as { __atlas?: unknown }).__atlas = state;
+  }, [state]);
+  return null;
+}
+
+/** Держит центр камеры внутри модели после каждого сдвига или зума к курсору. */
+function KeepInBounds({ bounds }: { bounds: Box }) {
+  const controls = useThree((s) => s.controls) as unknown as
+    | { target: import('three').Vector3; object: import('three').Camera; addEventListener: (t: string, f: () => void) => void; removeEventListener: (t: string, f: () => void) => void }
+    | null;
+  useEffect(() => {
+    if (!controls) return;
+    const onChange = () => clampTarget(controls.target, controls.object.position, bounds.min, bounds.max);
+    controls.addEventListener('change', onChange);
+    return () => controls.removeEventListener('change', onChange);
+  }, [controls, bounds]);
+  return null;
+}
 
 interface Props {
   label: string;
@@ -11,6 +35,10 @@ interface Props {
   floorY?: number;
   /** Пределы приближения и свободное вращение (для мелких моделей, которые рассматривают вблизи). */
   orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
+  /** Куда можно сдвигать центр камеры (по умолчанию — куб вокруг target). */
+  bounds?: Box;
+  /** Насколько близко можно подлететь к модели. */
+  minDistance?: number;
   /** WebGL-контекст потерян (нехватка памяти на телефоне и т.п.). */
   onContextLost?: () => void;
   paused: boolean;
@@ -43,7 +71,20 @@ function Studio() {
   );
 }
 
-export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, orbit, onContextLost, paused, time, children }: Props) {
+export function StageCanvas({
+  label,
+  camera,
+  target = [0, 0, 0],
+  floorY = -2.2,
+  orbit,
+  bounds,
+  minDistance = 4.5,
+  onContextLost,
+  paused,
+  time,
+  children,
+}: Props) {
+  const [box] = useState(() => bounds ?? defaultBounds(target));
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
@@ -89,15 +130,19 @@ export function StageCanvas({ label, camera, target = [0, 0, 0], floorY = -2.2, 
           makeDefault
           regress
           target={target}
-          enablePan={false}
+          enablePan
+          screenSpacePanning
+          zoomToCursor
           enableDamping
-          minDistance={orbit?.minDistance ?? 4.5}
+          minDistance={orbit?.minDistance ?? minDistance}
           maxDistance={orbit?.maxDistance ?? Math.max(16, Math.hypot(...cameraPosition) * 1.35)}
           minPolarAngle={orbit?.free ? 0.05 : 0.35}
           maxPolarAngle={orbit?.free ? Math.PI - 0.05 : Math.PI - 0.5}
           autoRotate={!interacted && !paused}
           autoRotateSpeed={0.55}
         />
+        <KeepInBounds bounds={box} />
+        {import.meta.env.DEV && <DevHandle />}
         <AdaptiveDpr pixelated />
       </Canvas>
     </div>

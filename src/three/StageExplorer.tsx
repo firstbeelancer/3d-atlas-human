@@ -98,7 +98,7 @@ export function ExplorerPanel(p: PanelProps) {
   });
 
   return (
-    <div className="absolute right-3 top-3 z-10 flex max-h-[calc(100%-5.5rem)] w-[min(264px,calc(100%-1.5rem))] flex-col overflow-hidden rounded-[20px] border border-line bg-plinth/95 shadow-[0_10px_30px_-14px_rgba(23,32,58,0.4)] backdrop-blur">
+    <div className="absolute right-3 top-3 z-40 flex max-h-[calc(100%-5.5rem)] w-[min(264px,calc(100%-1.5rem))] flex-col overflow-hidden rounded-[20px] border border-line bg-plinth/95 shadow-[0_10px_30px_-14px_rgba(23,32,58,0.4)] backdrop-blur">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -178,7 +178,7 @@ export function PartCard({ parts, groups }: ExplorerProps) {
   const name = part?.name ?? group?.name;
   if (!name) return null;
   return (
-    <aside className="absolute bottom-[4.5rem] left-3 z-10 max-w-[min(360px,calc(100%-1.5rem))] rounded-[20px] border border-line bg-plinth/95 p-4 pr-11 shadow-[0_10px_30px_-14px_rgba(23,32,58,0.4)] backdrop-blur max-sm:right-3">
+    <aside className="absolute bottom-[4.5rem] left-3 z-40 max-w-[min(360px,calc(100%-1.5rem))] rounded-[20px] border border-line bg-plinth/95 p-4 pr-11 shadow-[0_10px_30px_-14px_rgba(23,32,58,0.4)] backdrop-blur max-sm:right-3">
       <button
         type="button"
         onClick={() => select(null)}

@@ -3,6 +3,7 @@ import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
 import { useIsActive, useSelection } from './selection';
+import { labelSide } from './labelSide';
 
 interface Props {
   at: [number, number, number];
@@ -33,7 +34,7 @@ export function Label({ at, partId, text, labels, inner }: Props) {
   const box = useRef<HTMLDivElement | null>(null);
   const invalidate = useThree((s) => s.invalidate);
 
-  useFrame(({ camera, controls }) => {
+  useFrame(({ camera, controls, size }) => {
     const g = anchor.current;
     const el = box.current;
     if (!g || !el) return;
@@ -47,7 +48,9 @@ export function Label({ at, partId, text, labels, inner }: Props) {
     el.style.visibility = visible ? 'visible' : 'hidden';
     ndc.copy(world).project(camera);
     centerNdc.copy(target).project(camera);
-    el.dataset.side = ndc.x < centerNdc.x ? 'left' : 'right';
+    const px = ((ndc.x + 1) / 2) * size.width;
+    const labelWidth = (el.lastElementChild as HTMLElement | null)?.offsetWidth ?? 0;
+    el.dataset.side = labelSide(px, labelWidth, size.width, ndc.x < centerNdc.x);
   });
 
   if (!text || (!labels && !active)) return null;

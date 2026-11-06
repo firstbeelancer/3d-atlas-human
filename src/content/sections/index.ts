@@ -4,7 +4,7 @@ import { sectionTexts } from '../ru/sections';
 /** Реестр 23 разделов в порядке таблицы §5 спецификации. Тексты — из файлов языка. */
 const BASE: SectionBase[] = [
   { slug: 'kletki-i-belki', system: 'cells', icon: 'cell', ready: false },
-  { slug: 'skelet', system: 'support', icon: 'skeleton', ready: false },
+  { slug: 'skelet', system: 'support', icon: 'skeleton', ready: true },
   { slug: 'myshcy', system: 'support', icon: 'muscle', ready: false },
   { slug: 'vnutrennie-organy', system: 'overview', icon: 'organs', ready: false },
   { slug: 'mozg', system: 'nervous', icon: 'brain', ready: false },

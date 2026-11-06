@@ -77,6 +77,7 @@ export function SectionPage() {
                 modes={model.modes}
                 names={names}
                 target={model.target}
+                floorY={model.floorY}
                 orbit={model.orbit}
                 explorer={model.explorer && content ? { parts: content.parts, groups: content.groups, fundusKey: model.explorerFundusKey } : undefined}
                 bounds={model.bounds}

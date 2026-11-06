@@ -35,7 +35,7 @@ export const MODELS: Record<string, ModelEntry> = {
   },
   pechen: {
     Component: lazy(() => import('./liver/LiverModel')),
-    camera: { position: [0.5, 1.1, 15.5], fov: 32 },
+    camera: { position: [0.6, 1.4, 20], fov: 32 },
     target: [0, 0, 0],
     modes: [
       { id: 'explode', icon: 'explode' },

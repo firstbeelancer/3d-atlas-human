@@ -166,7 +166,7 @@ export function Stage({
         <div
           role="toolbar"
           aria-label={t('stage.modes')}
-          className="absolute bottom-[68px] left-1/2 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1"
+          className="absolute right-3 top-3 flex flex-col items-end gap-1"
         >
           {modes.map((m) => {
             const Icon = MODE_ICONS[m.icon];

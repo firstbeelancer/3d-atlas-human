@@ -2,71 +2,253 @@ import { BufferGeometry, Float32BufferAttribute } from 'three';
 
 export type ToothKind = 'incisor' | 'canine' | 'premolar' | 'molar';
 export const TYPES: ToothKind[] = ['incisor', 'canine', 'premolar', 'molar'];
-export const DIMENSIONS = {
-  incisor: { w: 0.45, d: 0.29, h: 1.12, roots: [[0, 0, 1.52]] },
-  canine: { w: 0.40, d: 0.36, h: 1.25, roots: [[0, 0, 1.94]] },
-  premolar: { w: 0.44, d: 0.49, h: 0.94, roots: [[-0.16, 0, 1.44], [0.19, 0, 1.35]] },
-  molar: { w: 0.65, d: 0.57, h: 0.90, roots: [[-0.29, -0.21, 1.45], [0.29, -0.21, 1.30], [0, 0.32, 1.60]] },
-} satisfies Record<ToothKind, { w: number; d: number; h: number; roots: number[][] }>;
 
-/** Educational upper permanent teeth. Units are illustrative, not patient-specific. */
-export function crownHeight(kind: ToothKind, x: number, z: number): number {
-  const g = (a: number, b: number, s: number) => Math.exp(-((x-a)**2 + (z-b)**2) / s);
-  if (kind === 'incisor') return 0.92 + 0.07 * (1-z*z) + 0.018*Math.cos(x*9);
-  if (kind === 'canine') return 0.73 + 0.37*g(0, 0, 0.30) - 0.06*x;
-  if (kind === 'premolar') return 0.71 + 0.29*g(0, -0.50, 0.20) + 0.24*g(0, 0.50, 0.23) - 0.045*g(0, 0, 0.05);
-  return 0.68 + 0.25*g(-0.48,-0.46,0.16) + 0.23*g(0.46,-0.43,0.17)
-    + 0.29*g(-0.44,0.45,0.19) + 0.24*g(0.46,0.47,0.17)
-    - 0.045*Math.exp(-x*x/0.009)*Math.exp(-z*z/0.65)
-    - 0.035*Math.exp(-z*z/0.009)*Math.exp(-x*x/0.65);
+export interface RootSpec {
+  /** Смещение оси корня от центра зуба и длина корня вниз от шейки (y = 0). */
+  dx: number;
+  dz: number;
+  len: number;
+  /** Полуоси сечения корня. */
+  rx: number;
+  rz: number;
 }
 
-/** Ring surface with explicitly filled longitudinal cut faces; no renderer clipping. */
-function surface(sample: (t: number, a: number) => number[], cut: boolean, rings = 96, sectors = 128): BufferGeometry {
-  const p: number[] = [], idx: number[] = [];
-  for (let i=0;i<=rings;i++) for(let j=0;j<=sectors;j++) {
-    p.push(...sample(i/rings, (cut ? Math.PI : Math.PI*2)*j/sectors));
+export interface ToothSpec {
+  /** Полуширина коронки: по оси x (мезиодистально) и по оси z (щёчно-язычно). */
+  w: number;
+  d: number;
+  /** Высота коронки над шейкой (шейка — y = 0, корень уходит вниз). */
+  crownH: number;
+  /** Показатель «суперэллипса» сечения коронки: меньше — прямоугольнее. */
+  power: number;
+  roots: RootSpec[];
+}
+
+/** Учебные постоянные зубы верхней челюсти; размеры приблизительные, не привязаны к пациенту. */
+export const DIMENSIONS: Record<ToothKind, ToothSpec> = {
+  incisor: {
+    w: 0.46, d: 0.30, crownH: 1.02, power: 0.55,
+    roots: [{ dx: 0, dz: 0.02, len: 1.42, rx: 0.155, rz: 0.2 }],
+  },
+  canine: {
+    w: 0.41, d: 0.37, crownH: 1.14, power: 0.62,
+    roots: [{ dx: 0, dz: 0.02, len: 1.86, rx: 0.165, rz: 0.205 }],
+  },
+  premolar: {
+    w: 0.44, d: 0.50, crownH: 0.88, power: 0.68,
+    roots: [
+      { dx: 0, dz: -0.19, len: 1.34, rx: 0.145, rz: 0.125 }, // щёчный
+      { dx: 0, dz: 0.22, len: 1.52, rx: 0.155, rz: 0.14 }, // нёбный
+    ],
+  },
+  molar: {
+    w: 0.66, d: 0.58, crownH: 0.82, power: 0.72,
+    roots: [
+      { dx: -0.25, dz: -0.21, len: 1.32, rx: 0.15, rz: 0.13 }, // передний щёчный
+      { dx: 0.25, dz: -0.19, len: 1.22, rx: 0.14, rz: 0.12 }, // задний щёчный
+      { dx: 0.02, dz: 0.31, len: 1.62, rx: 0.17, rz: 0.21 }, // нёбный
+    ],
+  },
+};
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const smooth = (a: number, b: number, v: number) => {
+  const t = clamp01((v - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+const gauss = (v: number, c: number, s: number) => Math.exp(-(((v - c) / s) ** 2));
+
+/**
+ * Высота режущей/жевательной поверхности коронки над шейкой в точке (x, z):
+ * у резца — плоский край с мамелонами, у клыка — один бугор, у премоляра — два,
+ * у моляра — четыре бугра, краевые валики и крестообразная борозда.
+ */
+export function occlusalTop(kind: ToothKind, x: number, z: number): number {
+  const { w, d, crownH } = DIMENSIONS[kind];
+  const nx = x / w;
+  const nz = z / d;
+  let y: number;
+  if (kind === 'incisor') {
+    const edge = Math.max(0, 1 - Math.abs(nz) ** 2.3);
+    const corner = 1 - smooth(0.72, 1.0, Math.abs(nx));
+    y = crownH * (0.14 + 0.86 * edge * corner);
+    for (const mx of [-0.55, 0, 0.55]) y += crownH * 0.055 * gauss(nx, mx, 0.17) * gauss(nz, 0, 0.3);
+  } else if (kind === 'canine') {
+    const cusp = Math.exp(-(nx ** 2 / 0.14 + nz ** 2 / 0.2));
+    const ridge = gauss(nz, 0, 0.15) * Math.max(0, 1 - Math.abs(nx) ** 3);
+    y = crownH * (0.1 + 0.92 * cusp + 0.3 * ridge * (1 - cusp));
+  } else if (kind === 'premolar') {
+    const buccal = Math.exp(-(nx ** 2 / 0.18 + ((nz + 0.4) / 0.3) ** 2));
+    const lingual = Math.exp(-(nx ** 2 / 0.16 + ((nz - 0.46) / 0.26) ** 2));
+    const groove = gauss(nz, 0, 0.09) * (1 - buccal) * (1 - lingual);
+    y = crownH * (0.16 + 0.78 * buccal + 0.6 * lingual - 0.22 * groove);
+  } else {
+    const mb = 0.78 * Math.exp(-((nx + 0.5) ** 2 / 0.16 + ((nz + 0.5) / 0.28) ** 2));
+    const db = 0.66 * Math.exp(-((nx - 0.52) ** 2 / 0.15 + ((nz + 0.42) / 0.24) ** 2));
+    const mp = 0.9 * Math.exp(-((nx + 0.55) ** 2 / 0.17 + ((nz - 0.52) / 0.28) ** 2));
+    const dp = 0.7 * Math.exp(-((nx - 0.55) ** 2 / 0.15 + ((nz - 0.45) / 0.25) ** 2));
+    const cusps = mb + db + mp + dp;
+    const rim = 0.1 * Math.exp(-(((Math.hypot(nx, nz) - 1) / 0.12) ** 2));
+    const fissure = Math.min(1, gauss(nx, 0, 0.1) + gauss(nz, 0, 0.1)) * (1 - Math.min(1, cusps));
+    y = crownH * (0.1 + cusps + rim - 0.3 * fissure);
   }
-  for(let i=0;i<rings;i++) for(let j=0;j<sectors;j++) {
-    const a=i*(sectors+1)+j, b=a+sectors+1;
-    idx.push(a,b,a+1,b,b+1,a+1);
-  }
-  if(cut) {
-    // Both boundaries are coplanar (z=0). Connect them into a sealed cut face.
-    for(let i=0;i<rings;i++) {
-      const a=i*(sectors+1), b=a+sectors, c=a+sectors+1, d=c+sectors;
-      idx.push(a,b,c,b,d,c);
+  return Math.max(y, crownH * 0.05);
+}
+
+/** Точка контура коронки: «суперэллипс» с показателем power, параметризованный углом phi. */
+function outline(kind: ToothKind, phi: number, s: number): [number, number] {
+  const { w, d, power } = DIMENSIONS[kind];
+  const c = Math.cos(phi);
+  const sn = Math.sin(phi);
+  return [Math.sign(c) * Math.abs(c) ** power * w * s, Math.sign(sn) * Math.abs(sn) ** power * d * s];
+}
+
+/** Сетка rows x cols с quad-индексацией; возвращает базу для следующей латки. */
+function gridPatch(
+  rows: number,
+  cols: number,
+  pos: number[],
+  idx: number[],
+  base: number,
+  at: (i: number, j: number) => number[],
+): number {
+  for (let i = 0; i <= rows; i++) for (let j = 0; j <= cols; j++) pos.push(...at(i, j));
+  for (let i = 0; i < rows; i++)
+    for (let j = 0; j < cols; j++) {
+      const a = base + i * (cols + 1) + j;
+      const b = a + cols + 1;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
     }
+  return base + (rows + 1) * (cols + 1);
+}
+
+/** Полоса, замыкающая разрезанную половину по плоскости сечения. */
+function cutStrip(rows: number, cols: number, base: number, idx: number[]): void {
+  for (let i = 0; i < rows; i++) {
+    const a = base + i * (cols + 1);
+    const b = a + cols;
+    const c = a + cols + 1;
+    const d = c + cols;
+    idx.push(a, b, c, b, d, c);
   }
-  const geo=new BufferGeometry();
-  geo.setAttribute('position', new Float32BufferAttribute(p,3));
-  geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+}
+
+function finish(pos: number[], idx: number[]): BufferGeometry {
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', new Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
   return geo;
 }
 
-export function crown(kind: ToothKind, scale=1, cut=false): BufferGeometry {
-  const {w,d,h}=DIMENSIONS[kind];
-  return surface((t,a)=> {
-    // Cervical constriction, convex axial walls, rounded shoulder, sculpted occlusal table.
-    const top=t>0.62;
-    const r=top ? Math.cos((t-0.62)/0.38*Math.PI/2) : 0.69+0.31*Math.sin(t/0.62*Math.PI/2);
-    const ca=Math.cos(a), sa=-Math.sin(a);
-    const power=kind==='molar' ? 0.66 : kind==='incisor' ? 0.72 : 0.9;
-    const x=Math.sign(ca)*Math.abs(ca)**power*r;
-    const z=Math.sign(sa)*Math.abs(sa)**power*r;
-    const relief=0.003*Math.sin(a*30)*Math.sin(t*Math.PI)*Math.sin(t*65);
-    const y=top ? h*crownHeight(kind,x,z) : h*(0.02+0.68*Math.sin(t/0.62*Math.PI/2));
-    return [x*w*scale*(1+relief),y*scale, z*d*scale];
-  },cut);
+export interface CrownOpts {
+  /** Масштаб контура (внутренние слои меньше наружных). */
+  s?: number;
+  /** Масштаб высоты жевательной поверхности. */
+  topScale?: number;
+  /** Сколько снять с высоты сверху (толщина слоя на жевательной стороне). */
+  topDrop?: number;
+  /** Высота дна оболочки (шейка зуба). */
+  floor?: number;
+  /** Разрезать вдоль плоскости z = 0 и замкнуть срез. */
+  cut?: boolean;
+  sectors?: number;
+  ringsTop?: number;
+  ringsSide?: number;
 }
 
-export function root(kind: ToothKind, index: number, scale=1, cut=false): BufferGeometry {
-  const {w,d,roots}=DIMENSIONS[kind]; const [dx,dz,length]=roots[index];
-  return surface((t,a)=> {
-    const r=(0.012+0.988*(1-t)**0.72)*scale;
-    const base=roots.length===1 ? 0.66 : 0.30;
-    const x=dx*(0.35+t*1.7)+0.065*t*t;
-    const z=dz*(0.35+t*1.5);
-    return [x+Math.cos(a)*w*base*r,-length*t,-Math.sin(a)*d*base*r+z];
-  },cut,80,80);
+/**
+ * Оболочка коронки: сверху — рельефная жевательная поверхность (полюс в центре),
+ * ниже — боковые стенки с экватором, сужением к шейке и cingulum у резца и клыка.
+ * В режиме cut строится половина z <= 0 с замкнутой плоскостью среза.
+ */
+export function crownSurface(kind: ToothKind, o: CrownOpts = {}): BufferGeometry {
+  const s = o.s ?? 1;
+  const topScale = o.topScale ?? 1;
+  const topDrop = o.topDrop ?? 0;
+  const floor = o.floor ?? 0;
+  const cut = !!o.cut;
+  const sectors = o.sectors ?? 128;
+  const ringsTop = o.ringsTop ?? 72;
+  const ringsSide = o.ringsSide ?? 40;
+  const span = cut ? Math.PI : Math.PI * 2;
+  const phiAt = (j: number) => Math.PI + (span * j) / sectors;
+  const topAt = (x: number, z: number) => Math.max(floor + 0.02, occlusalTop(kind, x, z) * topScale - topDrop);
+
+  const pos: number[] = [];
+  const idx: number[] = [];
+  let base = gridPatch(ringsTop, sectors, pos, idx, 0, (i, j) => {
+    const rho = i / ringsTop;
+    const [ox, oz] = outline(kind, phiAt(j), s);
+    const x = ox * rho;
+    const z = oz * rho;
+    return [x, topAt(x, z), z];
+  });
+  const sideBase = base;
+  base = gridPatch(ringsSide, sectors, pos, idx, base, (i, j) => {
+    const u = i / ringsSide;
+    const phi = phiAt(j);
+    const [ox, oz] = outline(kind, phi, s);
+    const bulge = 0.05 * Math.exp(-(((u - 0.22) / 0.2) ** 2));
+    const cingulum =
+      (kind === 'incisor' || kind === 'canine') && Math.sin(phi) > 0
+        ? 0.1 * Math.exp(-(((phi - Math.PI / 2) / 0.8) ** 2))
+        : 0;
+    const rs = 1 - 0.16 * smooth(0, 1, u) + bulge + cingulum * (1 - u);
+    const edgeY = topAt(ox, oz);
+    const y = edgeY + (floor - edgeY) * Math.pow(u, 0.85);
+    return [ox * rs, y, oz * rs];
+  });
+  // дно оболочки — веер к центру
+  const center = pos.length / 3;
+  pos.push(0, floor, 0);
+  for (let j = 0; j < sectors; j++) {
+    const a = sideBase + ringsSide * (sectors + 1) + j;
+    idx.push(center, a + 1, a);
+  }
+  if (cut) {
+    cutStrip(ringsTop, sectors, 0, idx);
+    cutStrip(ringsSide, sectors, sideBase, idx);
+  }
+  return finish(pos, idx);
+}
+
+export interface RootOpts {
+  /** Масштаб сечения корня (канал тоньше, дентин чуть тоньше цемента). */
+  rScale?: number;
+  /** Верх корня: чуть выше шейки, чтобы корень «врос» в коронку. */
+  top?: number;
+  cut?: boolean;
+  sectors?: number;
+  rings?: number;
+}
+
+/**
+ * Корень: трубка от шейки до сужающегося закрытого кончика (апикальное отверстие),
+ * ось слегка изогнута и смещена к (dx, dz). В режиме cut — половина с замкнутым срезом
+ * по плоскости, проходящей через ось корня.
+ */
+export function rootSurface(kind: ToothKind, rootIndex: number, o: RootOpts = {}): BufferGeometry {
+  const r = DIMENSIONS[kind].roots[rootIndex];
+  const rScale = o.rScale ?? 1;
+  const top = o.top ?? 0.08;
+  const cut = !!o.cut;
+  const sectors = o.sectors ?? 96;
+  const rings = o.rings ?? 64;
+  const span = cut ? Math.PI : Math.PI * 2;
+
+  const pos: number[] = [];
+  const idx: number[] = [];
+  gridPatch(rings, sectors, pos, idx, 0, (i, j) => {
+    const t = i / rings;
+    const phi = Math.PI + (span * j) / sectors;
+    const profile = Math.pow(1 - t, 0.8) * (1 + 0.22 * Math.exp(-(((t - 0.06) / 0.1) ** 2)));
+    const ax = r.dx * (0.35 + 0.65 * t * t);
+    const az = r.dz * (0.35 + 0.65 * t);
+    const y = top - r.len * Math.pow(t, 1.03);
+    return [ax + Math.cos(phi) * r.rx * rScale * profile, y, az + Math.sin(phi) * r.rz * rScale * profile];
+  });
+  if (cut) cutStrip(rings, sectors, 0, idx);
+  return finish(pos, idx);
 }

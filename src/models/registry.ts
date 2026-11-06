@@ -31,9 +31,12 @@ export const MODELS: Record<string, ModelEntry> = {
   zub: {
     Component: lazy(() => import('./teeth/TeethModel')),
     hasCutaway: true,
-    camera: { position: [0, 2.6, 14.5], fov: 34 },
-    target: [0, 0, 0],
-    orbit: { minDistance: 2, maxDistance: 25, free: true },
+    explorer: true,
+    isolate: true,
+    camera: { position: [0, 0.9, 15.5], fov: 36 },
+    target: [0, -0.1, 0],
+    bounds: { min: [-3.4, -2.1, -1], max: [3.4, 2.1, 1] },
+    orbit: { minDistance: 2, maxDistance: 26, free: true },
     description: teethText.description,
   },
   glaz: {

@@ -4,6 +4,7 @@ import type { StageMode } from '../three/Stage';
 import type { Box } from '../three/cameraBounds';
 import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
+import type { MessageKey } from '../i18n';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
@@ -13,6 +14,8 @@ export interface ModelEntry {
   orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
   /** Слои, разнос на части и режим «отдельно» — для моделей из многих частей. */
   explorer?: boolean;
+  /** Своя подпись второго разреза в панели «Рассмотреть детали». */
+  explorerFundusKey?: MessageKey;
   target?: [number, number, number];
   /** Куда можно сдвигать центр камеры. */
   bounds?: Box;
@@ -96,5 +99,16 @@ export const MODELS: Record<string, ModelEntry> = {
     camera: { position: [0.6, 0.9, 12], fov: 32 },
     target: [0, 0.35, 0],
     description: modelDescriptions.serdce,
+  },
+  'mochevoj-puzyr': {
+    Component: lazy(() => import('./bladder/BladderModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusBladder',
+    camera: { position: [4.8, 1.9, 11.6], fov: 32 },
+    target: [0, -0.2, 0],
+    bounds: { min: [-3.6, -3.6, -2.6], max: [3.6, 3.6, 2.6] },
+    orbit: { minDistance: 2.4, maxDistance: 30, free: true },
+    description: modelDescriptions['mochevoj-puzyr'],
   },
 };

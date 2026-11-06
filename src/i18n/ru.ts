@@ -63,6 +63,7 @@ export const ru = {
   'explorer.whole': 'Целый',
   'explorer.cutSide': 'Разрез',
   'explorer.fundus': 'Дно глаза',
+  'explorer.fundusBladder': 'Дно пузыря',
   'explorer.explode': 'Разобрать на части',
   'explorer.isolate': 'Выбранная часть отдельно',
   'explorer.layers': 'Слои',

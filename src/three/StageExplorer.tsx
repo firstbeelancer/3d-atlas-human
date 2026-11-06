@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronUp, Eye, EyeOff, Layers, X } from 'lucide-react';
-import { t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
 import type { Part, PartGroup } from '../content/types';
 import { useSelection } from './selection';
 import type { CutKind } from './types';
@@ -8,6 +8,8 @@ import type { CutKind } from './types';
 export interface ExplorerProps {
   parts: Part[];
   groups?: PartGroup[];
+  /** Подпись второго разреза, если у органа она своя (по умолчанию — «Дно глаза»). */
+  fundusKey?: MessageKey;
 }
 
 interface PanelProps extends ExplorerProps {
@@ -119,7 +121,7 @@ export function ExplorerPanel(p: PanelProps) {
               {t('explorer.cutSide')}
             </Segment>
             <Segment pressed={view === 'fundus'} onClick={() => p.onView(true, 'fundus')}>
-              {t('explorer.fundus')}
+              {t(p.fundusKey ?? 'explorer.fundus')}
             </Segment>
           </div>
 

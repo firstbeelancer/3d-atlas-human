@@ -78,7 +78,7 @@ export function SectionPage() {
                 names={names}
                 target={model.target}
                 orbit={model.orbit}
-                explorer={model.explorer && content ? { parts: content.parts, groups: content.groups } : undefined}
+                explorer={model.explorer && content ? { parts: content.parts, groups: content.groups, fundusKey: model.explorerFundusKey } : undefined}
                 bounds={model.bounds}
                 minDistance={model.minDistance}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"

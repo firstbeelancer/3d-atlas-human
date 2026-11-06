@@ -18,7 +18,7 @@ const BASE: SectionBase[] = [
   { slug: 'podzheludochnaya', system: 'digestive', icon: 'pancreas', ready: false },
   { slug: 'zhelchnyj-puzyr', system: 'digestive', icon: 'gallbladder', ready: false },
   { slug: 'pochki', system: 'urinary', icon: 'kidneys', ready: false },
-  { slug: 'mochevoj-puzyr', system: 'urinary', icon: 'bladder', ready: false },
+  { slug: 'mochevoj-puzyr', system: 'urinary', icon: 'bladder', ready: true },
   { slug: 'kishechnik', system: 'digestive', icon: 'intestine', ready: false },
   { slug: 'zhenskaya-reproduktivnaya', system: 'reproductive', icon: 'uterus', ready: false, adultParts: true },
   { slug: 'muzhskaya-reproduktivnaya', system: 'reproductive', icon: 'testis', ready: false, adultParts: true },

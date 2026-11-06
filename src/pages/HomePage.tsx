@@ -68,6 +68,8 @@ export function HomePage() {
               camera={{ position: [0, 0.1, 18.5], fov: 32 }}
               target={[0, -1.05, 0]}
               floorY={-4.72}
+              bounds={{ min: [-1.8, -4.4, -1.5], max: [1.8, 3.2, 1.5] }}
+              minDistance={1.6}
               className="aspect-[4/5] w-full max-h-[80vh] sm:aspect-square lg:aspect-[5/6]"
             >
               {(state) => (

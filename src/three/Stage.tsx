@@ -116,7 +116,7 @@ export function Stage({
     <div
       ref={box}
       data-show={show || undefined}
-      className={`stage-plinth group overflow-hidden ${
+      className={`stage-plinth group @container overflow-hidden ${
         show ? 'stage-show fixed inset-0 z-[60] h-dvh w-screen' : `relative rounded-[28px] border border-line ${className}`
       }`}
     >
@@ -238,7 +238,7 @@ function ToolButton({
       }`}
     >
       {children}
-      <span className="max-md:sr-only">{label}</span>
+      <span className="@max-[38rem]:sr-only">{label}</span>
     </button>
   );
 }

@@ -24,9 +24,10 @@ const GAP = 0.78;
 const Y_AXIS = new Vector3(0, 1, 0);
 
 /** Радиус просвета: воронка ямки сужается к перешейку, дальше — узкий просвет железы. */
-function rLumen(y: number): number {
+/** Радиус просвета железы на высоте y; выше устья не уходит в NaN (дробная степень от отрицательного). */
+export function rLumen(y: number): number {
   if (y > 1.45) {
-    const t = (Y_TOP - y) / (Y_TOP - 1.45);
+    const t = Math.min(1, Math.max(0, (Y_TOP - y) / (Y_TOP - 1.45)));
     return 0.66 - 0.5 * Math.sin(t * Math.PI * 0.5) ** 0.8;
   }
   if (y > 1.25) return 0.16 - 0.04 * ((1.45 - y) / 0.2);

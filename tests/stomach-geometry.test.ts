@@ -159,3 +159,10 @@ describe('stomach geometry', () => {
     expect(back.anchors.body).toEqual(g.anchors.body);
   });
 });
+
+describe('gastric gland lumen', () => {
+  it('stays a finite radius above the top of the gland (no NaN geometry)', async () => {
+    const { rLumen } = await import('../src/models/stomach/GlandScene');
+    for (const y of [2.4, 2.42, 2.45, 2.6, -2.15, 0]) expect(Number.isFinite(rLumen(y)), String(y)).toBe(true);
+  });
+});

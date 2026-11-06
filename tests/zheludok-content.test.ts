@@ -4,6 +4,7 @@ import { loadSectionContent, hasSectionContent } from '../src/content/loadSectio
 import { MODELS } from '../src/models/registry';
 import { GROUPS, PART_IDS } from '../src/models/stomach/anatomy';
 import type { SectionContent } from '../src/content/types';
+import zheludok from '../src/content/ru/zheludok';
 
 describe('zheludok content', () => {
   let content: SectionContent;
@@ -45,5 +46,19 @@ describe('zheludok content', () => {
     expect(content.facts.length).toBeGreaterThanOrEqual(5);
     expect(content.care.length).toBeGreaterThanOrEqual(5);
     for (const slug of content.related) expect(getSection(slug), slug).toBeDefined();
+  });
+
+  it('does not teach that food falls down the oesophagus', () => {
+    expect(zheludok.kidSay.join(' ')).not.toMatch(/падает/);
+  });
+
+  it('gets the history right: Alexis St. Martin was a Canadian voyageur', () => {
+    const fact = zheludok.facts.find((f) => f.includes('Сен-Мартен'))!;
+    expect(fact).toMatch(/канадск/);
+    expect(fact).not.toMatch(/американск/);
+  });
+
+  it('does not claim that soup leaves the stomach over hours', () => {
+    expect(zheludok.does.join(' ')).not.toMatch(/супа/);
   });
 });

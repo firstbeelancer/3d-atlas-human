@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Focus, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
+import { FlaskConical, Focus, Layers, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { StageState } from './types';
@@ -9,10 +9,10 @@ import { useSelection } from './selection';
 /** Дополнительные режимы модели (кнопки над основной панелью). */
 export interface StageMode {
   id: string;
-  icon: 'explode' | 'segments' | 'inside' | 'lobule';
+  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland';
 }
 
-const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope } as const;
+const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical } as const;
 import type { Box } from './cameraBounds';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
@@ -116,7 +116,7 @@ export function Stage({
     <div
       ref={box}
       data-show={show || undefined}
-      className={`stage-plinth group overflow-hidden ${
+      className={`stage-plinth group @container overflow-hidden ${
         show ? 'stage-show fixed inset-0 z-[60] h-dvh w-screen' : `relative rounded-[28px] border border-line ${className}`
       }`}
     >
@@ -238,7 +238,7 @@ function ToolButton({
       }`}
     >
       {children}
-      <span className="max-md:sr-only">{label}</span>
+      <span className="@max-[38rem]:sr-only">{label}</span>
     </button>
   );
 }

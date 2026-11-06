@@ -46,6 +46,21 @@ export const MODELS: Record<string, ModelEntry> = {
     isolate: true,
     description: modelDescriptions.pechen,
   },
+  zheludok: {
+    Component: lazy(() => import('./stomach/StomachModel')),
+    hasCutaway: true,
+    camera: { position: [0.5, 0.9, 17.5], fov: 32 },
+    target: [-0.5, 0.7, 0],
+    bounds: { min: [-3.3, -2.7, -1.6], max: [2.3, 4.0, 1.6] },
+    minDistance: 2.2,
+    modes: [
+      { id: 'explode', icon: 'explode' },
+      { id: 'layers', icon: 'layers' },
+      { id: 'gland', icon: 'gland' },
+    ],
+    isolate: true,
+    description: modelDescriptions.zheludok,
+  },
   serdce: {
     Component: lazy(() => import('./heart/HeartModel')),
     hasCutaway: true,

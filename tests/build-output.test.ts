@@ -21,6 +21,14 @@ describe.skipIf(!built)('build output', () => {
     expect(html).toContain('<title>Сердце — 3D-атлас человека</title>');
     expect(html).toContain('Мышечный насос размером с кулак');
     expect(existsSync(join(DIST, 'razdel', 'gormony', 'index.html'))).toBe(true);
+    const skeleton = readFileSync(join(DIST, 'razdel', 'skelet', 'index.html'), 'utf8');
+    expect(skeleton).toContain('<title>Скелет — 3D-атлас человека</title>');
+    expect(skeleton).toContain('Живой каркас из двухсот с лишним костей');
+  });
+
+  it('builds the skeleton bones in a separate worker chunk', () => {
+    const assets = readdirSync(join(DIST, 'assets'));
+    expect(assets.some((f) => /geometry\.worker.*\.js$/.test(f))).toBe(true);
   });
 
   it('writes the about page and a 404 page', () => {

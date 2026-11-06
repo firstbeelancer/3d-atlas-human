@@ -11,7 +11,7 @@ const BASE: SectionBase[] = [
   { slug: 'glaz', system: 'nervous', icon: 'eye', ready: true },
   { slug: 'uho', system: 'nervous', icon: 'ear', ready: false },
   { slug: 'zub', system: 'digestive', icon: 'tooth', ready: true },
-  { slug: 'legkie', system: 'respiratory', icon: 'lungs', ready: false },
+  { slug: 'legkie', system: 'respiratory', icon: 'lungs', ready: true },
   { slug: 'serdce', system: 'circulatory', icon: 'heart', ready: true },
   { slug: 'zheludok', system: 'digestive', icon: 'stomach', ready: true },
   { slug: 'pechen', system: 'digestive', icon: 'liver', ready: true },

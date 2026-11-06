@@ -4,6 +4,7 @@ import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { StageState } from './types';
 import { StageBoundary } from './StageBoundary';
+import type { Box } from './cameraBounds';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -18,6 +19,8 @@ interface Props {
   target?: [number, number, number];
   /** Высота пола (для мягкой тени). */
   floorY?: number;
+  bounds?: Box;
+  minDistance?: number;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -26,7 +29,18 @@ function prefersReducedMotion(): boolean {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Stage({ label, description, hasCutaway, camera, target, floorY, children, className = '' }: Props) {
+export function Stage({
+  label,
+  description,
+  hasCutaway,
+  camera,
+  target,
+  floorY,
+  bounds,
+  minDistance,
+  children,
+  className = '',
+}: Props) {
   const [webgl] = useState(hasWebGL);
   // 3D сломалась (ошибка модели, не загрузился кусок, потерян WebGL-контекст) — показываем текстовую заглушку
   const [failed, setFailed] = useState(false);
@@ -98,6 +112,8 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
             camera={camera}
             target={target}
             floorY={floorY}
+            bounds={bounds}
+            minDistance={minDistance}
             paused={paused}
             time={time}
             onContextLost={fail}

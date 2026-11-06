@@ -13,6 +13,7 @@ export interface StageMode {
 }
 
 const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope } as const;
+import type { Box } from './cameraBounds';
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -31,6 +32,8 @@ interface Props {
   modes?: StageMode[];
   /** Названия частей — для плашки «Отдельно: …». */
   names?: Record<string, string>;
+  bounds?: Box;
+  minDistance?: number;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -39,7 +42,20 @@ function prefersReducedMotion(): boolean {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Stage({ label, description, hasCutaway, camera, target, floorY, modes = [], names = {}, children, className = '' }: Props) {
+export function Stage({
+  label,
+  description,
+  hasCutaway,
+  camera,
+  target,
+  floorY,
+  bounds,
+  minDistance,
+  modes = [],
+  names = {},
+  children,
+  className = '',
+}: Props) {
   const { selected, isolate, setIsolate } = useSelection();
   const [activeModes, setActiveModes] = useState<Record<string, boolean>>({});
   const [webgl] = useState(hasWebGL);
@@ -113,6 +129,8 @@ export function Stage({ label, description, hasCutaway, camera, target, floorY, 
             camera={camera}
             target={target}
             floorY={floorY}
+            bounds={bounds}
+            minDistance={minDistance}
             paused={paused}
             time={time}
             onContextLost={fail}

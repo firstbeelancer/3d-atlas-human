@@ -77,6 +77,8 @@ export function SectionPage() {
                 modes={model.modes}
                 names={names}
                 target={model.target}
+                bounds={model.bounds}
+                minDistance={model.minDistance}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
               >
                 {(state) => (

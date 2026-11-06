@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { MessageCircleHeart, Stethoscope } from 'lucide-react';
-import type { Part, SectionMeta, Stat } from '../../content/types';
+import type { Part, PartGroup, SectionMeta, Stat } from '../../content/types';
 import { getSection } from '../../content/sections';
 import { t } from '../../i18n';
 import { useSelection } from '../../three/selection';
@@ -66,9 +66,10 @@ export function Paragraphs({ items }: { items: string[] }) {
   );
 }
 
-export function PartsList({ parts }: { parts: Part[] }) {
+export function PartsList({ parts, groups }: { parts: Part[]; groups?: PartGroup[] }) {
   const { selected, hovered, select, hover } = useSelection();
   const refs = useRef(new Map<string, HTMLButtonElement>());
+  const groupName = new Map((groups ?? []).map((g) => [g.id, g.name]));
 
   useEffect(() => {
     if (!selected) return;
@@ -78,18 +79,39 @@ export function PartsList({ parts }: { parts: Part[] }) {
     if (r.top < 80 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [selected]);
 
+  const setRef = (id: string) => (el: HTMLButtonElement | null) => {
+    if (el) refs.current.set(id, el);
+  };
+
   return (
     <ul className="m-0 list-none border-t border-line p-0">
-      {parts.map((p) => {
+      {parts.map((p, i) => {
         const isSel = selected === p.id;
         const isHover = hovered === p.id;
+        const g = p.group && groupName.has(p.group) && parts[i - 1]?.group !== p.group ? p.group : null;
         return (
           <li key={p.id} className="border-b border-line">
+            {g && (
+              <button
+                type="button"
+                ref={setRef(g)}
+                aria-current={selected === g ? 'true' : undefined}
+                onClick={() => select(selected === g ? null : g)}
+                onMouseEnter={() => hover(g)}
+                onMouseLeave={() => hover(null)}
+                onFocus={() => hover(g)}
+                onBlur={() => hover(null)}
+                className="part-group mt-6 block w-full cursor-pointer px-3 pb-2 pt-1 text-left text-ink transition-colors"
+                data-hover={hovered === g || undefined}
+              >
+                <span className="font-display text-[17px] font-bold tracking-[-0.01em]" style={{ color: 'var(--accent)' }}>
+                  {groupName.get(g)}
+                </span>
+              </button>
+            )}
             <button
               type="button"
-              ref={(el) => {
-                if (el) refs.current.set(p.id, el);
-              }}
+              ref={setRef(p.id)}
               aria-current={isSel ? 'true' : undefined}
               onClick={() => select(isSel ? null : p.id)}
               onMouseEnter={() => hover(p.id)}

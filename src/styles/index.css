@@ -122,6 +122,16 @@ p {
 .part-row[aria-current='true'] {
   background: color-mix(in srgb, var(--accent) 11%, var(--c-plinth));
 }
+.part-group {
+  border-radius: 12px;
+}
+.part-group:hover,
+.part-group[data-hover] {
+  background: var(--c-wash);
+}
+.part-group[aria-current='true'] {
+  background: color-mix(in srgb, var(--accent) 11%, var(--c-plinth));
+}
 .part-row__dot {
   width: 8px;
   height: 8px;

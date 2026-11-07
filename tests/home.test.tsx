@@ -35,7 +35,7 @@ describe('home page', () => {
     renderHome();
     const index = screen.getByRole('region', { name: 'Разделы атласа' });
     const heart = within(index).getByRole('link', { name: /Сердце/ });
-    const unready = within(index).getByRole('link', { name: /Мозг/ });
+    const unready = within(index).getByRole('link', { name: /Ухо/ });
     expect(within(heart).queryByText('Скоро')).not.toBeInTheDocument();
     expect(within(unready).getByText('Скоро')).toBeInTheDocument();
   });

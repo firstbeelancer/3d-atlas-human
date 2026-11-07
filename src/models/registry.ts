@@ -5,6 +5,7 @@ import type { Box } from '../three/cameraBounds';
 import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
 import type { MessageKey } from '../i18n';
+import { CUT_DEFAULT_T } from './brain/anatomy';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
@@ -16,6 +17,8 @@ export interface ModelEntry {
   explorer?: boolean;
   /** Своя подпись второго разреза в панели «Рассмотреть детали». */
   explorerFundusKey?: MessageKey;
+  /** Три плоскости среза с ползунком положения (мозг). */
+  explorerCuts?: { sideKey: MessageKey; coronalKey: MessageKey; defaults: Record<'side' | 'fundus' | 'coronal', number> };
   target?: [number, number, number];
   /** Высота пола для мягкой тени (по умолчанию — для небольших органов). */
   floorY?: number;
@@ -129,6 +132,25 @@ export const MODELS: Record<string, ModelEntry> = {
     ],
     isolate: true,
     description: modelDescriptions.legkie,
+  },
+  mozg: {
+    Component: lazy(() => import('./brain/BrainModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusBrain',
+    explorerCuts: { sideKey: 'explorer.cutBrainSide', coronalKey: 'explorer.cutBrainCoronal', defaults: CUT_DEFAULT_T },
+    camera: { position: [13, 6.3, 15], fov: 32 },
+    target: [0, -0.4, -0.25],
+    floorY: -7.2,
+    bounds: { min: [-8, -8, -8], max: [8, 5, 8] },
+    orbit: { minDistance: 2.2, maxDistance: 48, free: true },
+    modes: [
+      { id: 'lobes', icon: 'brain' },
+      { id: 'zones', icon: 'segments' },
+      { id: 'deep', icon: 'inside' },
+      { id: 'meninges', icon: 'layers' },
+    ],
+    description: modelDescriptions.mozg,
   },
   kishechnik: {
     Component: lazy(() => import('./intestine/IntestineModel')),

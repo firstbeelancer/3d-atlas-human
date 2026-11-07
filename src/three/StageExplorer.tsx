@@ -10,6 +10,8 @@ export interface ExplorerProps {
   groups?: PartGroup[];
   /** Подпись второго разреза, если у органа она своя (по умолчанию — «Дно глаза»). */
   fundusKey?: MessageKey;
+  /** Три плоскости среза и ползунок положения: подписи и положения по умолчанию (0..1). */
+  cuts?: { sideKey: MessageKey; coronalKey: MessageKey; defaults: Record<CutKind, number> };
 }
 
 interface PanelProps extends ExplorerProps {
@@ -22,6 +24,8 @@ interface PanelProps extends ExplorerProps {
   onIsolate: (v: boolean) => void;
   hidden: ReadonlySet<string>;
   onHidden: (next: Set<string>) => void;
+  cutAt: number;
+  onCutAt: (v: number) => void;
 }
 
 function Segment({ children, pressed, onClick }: { children: ReactNode; pressed: boolean; onClick: () => void }) {
@@ -113,17 +117,32 @@ export function ExplorerPanel(p: PanelProps) {
       </button>
       {open && (
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-3 pb-3">
-          <div role="group" aria-label={t('explorer.view')} className="flex gap-0.5 rounded-full border border-line p-0.5">
+          <div role="group" aria-label={t('explorer.view')} className={p.cuts ? 'grid grid-cols-2 gap-0.5 rounded-[18px] border border-line p-0.5' : 'flex gap-0.5 rounded-full border border-line p-0.5'}>
             <Segment pressed={view === 'whole'} onClick={() => p.onView(false, p.cutKind)}>
               {t('explorer.whole')}
             </Segment>
             <Segment pressed={view === 'side'} onClick={() => p.onView(true, 'side')}>
-              {t('explorer.cutSide')}
+              {t(p.cuts?.sideKey ?? 'explorer.cutSide')}
             </Segment>
             <Segment pressed={view === 'fundus'} onClick={() => p.onView(true, 'fundus')}>
               {t(p.fundusKey ?? 'explorer.fundus')}
             </Segment>
+            {p.cuts && (
+              <Segment pressed={view === 'coronal'} onClick={() => p.onView(true, 'coronal')}>
+                {t(p.cuts.coronalKey)}
+              </Segment>
+            )}
           </div>
+
+          {p.cuts && p.cutaway && (
+            <label className="flex flex-col gap-1.5 text-[13px] font-medium text-ink">
+              <span className="flex items-center justify-between">
+                {t('explorer.cutPos')}
+                <span className="tabular-nums text-ink-soft">{Math.round(p.cutAt * 100)}%</span>
+              </span>
+              <input type="range" min={0} max={1} step={0.002} value={p.cutAt} onChange={(e) => p.onCutAt(Number(e.target.value))} className="w-full accent-[var(--accent)]" />
+            </label>
+          )}
 
           <label className="flex flex-col gap-1.5 text-[13px] font-medium text-ink">
             <span className="flex items-center justify-between">

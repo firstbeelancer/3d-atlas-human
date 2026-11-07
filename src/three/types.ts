@@ -1,5 +1,5 @@
 /** Вид разреза у моделей, у которых их несколько: боковой (по оси взгляда) и «дно» (поперёк оси). */
-export type CutKind = 'side' | 'fundus';
+export type CutKind = 'side' | 'fundus' | 'coronal';
 
 export interface StageState {
   paused: boolean;
@@ -16,6 +16,8 @@ export interface StageState {
   /** Части, скрытые пользователем в списке слоёв. */
   hidden?: ReadonlySet<string>;
   cutKind?: CutKind;
+  /** Положение среза 0..1 (у моделей с ползунком среза). */
+  cutAt?: number;
 }
 
 export interface ModelProps {

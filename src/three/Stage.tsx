@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Box as BoxIcon, FlaskConical, Focus, Layers, Smile, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
+import { Box as BoxIcon, Brain, FlaskConical, Focus, Layers, Smile, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { CutKind, StageState } from './types';
@@ -11,12 +11,12 @@ import type { Box } from './cameraBounds';
 /** Дополнительные режимы модели (кнопки над основной панелью). */
 export interface StageMode {
   id: string;
-  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland' | 'jaw' | 'arch';
+  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland' | 'jaw' | 'arch' | 'brain';
   /** Режимы одной группы взаимоисключающие: включение одного выключает остальные. */
   group?: string;
 }
 
-const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile } as const;
+const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile, brain: Brain } as const;
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));
@@ -81,6 +81,9 @@ export function Stage({
   const [ghost, setGhost] = useState(true);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const [cutKind, setCutKind] = useState<CutKind>('side');
+  // положение среза: то, что выбрал пользователь, иначе значение по умолчанию модели (оно приходит вместе с текстами раздела)
+  const [cutPicked, setCutPicked] = useState<Partial<Record<CutKind, number>>>({});
+  const cutT = { side: 0.5, fundus: 0.5, coronal: 0.5, ...explorer?.cuts?.defaults, ...cutPicked } as Record<CutKind, number>;
   const [resetKey, setResetKey] = useState(0);
   const time = useRef(0);
   const box = useRef<HTMLDivElement>(null);
@@ -130,7 +133,7 @@ export function Stage({
     labels,
     modes: activeModes,
     time,
-    ...(explorer ? { explode, isolate: ghost, hidden, cutKind } : {}),
+    ...(explorer ? { explode, isolate: ghost, hidden, cutKind, cutAt: cutT[cutKind] } : {}),
   };
 
   return (
@@ -178,6 +181,8 @@ export function Stage({
             onIsolate={setGhost}
             hidden={hidden}
             onHidden={(next) => setHidden(next)}
+            cutAt={cutT[cutKind]}
+            onCutAt={(v) => setCutPicked((s) => ({ ...s, [cutKind]: v }))}
           />
           <PartCard {...explorer} />
         </>

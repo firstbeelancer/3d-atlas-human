@@ -1,174 +1,304 @@
-import { useMemo, useRef, type MutableRefObject } from 'react';
+import { Suspense, use, useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Vector3, type Group } from 'three';
-import type { ModelProps } from '../../three/types';
-import { Tissue, usePart } from '../../three/materials';
+import { Html } from '@react-three/drei';
+import { Color, Mesh, Plane, Vector3, type Group, type MeshPhysicalMaterial } from 'three';
+import type { CutKind, ModelProps } from '../../three/types';
+import { usePart } from '../../three/materials';
 import { Label } from '../../three/Label';
 import { useSelection } from '../../three/selection';
-import { ALVEOLUS_PARTS, EXPLODE, INNER_PARTS, isolatedSet, type Vec } from './anatomy';
-import { buildAirways, lobeGeometry, tubeOf, type Branch } from './geometry';
+import { t } from '../../i18n';
+import { ALSO, ALVEOLUS_PARTS, CUT_Y, CUT_Z, FOCUS, LABEL_AT, OUTER_KINDS, spreadOf, type Vec } from './anatomy';
+import { loadLungGeometry, type LungEntity } from './loader';
+import { makeLungMaterial } from './materials';
 import { AlveolusScene } from './AlveolusScene';
+import { CARINA } from './tree';
 
-const LOBES = [
-  { id: 'upper-lobe-right', kind: 'ru' as const, side: 1 as const },
-  { id: 'middle-lobe', kind: 'rm' as const, side: 1 as const },
-  { id: 'lower-lobe-right', kind: 'rl' as const, side: 1 as const },
-  { id: 'upper-lobe-left', kind: 'lu' as const, side: -1 as const },
-  { id: 'lower-lobe-left', kind: 'll' as const, side: -1 as const },
-];
-
-const LABELED = new Set(['right-lung', 'left-lung', 'trachea', 'main-bronchi', 'pleura', 'diaphragm', 'pulmonary-trunk', 'alveoli']);
-
-function Piece({ id, geometry, vec, explode, opacity, ghost, children }: { id: string; geometry: object; vec: Vec; explode: MutableRefObject<number>; opacity?: number; ghost?: boolean; children?: import('react').ReactNode }) {
-  const { handlers, active } = usePart(id);
-  const ref = useRef<Group>(null);
-  useFrame(() => ref.current?.position.set(vec[0] * explode.current, vec[1] * explode.current, vec[2] * explode.current));
-  return (
-    <group ref={ref}>
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <mesh geometry={geometry as any} {...handlers}>
-        <Tissue kind="inner" active={active} opacity={opacity ?? (ghost ? 0.16 : undefined)} vertexColors color={active ? undefined : '#e58b95'} />
-      </mesh>
-      {children}
-    </group>
-  );
+/** Состояние, которое части читают каждый кадр, не перерисовывая React. */
+interface Ctrl {
+  cut: boolean;
+  kind: CutKind;
+  explode: number;
+  isolate: boolean;
+  inside: boolean;
+  selected: string | null;
+  hovered: string | null;
+  hidden: ReadonlySet<string>;
 }
 
-function Tube({ branch, partId, explode, vec }: { branch: Branch; partId: string; explode: MutableRefObject<number>; vec: Vec }) {
-  const { handlers, active } = usePart(partId);
-  const geo = useMemo(() => tubeOf(branch), [branch]);
-  const ref = useRef<Group>(null);
-  useFrame(() => ref.current?.position.set(vec[0] * explode.current, vec[1] * explode.current, vec[2] * explode.current));
-  const kind = partId === 'pulmonary-trunk' ? 'artery' : partId === 'pulmonary-veins' ? 'vein' : partId === 'nerves' ? 'nerve' : 'cartilage';
-  return (
-    <group ref={ref}>
-      <mesh geometry={geo} {...handlers}>
-        <Tissue kind={kind as never} active={active} />
-      </mesh>
-    </group>
-  );
+const GHOST = 0.05;
+const INSIDE_ALPHA = 0.13;
+const GLOW = new Color('#ffa77a');
+const RIGHT_LOBES = new Set(['ru', 'rm', 'rl']);
+
+function isFocus(sel: string | null, e: LungEntity): boolean {
+  if (sel === null) return false;
+  if (sel === e.part) return true;
+  if (ALSO[sel]?.includes(e.part)) {
+    if (sel === 'right-lung') return RIGHT_LOBES.has(e.where);
+    if (sel === 'left-lung') return !RIGHT_LOBES.has(e.where) || e.where === 'R';
+    return true;
+  }
+  if (sel === 'right-lung' && e.part === 'fissures') return true;
+  return false;
 }
 
-function Organ({ state, names }: ModelProps) {
-  const { selected, isolate } = useSelection();
+interface Base {
+  opacity: number;
+  transparent: boolean;
+  depthWrite: boolean;
+}
+
+/** Одна сетка: разнос, подсветка, призрачный режим, скрытие, разрез и фильтр выбора мышью. */
+function Piece({ e, ctrl }: { e: LungEntity; ctrl: MutableRefObject<Ctrl> }) {
+  const { handlers } = usePart(e.part);
   const invalidate = useThree((s) => s.invalidate);
-  const ghost = !!state.modes.inside || (selected !== null && INNER_PARTS.has(selected));
-  const explodeOn = !!state.modes.explode;
-  const set = useMemo(() => (isolate && selected ? isolatedSet(selected) : null), [isolate, selected]);
-  const show = (id: string) => !set || set.has(id);
+  const mat = useMemo<MeshPhysicalMaterial>(() => makeLungMaterial(e.kind), [e.kind]);
+  const base = useMemo<Base>(() => ({ opacity: mat.opacity, transparent: mat.transparent, depthWrite: mat.depthWrite }), [mat]);
+  const mesh = useRef<Mesh>(null);
+  const sidePlane = useMemo(() => new Plane(new Vector3(0, 0, -1), CUT_Z), []);
+  const axialPlane = useMemo(() => new Plane(new Vector3(0, -1, 0), CUT_Y), []);
+  const planes = useMemo(() => [sidePlane], [sidePlane]);
+  const alpha = useRef(1);
+  const interactive = useRef(true);
+  const lastKey = useRef('');
+  const spread = useMemo<Vec>(() => spreadOf(e.part, e.where), [e.part, e.where]);
+  const emissiveOff = useMemo(() => new Color('#000000'), []);
 
-  const geos = useMemo(() => LOBES.map((l) => lobeGeometry(l.kind, l.side)), []);
-  const airways = useMemo(() => buildAirways(), []);
-  const tubes = useMemo(
-    () =>
-      airways
-        .filter((b) => b.lobe !== 'trachea')
-        .map((b) => ({
-          b,
-          partId: b.level <= 1 ? 'main-bronchi' : b.level === 2 ? 'lobar-bronchi' : b.level === 3 ? 'segmental-bronchi' : 'bronchioles',
-        })),
-    [airways],
-  );
+  useEffect(() => () => mat.dispose(), [mat]);
 
-  const ex = useRef(0);
-  const outer = useRef<Group>(null);
-  const inner = useRef<Group>(null);
-  const breath = useRef(0);
+  useEffect(() => {
+    const m = mesh.current;
+    if (!m) return;
+    const original = m.raycast.bind(m);
+    m.raycast = (raycaster, intersects) => {
+      if (!interactive.current || !m.visible) return;
+      const start = intersects.length;
+      original(raycaster, intersects);
+      const c = ctrl.current;
+      if (c.cut && c.explode <= 0.02) {
+        const p = c.kind === 'side' ? sidePlane : axialPlane;
+        for (let i = intersects.length - 1; i >= start; i--) if (p.distanceToPoint(intersects[i].point) < -1e-4) intersects.splice(i, 1);
+      }
+    };
+  }, [ctrl, sidePlane, axialPlane]);
 
-  useFrame((st, dt) => {
-    const o = outer.current, g = inner.current;
-    if (!o || !g) return;
-    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 6);
-    ex.current += ((explodeOn && !set ? 1 : 0) - ex.current) * k;
-    if (!state.paused) {
-      const rate = 14 / 60;
-      const ph = (st.clock.elapsedTime * rate) % 1;
-      const target = ph < 0.42 ? 0.5 - 0.5 * Math.cos((ph / 0.42) * Math.PI) : 0.5 + 0.5 * Math.cos(((ph - 0.42) / 0.58) * Math.PI);
-      breath.current += (target - breath.current) * k;
+  useFrame((_, dt) => {
+    const m = mesh.current;
+    const c = ctrl.current;
+    if (!m) return;
+    m.position.set(spread[0] * c.explode, spread[1] * c.explode, spread[2] * c.explode);
+
+    const hiddenByUser = c.hidden.has(e.part);
+    const focus = isFocus(c.selected, e);
+    let target = 1;
+    if (hiddenByUser) target = 0;
+    else if (c.isolate && c.selected !== null && !focus) target = GHOST;
+    else if (c.inside && OUTER_KINDS.has(e.kind) && !focus) target = INSIDE_ALPHA;
+    const diff = target - alpha.current;
+    if (Math.abs(diff) > 0.002) {
+      alpha.current += diff * Math.min(1, dt * 9);
+      invalidate();
+    } else alpha.current = target;
+    const a = alpha.current;
+
+    const sel = c.selected;
+    const innerOn = c.cut || c.explode > 0.02 || c.inside || sel !== null;
+    let visible = a > 0.012;
+    if (e.kind === 'cavity') visible = visible && (sel === 'pleural-cavity' || c.explode > 0.02 || c.cut);
+    if (e.kind === 'acinus') visible = visible && (c.inside || sel === 'bronchioles' || sel === 'alveoli' || c.explode > 0.02 || c.cut);
+    m.visible = visible;
+    interactive.current =
+      !hiddenByUser && a > 0.5 &&
+      !(e.kind === 'pleura' && sel !== 'pleura') && !(e.kind === 'cavity' && sel !== 'pleural-cavity') && !(e.kind === 'hilum' && sel !== 'hilum') &&
+      !(c.inside && OUTER_KINDS.has(e.kind) && !focus);
+
+    const cutOn = c.cut && c.explode <= 0.02;
+    const active = c.selected === e.part || c.hovered === e.part || (!!c.selected && !!ALSO[c.selected]?.includes(e.part) && focus);
+    const hot = c.hovered === e.part;
+    const key = [cutOn ? c.kind : '-', active ? 1 : 0, hot ? 1 : 0, Math.round(a * 250), innerOn ? 1 : 0].join('|');
+    if (key === lastKey.current) return;
+    lastKey.current = key;
+
+    if (cutOn) planes[0] = c.kind === 'side' ? sidePlane : axialPlane;
+    const transparent = base.transparent || a < 0.995;
+    if (mat.transparent !== transparent) {
+      mat.transparent = transparent;
+      mat.needsUpdate = true;
     }
-    const b = breath.current;
-    o.scale.setScalar((1 + b * 0.055) * (explodeOn ? 0.86 : 1));
-    o.position.y = b * 0.12;
-    // плавный разнос долей
-    LOBES.forEach(() => {});
-    invalidate();
+    const solid = focus && c.isolate && base.transparent ? Math.min(0.9, base.opacity * 2.6 + 0.06) : base.opacity;
+    mat.opacity = solid * a;
+    mat.depthWrite = base.depthWrite && a > 0.9;
+    mat.clippingPlanes = cutOn ? planes : null;
+    if (active && a > 0.5) {
+      mat.emissive.copy(GLOW);
+      mat.emissiveIntensity = hot ? 0.28 : 0.15;
+    } else {
+      mat.emissive.copy(emissiveOff);
+      mat.emissiveIntensity = 0;
+    }
   });
 
-  const label = (id: string) => {
-    const nn = names ?? {};
-    const anchors: Record<string, Vec> = {
-      trachea: [0, 3.0, 0.3],
-      'right-lung': [1.9, 0.6, 0.2],
-      'left-lung': [-1.9, 0.6, 0.2],
-      'main-bronchi': [0.5, 0.7, 0.5],
-      pleura: [1.7, -0.4, 0.3],
-      diaphragm: [-1.2, -2.0, 0.4],
-      'pulmonary-trunk': [-0.5, 1.5, 0.3],
-      alveoli: [1.1, -1.0, 0.5],
+  return <mesh ref={mesh} geometry={e.geometry} material={mat} dispose={null} {...handlers} />;
+}
+
+interface Rig {
+  target: Vector3;
+  update(): void;
+  addEventListener(type: string, fn: () => void): void;
+  removeEventListener(type: string, fn: () => void): void;
+}
+
+/** Камера плавно летит к выбранной части или к виду на разрез; пользователь может перехватить управление. */
+function CameraRig({ ctrl }: { ctrl: MutableRefObject<Ctrl> }) {
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as unknown as Rig | null;
+  const invalidate = useThree((s) => s.invalidate);
+  const goal = useRef<{ at: Vector3; offset: Vector3 } | null>(null);
+  const first = useRef(true);
+  const { selected } = useSelection();
+  const c = ctrl.current;
+  const spread = c.explode > 0.02;
+
+  useEffect(() => {
+    if (!controls) return;
+    const stop = () => {
+      goal.current = null;
     };
-    const at = anchors[id];
-    if (!at) return null;
-    return <Label labels={state.labels} partId={id} text={nn[id]} at={at} />;
-  };
+    controls.addEventListener('start', stop);
+    return () => controls.removeEventListener('start', stop);
+  }, [controls]);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    let at: Vec = [0, 0.55, 0];
+    let dir: Vec = [0.04, 0.11, 1];
+    let dist = 11.6;
+    const f = selected ? FOCUS[selected] : undefined;
+    if (f) {
+      at = f.at;
+      dist = f.dist;
+    } else if (spread) {
+      at = [0, 0.3, 0];
+      dir = [0.1, 0.12, 1];
+      dist = 17;
+    } else if (c.cut) {
+      if (c.kind === 'side') {
+        at = [0, 0.4, -0.2];
+        dir = [0.25, 0.1, 1];
+        dist = 10.5;
+      } else {
+        at = [0, 0.55, -0.1];
+        dir = [0.02, 1, 0.2];
+        dist = 9.5;
+      }
+    }
+    goal.current = { at: new Vector3(...at), offset: new Vector3(...dir).normalize().multiplyScalar(dist) };
+    invalidate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, c.cut, c.kind, spread, invalidate]);
+
+  useFrame((_, dt) => {
+    const g = goal.current;
+    if (!g || !controls) return;
+    const k = 1 - Math.exp(-dt * 4.2);
+    const offset = camera.position.clone().sub(controls.target);
+    controls.target.lerp(g.at, k);
+    offset.lerp(g.offset, k);
+    camera.position.copy(controls.target).add(offset);
+    controls.update();
+    invalidate();
+    if (controls.target.distanceTo(g.at) < 0.004 && offset.distanceTo(g.offset) < 0.01) goal.current = null;
+  });
+  return null;
+}
+
+function Building() {
+  return (
+    <Html center>
+      <div style={{ fontSize: 13, color: '#556', whiteSpace: 'nowrap' }}>{t('stage.building')}</div>
+    </Html>
+  );
+}
+
+function Organ({ state, names = {} }: ModelProps) {
+  const entities = use(loadLungGeometry());
+  const { selected, hovered } = useSelection();
+  const invalidate = useThree((s) => s.invalidate);
+
+  const ctrl = useRef<Ctrl>({ cut: false, kind: 'side', explode: 0, isolate: true, inside: false, selected: null, hovered: null, hidden: new Set() });
+  ctrl.current.cut = state.cutaway;
+  ctrl.current.kind = state.cutKind ?? 'side';
+  ctrl.current.isolate = state.isolate ?? true;
+  ctrl.current.inside = !!state.modes.inside;
+  ctrl.current.selected = selected;
+  ctrl.current.hovered = hovered;
+  ctrl.current.hidden = state.hidden ?? new Set();
+  const explodeTarget = state.explode ?? 0;
+
+  useEffect(
+    () => () => {
+      for (const e of entities) e.geometry.dispose();
+    },
+    [entities],
+  );
+
+  const breath = useRef<Group>(null);
+  const b = useRef(0);
+  useFrame((st, dt) => {
+    const c = ctrl.current;
+    const diff = explodeTarget - c.explode;
+    if (Math.abs(diff) > 0.001) {
+      c.explode += diff * Math.min(1, dt * 8);
+      invalidate();
+    } else c.explode = explodeTarget;
+    // дыхание: вдох короче выдоха; на разрезе и при разносе лёгкие замирают, чтобы срез не «плыл»
+    const frozen = c.cut || c.explode > 0.02;
+    const rate = 14 / 60;
+    const ph = (state.time.current * rate) % 1;
+    const wave = ph < 0.42 ? 0.5 - 0.5 * Math.cos((ph / 0.42) * Math.PI) : 0.5 + 0.5 * Math.cos(((ph - 0.42) / 0.58) * Math.PI);
+    const goal = frozen ? 0 : wave;
+    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 6);
+    if (Math.abs(goal - b.current) > 0.0005) {
+      b.current += (goal - b.current) * k;
+      invalidate();
+    }
+    void st;
+    const g = breath.current;
+    if (g) {
+      const s: Vec = [1 + b.current * 0.035, 1 + b.current * 0.05, 1 + b.current * 0.04];
+      g.scale.set(...s);
+      // масштаб вокруг киля трахеи
+      g.position.set(CARINA[0] * (1 - s[0]), CARINA[1] * (1 - s[1]), CARINA[2] * (1 - s[2]));
+    }
+  });
+
+  const hidden = state.hidden ?? new Set<string>();
+  const showLabels = explodeTarget <= 0.02;
 
   return (
-    <group ref={outer}>
-      <group ref={inner}>
-        {LOBES.map((l, i) => {
-          if (!show(l.id) && !show('right-lung') && !show('left-lung')) return null;
-          const v = EXPLODE[l.id] ?? [0, 0, 0];
-          return (
-            <Piece key={l.id} id={l.id} geometry={geos[i]} vec={v} explode={ex} ghost={ghost}>
-              {LABELED.has(l.id) ? label(l.id) : null}
-            </Piece>
-          );
-        })}
-        {/* трахея */}
-        {(!set || set.has('trachea')) && (
-          <Tube branch={airways[0]} partId="trachea" explode={ex} vec={EXPLODE.trachea ?? [0, 0, 0]} />
-        )}
-        {/* бронхи */}
-        {tubes.slice(0, 90).map(({ b, partId }, i) => {
-          if (!show(partId)) return null;
-          if (!ghost && b.level >= 4 && selected !== 'bronchioles') return null;
-          return <Tube key={i} branch={b} partId={partId} explode={ex} vec={[0, 0, 0]} />;
-        })}
-        {/* лёгочный ствол */}
-        {(!set || set.has('pulmonary-trunk')) && (
-          <group>
-            <mesh position={[0.05, 1.35, 0.12]}>
-              <cylinderGeometry args={[0.2, 0.23, 0.9, 18]} />
-              <Tissue kind="artery" active={selected === 'pulmonary-trunk'} />
-            </mesh>
-          </group>
-        )}
-        {/* диафрагма */}
-        {(!set || set.has('diaphragm')) && (
-          <mesh position={[0, -2.05 - breath.current * 0.4, -0.1]}>
-            <sphereGeometry args={[2.15, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.42]} />
-            <Tissue kind="muscle" active={selected === 'diaphragm'} />
-          </mesh>
-        )}
-        {/* подписи */}
-        {['trachea', 'right-lung', 'left-lung', 'main-bronchi', 'pleura', 'diaphragm', 'pulmonary-trunk', 'alveoli'].map((id) =>
-          state.labels || selected === id ? <group key={id}>{label(id)}</group> : null,
-        )}
-        {/* лёгкий намёк на плевральную оболочку */}
-        {(!set || set.has('pleura')) && (
-          <mesh scale={1.04} raycast={() => null}>
-            <sphereGeometry args={[1.9, 24, 18]} />
-            <Tissue kind="membrane" active={selected === 'pleura'} opacity={0.14} />
-          </mesh>
-        )}
+    <>
+      <CameraRig ctrl={ctrl} />
+      <group ref={breath}>
+        {entities.map((e) => (
+          <Piece key={e.key} e={e} ctrl={ctrl} />
+        ))}
+        {showLabels &&
+          Object.entries(LABEL_AT).map(([id, cfg]) => {
+            if (hidden.has(id)) return null;
+            if (state.isolate !== false && selected !== null && selected !== id && !cfg.inner) return null;
+            return <Label key={id} at={cfg.at} partId={id} text={names[id]} labels={state.labels && (!!cfg.main || selected === id)} inner={cfg.inner} />;
+          })}
       </group>
-    </group>
+    </>
   );
 }
 
 export default function LungsModel(props: ModelProps) {
   const { selected } = useSelection();
-  const micro = selected !== null && ALVEOLUS_PARTS.has(selected);
-  void Vector3;
-  if (micro) return <AlveolusScene state={props.state} names={props.names} />;
-  return <Organ {...props} />;
+  const micro = !!props.state.modes.alveolus || (selected !== null && ALVEOLUS_PARTS.has(selected));
+  return <Suspense fallback={<Building />}>{micro ? <AlveolusScene state={props.state} names={props.names} /> : <Organ {...props} />}</Suspense>;
 }
+

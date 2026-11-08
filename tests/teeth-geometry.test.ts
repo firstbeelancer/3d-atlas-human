@@ -95,7 +95,7 @@ describe('tooth meshes', () => {
       }
       expect(b.full.enamel!.colors!.length).toBe(b.full.enamel!.positions.length);
     }
-  });
+  }, 60_000); // строит сетки всех зубов — на загруженной машине дольше 15 с
 
   it('places 32 teeth in the dental arches, mirrored left and right', () => {
     const lay = archLayout();

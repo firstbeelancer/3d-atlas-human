@@ -5,6 +5,7 @@ import type { Box } from '../three/cameraBounds';
 import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
 import type { MessageKey } from '../i18n';
+import { CUT_DEFAULT_T } from './brain/anatomy';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
@@ -16,6 +17,8 @@ export interface ModelEntry {
   explorer?: boolean;
   /** Своя подпись второго разреза в панели «Рассмотреть детали». */
   explorerFundusKey?: MessageKey;
+  /** Три плоскости среза с ползунком положения (мозг). */
+  explorerCuts?: { sideKey: MessageKey; coronalKey: MessageKey; defaults: Record<'side' | 'fundus' | 'coronal', number> };
   target?: [number, number, number];
   /** Высота пола для мягкой тени (по умолчанию — для небольших органов). */
   floorY?: number;
@@ -117,13 +120,15 @@ export const MODELS: Record<string, ModelEntry> = {
     Component: lazy(() => import('./lungs/LungsModel')),
     hasCutaway: true,
     explorer: true,
-    camera: { position: [0.4, 1.3, 11.5], fov: 32 },
+    explorerFundusKey: 'explorer.fundusLungs',
+    camera: { position: [0.4, 1.3, 13.2], fov: 32 },
     target: [0, 0.55, 0],
-    bounds: { min: [-3.2, -3.0, -2.2], max: [3.2, 4.2, 2.2] },
-    orbit: { minDistance: 2.6, maxDistance: 30, free: true },
+    floorY: -3.3,
+    bounds: { min: [-4, -3.4, -3], max: [4, 4.2, 3] },
+    orbit: { minDistance: 1.8, maxDistance: 34, free: true },
     modes: [
-      { id: 'explode', icon: 'explode' },
       { id: 'inside', icon: 'inside' },
+      { id: 'alveolus', icon: 'lobule' },
     ],
     isolate: true,
     description: modelDescriptions.legkie,
@@ -140,6 +145,25 @@ export const MODELS: Record<string, ModelEntry> = {
     bounds: { min: [-10, -11, -8], max: [11, 10, 6] },
     orbit: { minDistance: 1.8, maxDistance: 80, free: true },
     description: modelDescriptions['zhelchnyj-puzyr'],
+  },
+  mozg: {
+    Component: lazy(() => import('./brain/BrainModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusBrain',
+    explorerCuts: { sideKey: 'explorer.cutBrainSide', coronalKey: 'explorer.cutBrainCoronal', defaults: CUT_DEFAULT_T },
+    camera: { position: [13, 6.3, 15], fov: 32 },
+    target: [0, -0.4, -0.25],
+    floorY: -7.2,
+    bounds: { min: [-8, -8, -8], max: [8, 5, 8] },
+    orbit: { minDistance: 2.2, maxDistance: 48, free: true },
+    modes: [
+      { id: 'lobes', icon: 'brain' },
+      { id: 'zones', icon: 'segments' },
+      { id: 'deep', icon: 'inside' },
+      { id: 'meninges', icon: 'layers' },
+    ],
+    description: modelDescriptions.mozg,
   },
   kishechnik: {
     Component: lazy(() => import('./intestine/IntestineModel')),

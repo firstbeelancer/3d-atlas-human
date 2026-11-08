@@ -99,16 +99,16 @@ export const PIVOTS: Record<string, V3> = {
   heart: [0.4, 12.7, 0.25],
   coronaryArteries: [0.4, 12.7, 0.25],
   coronaryVeins: [0.4, 12.7, 0.25],
-  lungL: [0.95, 13.0, -0.1],
-  lungR: [-0.95, 13.0, -0.1],
+  lungL: [0.8, 13.0, -0.1],
+  lungR: [-0.8, 13.0, -0.1],
 };
 
 /** Подписи: куда ставить выноску у каждого раздела (дециметры, как у скелета). */
 export const LABEL_AT: Record<string, V3> = {
   mozg: [0.35, 17.25, 0.3],
   glaz: [0.3, 16.36, 0.95],
-  uho: [0.95, 16.1, -0.2],
-  legkie: [1.35, 13.7, 0.35],
+  uho: [0.85, 16.1, -0.2],
+  legkie: [1.05, 13.4, 0.4],
   serdce: [0.75, 12.4, 0.75],
   pechen: [-1.1, 11.6, 0.6],
   'zhelchnyj-puzyr': [-0.6, 10.85, 0.78],
@@ -120,5 +120,5 @@ export const LABEL_AT: Record<string, V3> = {
   skelet: [-1.55, 12.6, 0.7],
   'krovenosnaya-sistema': [0.9, 7.6, 0.5],
   gormony: [0.25, 14.66, 0.32],
-  'vnutrennie-organy': [1.3, 11.4, -0.62],
+  'vnutrennie-organy': [1.2, 11.7, -0.6],
 };

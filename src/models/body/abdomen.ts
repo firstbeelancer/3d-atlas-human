@@ -60,8 +60,9 @@ function esophagus(): BufferGeometry {
 }
 
 function spleenField(): Sdf {
-  const f = smooth(0.06, Er([1.2, 11.5, -0.62], [0.28, 0.56, 0.34], [0, 0, 0.28]), E([1.12, 11.25, -0.5], [0.2, 0.3, 0.22]));
-  return smoothSubtract(0.02, wobble(f, 4, 0.02), slab([1.0, 11.5, -0.5], [1, 0, 0.5], 0.01, [1.0, 11.8, -0.5], 0.3));
+  // селезёнка — под 9–11 рёбрами слева, сзади и сбоку от желудка, над левой почкой; 11×7×4 см
+  const f = smooth(0.06, Er([1.05, 11.65, -0.55], [0.2, 0.52, 0.32], [0, 0, 0.28]), E([0.98, 11.4, -0.45], [0.15, 0.28, 0.2]));
+  return smoothSubtract(0.02, wobble(f, 4, 0.02), slab([0.86, 11.65, -0.45], [1, 0, 0.5], 0.01, [0.86, 11.95, -0.45], 0.3));
 }
 
 function pancreasField(): Sdf {
@@ -184,7 +185,7 @@ export function buildAbdomen(): GeometrySet {
   out.gallbladder = gallbladder();
   out.stomach = sdfMesh(stomachField(), [-0.7, 10.0, -0.7], [1.65, 12.5, 0.95], 0.03, 0.045);
   out.esophagus = esophagus();
-  out.spleen = sdfMesh(spleenField(), [0.85, 10.8, -1.05], [1.6, 12.2, -0.1], 0.024, 0.03);
+  out.spleen = sdfMesh(spleenField(), [0.6, 10.9, -1.0], [1.5, 12.35, -0.05], 0.024, 0.03);
   out.pancreas = sdfMesh(pancreasField(), [-0.7, 10.0, -0.4], [1.3, 11.8, 0.6], 0.022, 0.03);
   out.kidneyL = sdfMesh(kidney(1), [0.4, 10.0, -0.9], [1.3, 11.5, -0.15], 0.022, 0.03);
   out.kidneyR = sdfMesh(kidney(-1), [-1.3, 9.9, -0.9], [-0.4, 11.4, -0.15], 0.022, 0.03);

@@ -14,6 +14,7 @@ const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
   'zhelchnyj-puzyr': () => import('./ru/zhelchnyj-puzyr'),
   mozg: () => import('./ru/mozg'),
   uho: () => import('./ru/uho'),
+  podzheludochnaya: () => import('./ru/podzheludochnaya'),
 };
 
 export async function loadSectionContent(slug: string): Promise<SectionContent | null> {

@@ -1,300 +1,350 @@
-import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Quaternion, Vector3, type Group } from 'three';
-import type { ModelProps } from '../../three/types';
-import { blobGeometry, blobSurface, curve, heartbeat, transformMatrix, type BlobShape, type Vec3 } from '../../three/geometry';
-import { Tissue, usePart, type TissueKind } from '../../three/materials';
-import { Vessel } from '../../three/Vessel';
-import { Flow } from '../../three/Flow';
+import { Suspense, use, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
+import { CatmullRomCurve3, Color, Mesh, Plane, Vector3, type MeshPhysicalMaterial } from 'three';
+import type { CutKind, ModelProps } from '../../three/types';
+import { heartbeat } from '../../three/geometry';
+import { usePart } from '../../three/materials';
 import { Label } from '../../three/Label';
+import { Flow } from '../../three/Flow';
 import { useSelection } from '../../three/selection';
+import { t } from '../../i18n';
+import { ALSO, FLOW_BLUE, FLOW_RED, FOCUS, INTERIOR, LABEL_AT, spreadOf, type Vec } from './anatomy';
+import { cutPlane, type CutKey } from './field';
+import { loadHeart, loadHeartCut, type HeartPiece } from './loader';
+import { BEAT, makeHeartMaterial } from './materials';
 
 /*
-  Сердце, вид спереди. Оси: +x — левая сторона человека (справа для зрителя), +y — вверх, +z — к зрителю.
-  Верхушка смотрит влево-вниз, правый желудочек лежит спереди, левое предсердие — сзади.
+  Сердце: стенка, сосуды, клапаны с хордами, коронарные сосуды, жир и проводящая система.
+  Разрез — отдельные сетки с «крышкой» среза, они строятся в фоне по требованию; пока разрез не готов,
+  целая стенка просто обрезается плоскостью.
 */
 
-const LV: BlobShape = { taper: 0.16, power: 0.6, sx: 1.05, sy: 1.45, sz: 0.95, flattenBack: 0.85 };
-const LV_POS: Vec3 = [0.38, -0.25, -0.1];
-const LV_ROT: Vec3 = [0.12, -0.3, 0.55];
-
-const RV: BlobShape = { taper: 0.3, power: 0.7, sx: 1.05, sy: 1.22, sz: 0.66 };
-const RV_POS: Vec3 = [-0.18, -0.24, 0.32];
-const RV_ROT: Vec3 = [0.15, 0.25, 0.42];
-
-const ATRIUM: BlobShape = { taper: 0.75, power: 1, sx: 0.62, sy: 0.64, sz: 0.58 };
-const LA_SHAPE: BlobShape = { taper: 0.8, power: 1, sx: 0.74, sy: 0.48, sz: 0.5 };
-const AURICLE: BlobShape = { taper: 0.25, power: 0.8, sx: 0.3, sy: 0.44, sz: 0.2 };
-
-const INTERIOR = new Set(['tricuspid-valve', 'mitral-valve', 'septum']);
-
-const PATHS = {
-  aorta: curve([
-    [-0.02, 0.45, 0.05], [-0.08, 1.25, 0.2], [0.05, 1.95, 0.12], [0.55, 2.2, -0.35],
-    [0.92, 1.85, -0.82], [0.95, 1.0, -0.98], [0.92, -0.6, -1.02],
-  ]),
-  pt: curve([[0.32, 0.55, 0.62], [0.42, 1.15, 0.62], [0.38, 1.55, 0.2]]),
-  lpa: curve([[0.38, 1.55, 0.2], [0.9, 1.68, -0.1], [1.55, 1.58, -0.3]]),
-  rpa: curve([[0.38, 1.55, 0.2], [-0.2, 1.7, -0.32], [-1.35, 1.62, -0.42]]),
-  svc: curve([[-1.0, 1.05, -0.02], [-1.02, 1.9, -0.06], [-1.0, 2.75, -0.06]]),
-  ivc: curve([[-0.95, 0.35, -0.3], [-0.97, -0.4, -0.38], [-0.95, -1.15, -0.42]]),
-  pv: [
-    curve([[0.05, 0.98, -0.85], [-0.35, 1.02, -0.95], [-0.75, 1.04, -1.0]]),
-    curve([[0.05, 0.7, -0.85], [-0.35, 0.64, -0.95], [-0.75, 0.6, -0.98]]),
-    curve([[0.7, 0.98, -0.8], [1.1, 1.04, -0.84], [1.45, 1.06, -0.85]]),
-    curve([[0.7, 0.7, -0.8], [1.1, 0.64, -0.84], [1.45, 0.6, -0.85]]),
-  ],
-};
-
-/** Пути крови внутри сердца (видны в разрезе). */
-const BLOOD = {
-  blueTop: curve([
-    [-1.0, 2.7, -0.06], [-1.0, 1.3, -0.02], [-1.0, 0.72, 0.05], [-0.62, 0.3, 0.32], [-0.3, -0.45, 0.45],
-    [0.2, 0.2, 0.6], [0.42, 1.1, 0.62], [0.38, 1.55, 0.2], [0.9, 1.68, -0.1], [1.5, 1.58, -0.3],
-  ]),
-  blueBottom: curve([
-    [-0.95, -1.1, -0.42], [-0.96, 0.25, -0.3], [-1.0, 0.68, 0.0], [-0.62, 0.3, 0.32], [-0.2, -0.55, 0.4],
-    [0.22, 0.25, 0.58], [0.42, 1.15, 0.62], [0.38, 1.55, 0.2], [-0.2, 1.7, -0.32], [-1.3, 1.62, -0.42],
-  ]),
-  redRight: curve([
-    [-0.72, 1.03, -0.99], [0.1, 0.9, -0.8], [0.3, 0.6, -0.55], [0.25, 0.38, -0.38], [0.65, -0.6, -0.15],
-    [0.35, -0.1, 0.0], [-0.02, 0.5, 0.06], [-0.08, 1.25, 0.2], [0.05, 1.95, 0.12], [0.55, 2.2, -0.35],
-    [0.92, 1.85, -0.82], [0.95, 1.0, -0.98], [0.92, -0.55, -1.02],
-  ]),
-  redLeft: curve([
-    [1.42, 1.05, -0.85], [0.6, 0.9, -0.78], [0.35, 0.6, -0.55], [0.25, 0.38, -0.38], [0.8, -0.85, -0.1],
-    [0.4, -0.2, 0.0], [0.0, 0.5, 0.05], [-0.08, 1.25, 0.2], [0.05, 1.95, 0.12], [0.55, 2.2, -0.35],
-    [0.92, 1.85, -0.82], [0.95, 1.0, -0.98], [0.92, -0.55, -1.02],
-  ]),
-};
-
-function Blob({
-  shape,
-  position,
-  rotation = [0, 0, 0],
-  scale = 1,
-  kind,
-  active,
-  opacity,
-  handlers,
-}: {
-  shape: BlobShape;
-  position: Vec3;
-  rotation?: Vec3;
-  scale?: number;
-  kind: TissueKind;
-  active?: boolean;
-  opacity?: number;
-  handlers?: object;
-}) {
-  const geometry = useMemo(() => blobGeometry(shape), [shape]);
-  return (
-    <mesh geometry={geometry} position={position} rotation={rotation} scale={scale} {...handlers}>
-      <Tissue kind={kind} active={active} opacity={opacity} />
-    </mesh>
-  );
+interface Ctrl {
+  cut: boolean;
+  kind: CutKey;
+  explode: number;
+  isolate: boolean;
+  inside: boolean;
+  selected: string | null;
+  hovered: string | null;
+  hidden: ReadonlySet<string>;
+  ready: Record<CutKey, boolean>;
+  /** Раскрытие клапанов 0..1: предсердно-желудочковых и полулунных. */
+  av: number;
+  sl: number;
 }
 
-function Valve({
-  center,
-  normal,
-  leaflets,
-  partId,
-  open,
-}: {
-  center: Vec3;
-  normal: Vec3;
-  leaflets: number;
-  partId: string;
-  open: React.MutableRefObject<number>;
-}) {
-  const { active, handlers } = usePart(partId);
-  const flaps = useRef<(Group | null)[]>([]);
-  // локальная ось −y кольца смотрит по току крови (из предсердия в желудочек)
-  const quaternion = useMemo(
-    () => new Quaternion().setFromUnitVectors(new Vector3(0, -1, 0), new Vector3(...normal).normalize()),
-    [normal],
-  );
+const GHOST = 0.05;
+const INSIDE_ALPHA = 0.13;
+const GLOW = new Color('#ffa77a');
 
-  useFrame(() => {
-    const angle = 0.2 + 0.95 * open.current;
-    flaps.current.forEach((f) => f && (f.rotation.x = angle));
+const PLANES: Record<CutKey, Plane> = (['side', 'fundus'] as CutKey[]).reduce(
+  (acc, k) => {
+    const p = cutPlane(k);
+    acc[k] = new Plane(new Vector3(-p.n[0], -p.n[1], -p.n[2]), p.c);
+    return acc;
+  },
+  {} as Record<CutKey, Plane>,
+);
+
+function isFocus(sel: string | null, part: string): boolean {
+  if (sel === null) return false;
+  return sel === part || !!ALSO[sel]?.includes(part);
+}
+
+const GHOSTED_KINDS = new Set(['wall', 'fat']);
+
+/** Одна сетка: разнос, подсветка, призрачный режим, скрытие, разрез и створки. */
+function Piece({ e, ctrl }: { e: HeartPiece; ctrl: MutableRefObject<Ctrl> }) {
+  const { handlers } = usePart(e.part);
+  const invalidate = useThree((s) => s.invalidate);
+  const mat = useMemo<MeshPhysicalMaterial>(() => makeHeartMaterial(e.kind), [e.kind]);
+  const mesh = useMemo(() => new Mesh(e.geometry, mat), [e.geometry, mat]);
+  const baseTransparent = mat.transparent;
+  const alpha = useRef(1);
+  const interactive = useRef(true);
+  const lastKey = useRef('');
+  const spread = useMemo<Vec>(() => spreadOf(e.part), [e.part]);
+  const emissiveOff = useMemo(() => new Color(e.kind === 'conduction' || e.kind === 'node' ? '#7a5a00' : '#000000'), [e.kind]);
+  const clipRef = useRef<Plane[] | null>(null);
+
+  useEffect(() => () => mat.dispose(), [mat]);
+
+  useEffect(() => {
+    const original = mesh.raycast.bind(mesh);
+    mesh.raycast = (raycaster, intersects) => {
+      if (!interactive.current || !mesh.visible) return;
+      const start = intersects.length;
+      original(raycaster, intersects);
+      const planes = clipRef.current;
+      if (planes) for (let i = intersects.length - 1; i >= start; i--) if (planes[0].distanceToPoint(intersects[i].point) < -1e-4) intersects.splice(i, 1);
+    };
+  }, [mesh]);
+
+  useFrame((_, dt) => {
+    const c = ctrl.current;
+    mesh.position.set(spread[0] * c.explode, spread[1] * c.explode, spread[2] * c.explode);
+
+    const cutOn = c.cut && c.explode <= 0.02;
+    const sel = c.selected;
+    const hiddenByUser = c.hidden.has(e.part);
+    const focus = isFocus(sel, e.part);
+    // выбор внутренней части делает стенку прозрачной, чтобы её было видно
+    const inside = c.inside || (sel !== null && INTERIOR.has(sel) && !cutOn);
+
+    let present = true;
+    if (e.kind === 'wall') {
+      if (e.variant === 'whole') present = !(cutOn && c.ready[c.kind]);
+      else present = cutOn && e.variant === c.kind;
+    } else if (e.kind === 'conduction' || e.kind === 'node') {
+      present = c.inside || cutOn || c.explode > 0.02 || sel === 'conduction-system';
+    }
+
+    let target = 1;
+    if (hiddenByUser) target = 0;
+    else if (c.isolate && sel !== null && !focus) target = GHOST;
+    else if (inside && GHOSTED_KINDS.has(e.kind) && !focus) target = INSIDE_ALPHA;
+    const diff = target - alpha.current;
+    if (Math.abs(diff) > 0.002) {
+      alpha.current += diff * Math.min(1, dt * 9);
+      invalidate();
+    } else alpha.current = target;
+    const a = alpha.current;
+
+    mesh.visible = present && a > 0.012;
+    interactive.current = present && !hiddenByUser && a > 0.5;
+
+    const clipped = cutOn && (e.kind !== 'wall' || (e.variant === 'whole' && !c.ready[c.kind]));
+    clipRef.current = clipped ? [PLANES[c.kind]] : null;
+
+    if (e.anim && mesh.morphTargetInfluences) mesh.morphTargetInfluences[0] = e.anim === 'aortic' || e.anim === 'pulmonary' ? c.sl : c.av;
+
+    const active = sel === e.part || c.hovered === e.part || focus;
+    const hot = c.hovered === e.part;
+    const key = [clipped ? c.kind : '-', active ? 1 : 0, hot ? 1 : 0, Math.round(a * 250)].join('|');
+    if (key === lastKey.current) return;
+    lastKey.current = key;
+
+    const transparent = baseTransparent || a < 0.995;
+    if (mat.transparent !== transparent) {
+      mat.transparent = transparent;
+      mat.needsUpdate = true;
+    }
+    mat.opacity = a;
+    mat.depthWrite = a > 0.9;
+    mat.clippingPlanes = clipped ? clipRef.current : null;
+    if (active && a > 0.5) {
+      mat.emissive.copy(GLOW);
+      mat.emissiveIntensity = hot ? 0.28 : 0.16;
+    } else {
+      mat.emissive.copy(emissiveOff);
+      mat.emissiveIntensity = e.kind === 'conduction' ? 0.35 : e.kind === 'node' ? 0.4 : 0;
+    }
   });
 
-  return (
-    <group position={center} quaternion={quaternion} {...handlers}>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.24, 0.035, 12, 40]} />
-        <Tissue kind="valve" active={active} />
-      </mesh>
-      {Array.from({ length: leaflets }, (_, i) => (
-        <group key={i} rotation={[0, (i / leaflets) * Math.PI * 2, 0]}>
-          <group
-            position={[0, 0, 0.22]}
-            ref={(el) => {
-              flaps.current[i] = el;
-            }}
-          >
-            <mesh position={[0, -0.16, -0.06]} scale={[leaflets === 2 ? 0.26 : 0.17, 0.2, 0.025]}>
-              <sphereGeometry args={[1, 18, 12]} />
-              <Tissue kind="valve" active={active} />
-            </mesh>
-          </group>
-        </group>
-      ))}
-    </group>
-  );
+  return <primitive object={mesh} dispose={null} {...handlers} />;
 }
 
-export default function HeartModel({ state, names = {} }: ModelProps) {
+interface Rig {
+  target: Vector3;
+  update(): void;
+  addEventListener(type: string, fn: () => void): void;
+  removeEventListener(type: string, fn: () => void): void;
+}
+
+/** Камера плавно летит к выбранной части или к виду на разрез; пользователь может перехватить управление. */
+function CameraRig({ ctrl }: { ctrl: MutableRefObject<Ctrl> }) {
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as unknown as Rig | null;
+  const invalidate = useThree((s) => s.invalidate);
+  const goal = useRef<{ at: Vector3; offset: Vector3 } | null>(null);
+  const first = useRef(true);
   const { selected } = useSelection();
-  const cut = state.cutaway || (selected !== null && INTERIOR.has(selected));
-  const wall = cut ? 0.2 : undefined;
-  const tube = cut ? 0.38 : undefined;
+  const c = ctrl.current;
+  const spread = c.explode > 0.02;
 
-  const ventricles = useRef<Group>(null);
-  const atria = useRef<Group>(null);
-  const valveOpen = useRef(1);
+  useEffect(() => {
+    if (!controls) return;
+    const stop = () => {
+      goal.current = null;
+    };
+    controls.addEventListener('start', stop);
+    return () => controls.removeEventListener('start', stop);
+  }, [controls]);
 
-  const parts = {
-    ra: usePart('right-atrium'),
-    la: usePart('left-atrium'),
-    rv: usePart('right-ventricle'),
-    lv: usePart('left-ventricle'),
-    ao: usePart('aorta'),
-    pt: usePart('pulmonary-trunk'),
-    svc: usePart('superior-vena-cava'),
-    ivc: usePart('inferior-vena-cava'),
-    pv: usePart('pulmonary-veins'),
-    sep: usePart('septum'),
-    cor: usePart('coronary-arteries'),
-  };
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    let at: Vec = [0, 0.4, 0];
+    let dir: Vec = [0.05, 0.08, 1];
+    let dist = 12;
+    const f = selected ? FOCUS[selected] : undefined;
+    if (f) {
+      at = f.at;
+      dist = f.dist;
+    } else if (spread) {
+      at = [0, 0.3, 0];
+      dist = 17;
+    } else if (c.cut) {
+      if (c.kind === 'side') {
+        const n = cutPlane('side').n;
+        at = [0.15, 0.0, 0.1];
+        dir = [n[0] + 0.12, n[1] + 0.05, n[2]];
+        dist = 9;
+      } else {
+        at = [0.1, -0.8, 0.1];
+        dir = [0.04, 1, 0.22];
+        dist = 8.5;
+      }
+    }
+    goal.current = { at: new Vector3(...at), offset: new Vector3(...dir).normalize().multiplyScalar(dist) };
+    invalidate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, c.cut, c.kind, spread, invalidate]);
 
-  const coronary = useMemo(() => {
-    const lvSurf = blobSurface(LV, transformMatrix(LV_POS, LV_ROT));
-    const rvSurf = blobSurface(RV, transformMatrix(RV_POS, RV_ROT));
-    const lad: Vector3[] = [];
-    for (let k = 0; k <= 14; k++) lad.push(lvSurf(-0.42 + k * 0.02, 0.45 + k * 0.17, 0.035));
-    const rca: Vector3[] = [];
-    for (let k = 0; k <= 12; k++) rca.push(rvSurf(0.1 - k * 0.2, 0.62 + k * 0.05, 0.03));
-    const lcx: Vector3[] = [];
-    for (let k = 0; k <= 10; k++) lcx.push(lvSurf(0.25 + k * 0.2, 0.62 + k * 0.03, 0.03));
-    const diag: Vector3[] = [];
-    for (let k = 0; k <= 8; k++) diag.push(lvSurf(-0.1 + k * 0.09, 0.85 + k * 0.14, 0.03));
-    return [curve(lad), curve(rca), curve(lcx), curve(diag)];
-  }, []);
+  useFrame((_, dt) => {
+    const g = goal.current;
+    if (!g || !controls) return;
+    const k = 1 - Math.exp(-dt * 4.2);
+    const offset = camera.position.clone().sub(controls.target);
+    controls.target.lerp(g.at, k);
+    offset.lerp(g.offset, k);
+    camera.position.copy(controls.target).add(offset);
+    controls.update();
+    invalidate();
+    if (controls.target.distanceTo(g.at) < 0.004 && offset.distanceTo(g.offset) < 0.01) goal.current = null;
+  });
+  return null;
+}
 
-  const archBranches = useMemo(
-    () =>
-      [0.34, 0.41, 0.48].map((t, i) => {
-        const p = PATHS.aorta.getPointAt(t);
-        return curve([
-          [p.x, p.y, p.z],
-          [p.x - 0.05 + i * 0.06, p.y + 0.4, p.z + 0.02],
-          [p.x - 0.12 + i * 0.14, p.y + 0.85, p.z + 0.05],
-        ]);
-      }),
-    [],
+function Building() {
+  return (
+    <Html center>
+      <div style={{ fontSize: 13, color: '#556', whiteSpace: 'nowrap' }}>{t('stage.building')}</div>
+    </Html>
+  );
+}
+
+const toCurve = (pts: Vec[]) => new CatmullRomCurve3(pts.map((p) => new Vector3(...p)), false, 'centripetal');
+
+function Organ({ state, names = {} }: ModelProps) {
+  const main = use(loadHeart());
+  const { selected, hovered } = useSelection();
+  const invalidate = useThree((s) => s.invalidate);
+  const [cuts, setCuts] = useState<Partial<Record<CutKey, HeartPiece[]>>>({});
+
+  const kind: CutKey = (state.cutKind as CutKind | undefined) === 'fundus' ? 'fundus' : 'side';
+  const ctrl = useRef<Ctrl>({
+    cut: false, kind: 'side', explode: 0, isolate: true, inside: false, selected: null, hovered: null, hidden: new Set(),
+    ready: { side: false, fundus: false }, av: 1, sl: 0,
+  });
+  const c = ctrl.current;
+  c.cut = state.cutaway;
+  c.kind = kind;
+  c.isolate = state.isolate ?? true;
+  c.inside = !!state.modes.xray;
+  c.selected = selected;
+  c.hovered = hovered;
+  c.hidden = state.hidden ?? new Set();
+  c.ready = { side: !!cuts.side, fundus: !!cuts.fundus };
+  const explodeTarget = state.explode ?? 0;
+
+  // срезы строятся по требованию; первый заранее, когда сцена уже показана
+  useEffect(() => {
+    let alive = true;
+    const want = (k: CutKey) =>
+      loadHeartCut(k).then((list) => {
+        if (alive) setCuts((prev) => (prev[k] ? prev : { ...prev, [k]: list }));
+      });
+    if (state.cutaway) void want(kind);
+    else {
+      const id = window.setTimeout(() => void want('side'), 2500);
+      return () => {
+        alive = false;
+        window.clearTimeout(id);
+      };
+    }
+    return () => {
+      alive = false;
+    };
+  }, [state.cutaway, kind]);
+
+  useEffect(
+    () => () => {
+      for (const e of main) e.geometry.dispose();
+    },
+    [main],
+  );
+  useEffect(
+    () => () => {
+      for (const list of Object.values(cuts)) for (const e of list ?? []) e.geometry.dispose();
+    },
+    [cuts],
   );
 
-  useFrame(() => {
+  const blue = useMemo(() => FLOW_BLUE.map(toCurve), []);
+  const red = useMemo(() => FLOW_RED.map(toCurve), []);
+
+  useFrame((_, dt) => {
+    const diff = explodeTarget - c.explode;
+    if (Math.abs(diff) > 0.001) {
+      c.explode += diff * Math.min(1, dt * 8);
+      invalidate();
+    } else c.explode = explodeTarget;
     const { a, v, phase } = heartbeat(state.time.current);
-    ventricles.current?.scale.setScalar(1 - 0.05 * v);
-    atria.current?.scale.setScalar(1 - 0.07 * a);
-    // клапаны между предсердиями и желудочками открыты, пока желудочки расслаблены
-    const target = phase > 0.15 && phase < 0.45 ? 0 : 1;
-    valveOpen.current += (target - valveOpen.current) * 0.25;
+    BEAT.uV.value = v;
+    BEAT.uA.value = a;
+    // предсердно-желудочковые клапаны открыты, пока желудочки расслаблены; полулунные — во время выброса
+    const avTarget = phase > 0.14 && phase < 0.45 ? 0 : 1;
+    const slTarget = phase > 0.17 && phase < 0.42 ? 1 : 0;
+    const k = 1 - Math.exp(-Math.min(dt, 0.1) * 22);
+    c.av += (avTarget - c.av) * k;
+    c.sl += (slTarget - c.sl) * k;
   });
 
-  const ejection = (time: number) => 0.35 + 1.6 * heartbeat(time).v;
+  const hidden = state.hidden ?? new Set<string>();
+  const showLabels = explodeTarget <= 0.02;
+  const cutOn = state.cutaway && explodeTarget <= 0.02;
+  const showFlow = (cutOn || !!state.modes.xray) && explodeTarget <= 0.02;
+  const planes = cutOn ? [PLANES[kind]] : undefined;
 
   return (
-    <group position={[0, -0.35, 0]}>
-      {/* Желудочки: масштабируются вокруг своего центра при сокращении */}
-      <group position={[0.1, -0.35, 0.15]}>
-        <group ref={ventricles}>
-          <group position={[-0.1, 0.35, -0.15]}>
-            <Blob shape={LV} position={LV_POS} rotation={LV_ROT} kind="myocardium" active={parts.lv.active} opacity={wall} handlers={parts.lv.handlers} />
-            <Blob shape={RV} position={RV_POS} rotation={RV_ROT} kind="myocardium" active={parts.rv.active} opacity={wall} handlers={parts.rv.handlers} />
-            {coronary.map((c, i) => (
-              <Vessel key={i} path={c} radius={i === 3 ? 0.03 : 0.042} endScale={0.45} kind="coronary" active={parts.cor.active} opacity={tube} caps={false} handlers={parts.cor.handlers} />
+    <>
+      <CameraRig ctrl={ctrl} />
+      <group>
+        {main.map((e) => (
+          <Piece key={e.key} e={e} ctrl={ctrl} />
+        ))}
+        {(['side', 'fundus'] as CutKey[]).flatMap((k) => (cuts[k] ?? []).map((e) => <Piece key={e.key} e={e} ctrl={ctrl} />))}
+        {showFlow && (
+          <>
+            {blue.map((p, i) => (
+              <Flow key={`b${i}`} path={p} count={26} speed={0.1} color="#5b82e6" size={0.045} state={state} planes={planes} pulse={(time) => 0.35 + 1.6 * heartbeat(time).v} />
             ))}
-            {cut && (
-              <>
-                <Blob shape={LV} position={LV_POS} rotation={LV_ROT} scale={0.6} kind="artery" opacity={0.55} active={parts.lv.active} handlers={parts.lv.handlers} />
-                <Blob shape={RV} position={[RV_POS[0] - 0.02, RV_POS[1], RV_POS[2] + 0.05]} rotation={RV_ROT} scale={0.58} kind="vein" opacity={0.55} active={parts.rv.active} handlers={parts.rv.handlers} />
-                <mesh position={[0.02, -0.3, 0.2]} rotation={[0, 0.64, 0.45]} scale={[0.07, 0.9, 0.5]} {...parts.sep.handlers}>
-                  <sphereGeometry args={[1, 32, 24]} />
-                  <Tissue kind="myocardium" active={parts.sep.active} />
-                </mesh>
-              </>
-            )}
-          </group>
-        </group>
+            {red.map((p, i) => (
+              <Flow key={`r${i}`} path={p} count={28} speed={0.095} color="#ff5a48" size={0.045} state={state} planes={planes} pulse={(time) => 0.35 + 1.6 * heartbeat(time).v} />
+            ))}
+          </>
+        )}
+        {showLabels &&
+          Object.entries(LABEL_AT).map(([id, cfg]) => {
+            if (hidden.has(id)) return null;
+            if (state.isolate !== false && selected !== null && selected !== id && !cfg.inner) return null;
+            if (cfg.inner && !cutOn && !state.modes.xray && selected !== id) return null;
+            return <Label key={id} at={cfg.at} partId={id} text={names[id]} labels={state.labels && (!!cfg.main || selected === id)} inner={cfg.inner} />;
+          })}
       </group>
+    </>
+  );
+}
 
-      {/* Предсердия */}
-      <group position={[-0.3, 0.8, -0.3]}>
-        <group ref={atria}>
-          <group position={[0.3, -0.8, 0.3]}>
-            <Blob shape={ATRIUM} position={[-1.02, 0.72, 0.02]} kind="atrium" active={parts.ra.active} opacity={wall} handlers={parts.ra.handlers} />
-            <Blob shape={AURICLE} position={[-0.6, 1.0, 0.52]} rotation={[0.3, 0, 1.9]} kind="atrium" active={parts.ra.active} opacity={wall} handlers={parts.ra.handlers} />
-            <Blob shape={LA_SHAPE} position={[0.32, 0.85, -0.72]} kind="atrium" active={parts.la.active} opacity={wall} handlers={parts.la.handlers} />
-            <Blob shape={AURICLE} position={[0.98, 0.8, 0.12]} rotation={[0.2, 0, -1.7]} kind="atrium" active={parts.la.active} opacity={wall} handlers={parts.la.handlers} />
-            {cut && (
-              <>
-                <Blob shape={ATRIUM} position={[-1.0, 0.7, 0.04]} scale={0.6} kind="vein" opacity={0.55} active={parts.ra.active} handlers={parts.ra.handlers} />
-                <Blob shape={LA_SHAPE} position={[0.32, 0.85, -0.7]} scale={0.6} kind="artery" opacity={0.55} active={parts.la.active} handlers={parts.la.handlers} />
-              </>
-            )}
-          </group>
-        </group>
-      </group>
-
-      {/* Крупные сосуды */}
-      <Vessel path={PATHS.aorta} radius={0.25} kind="artery" active={parts.ao.active} opacity={tube} handlers={parts.ao.handlers} />
-      {archBranches.map((c, i) => (
-        <Vessel key={i} path={c} radius={0.085} endScale={0.85} kind="artery" active={parts.ao.active} opacity={tube} handlers={parts.ao.handlers} />
-      ))}
-      <Vessel path={PATHS.pt} radius={0.23} kind="vein" active={parts.pt.active} opacity={tube} handlers={parts.pt.handlers} />
-      <Vessel path={PATHS.lpa} radius={0.14} endScale={0.8} kind="vein" active={parts.pt.active} opacity={tube} handlers={parts.pt.handlers} />
-      <Vessel path={PATHS.rpa} radius={0.14} endScale={0.8} kind="vein" active={parts.pt.active} opacity={tube} handlers={parts.pt.handlers} />
-      <Vessel path={PATHS.svc} radius={0.21} kind="vein" active={parts.svc.active} opacity={tube} handlers={parts.svc.handlers} />
-      <Vessel path={PATHS.ivc} radius={0.23} kind="vein" active={parts.ivc.active} opacity={tube} handlers={parts.ivc.handlers} />
-      {PATHS.pv.map((c, i) => (
-        <Vessel key={i} path={c} radius={0.09} kind="artery" active={parts.pv.active} opacity={tube} handlers={parts.pv.handlers} />
-      ))}
-
-      {/* Клапаны и кровоток — в разрезе */}
-      {cut && (
-        <>
-          <Valve center={[-0.62, 0.3, 0.32]} normal={[0.45, -0.75, 0.3]} leaflets={3} partId="tricuspid-valve" open={valveOpen} />
-          <Valve center={[0.25, 0.38, -0.38]} normal={[0.3, -0.85, 0.2]} leaflets={2} partId="mitral-valve" open={valveOpen} />
-          <Flow path={BLOOD.blueTop} count={26} speed={0.11} color="#5b82e6" state={state} pulse={ejection} />
-          <Flow path={BLOOD.blueBottom} count={26} speed={0.11} color="#5b82e6" state={state} pulse={ejection} />
-          <Flow path={BLOOD.redRight} count={30} speed={0.1} color="#ff5a48" state={state} pulse={ejection} />
-          <Flow path={BLOOD.redLeft} count={30} speed={0.1} color="#ff5a48" state={state} pulse={ejection} />
-        </>
-      )}
-
-      {/* Подписи */}
-      <Label labels={state.labels} partId="right-atrium" text={names["right-atrium"]} at={[-1.45, 0.62, 0.25]} />
-      <Label labels={state.labels} partId="right-ventricle" text={names["right-ventricle"]} at={[-0.45, -0.75, 0.9]} />
-      <Label labels={state.labels} partId="left-ventricle" text={names["left-ventricle"]} at={[1.25, -0.7, 0.3]} />
-      <Label labels={state.labels} partId="aorta" text={names["aorta"]} at={[0.4, 2.12, 0.05]} side="right" />
-      <Label labels={state.labels} partId="pulmonary-trunk" text={names["pulmonary-trunk"]} at={[0.6, 1.2, 0.8]} side="right" />
-      <Label labels={state.labels} partId="superior-vena-cava" text={names["superior-vena-cava"]} at={[-1.2, 2.35, 0.1]} />
-      <Label labels={false} partId="left-atrium" text={names["left-atrium"]} at={[0.95, 0.95, -0.7]} />
-      <Label labels={false} partId="inferior-vena-cava" text={names["inferior-vena-cava"]} at={[-1.15, -0.9, -0.3]} />
-      <Label labels={false} partId="pulmonary-veins" text={names["pulmonary-veins"]} at={[1.5, 0.82, -0.85]} />
-      <Label labels={false} partId="coronary-arteries" text={names["coronary-arteries"]} at={[0.3, -0.2, 0.95]} side="right" />
-      {cut && (
-        <>
-          <Label labels={state.labels} partId="tricuspid-valve" text={names["tricuspid-valve"]} at={[-0.75, 0.25, 0.5]} inner />
-          <Label labels={state.labels} partId="mitral-valve" text={names["mitral-valve"]} at={[0.45, 0.3, -0.3]} side="right" inner />
-          <Label labels={state.labels} partId="septum" text={names["septum"]} at={[0.05, -0.6, 0.55]} side="right" inner />
-        </>
-      )}
-    </group>
+export default function HeartModel(props: ModelProps) {
+  return (
+    <Suspense fallback={<Building />}>
+      <Organ {...props} />
+    </Suspense>
   );
 }

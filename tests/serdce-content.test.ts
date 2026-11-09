@@ -4,9 +4,10 @@ import serdce from '../src/content/ru/serdce';
 import { findEmoji } from '../scripts/check-no-emoji.mjs';
 
 const PART_IDS = [
-  'right-atrium', 'left-atrium', 'right-ventricle', 'left-ventricle', 'aorta', 'pulmonary-trunk',
-  'superior-vena-cava', 'inferior-vena-cava', 'pulmonary-veins', 'tricuspid-valve', 'mitral-valve',
-  'septum', 'coronary-arteries',
+  'right-atrium', 'left-atrium', 'right-ventricle', 'left-ventricle', 'septum',
+  'aorta', 'aortic-arch-branches', 'pulmonary-trunk', 'pulmonary-arteries', 'superior-vena-cava', 'inferior-vena-cava', 'pulmonary-veins',
+  'tricuspid-valve', 'mitral-valve', 'aortic-valve', 'pulmonary-valve', 'papillary-muscles', 'chordae-tendineae',
+  'coronary-arteries', 'cardiac-veins', 'epicardial-fat', 'conduction-system',
 ];
 
 describe('heart content', () => {

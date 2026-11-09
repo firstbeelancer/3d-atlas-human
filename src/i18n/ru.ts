@@ -59,7 +59,7 @@ export const ru = {
   'stage.mode.nephron': 'Нефрон крупно',
   'stage.mode.renal-flow': 'Кровь и фильтрат',
   'stage.mode.skeleton': 'Скелет под мышцами',
-  'stage.mode.work': 'Работа мышц',
+  'stage.mode.work': 'Напряжение мышц',
   'stage.mode.peel': 'Снять поверхностный слой',
   'stage.building': 'Собираю модель…',
   'stage.loading': 'Загружаю модель…',

@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three';
-import { labelPoint, MUSCLE_DEFS, type MuscleDef, type Placement } from './anatomy';
+import { labelPoint, MUSCLE_DEFS, type MuscleDef } from './anatomy';
 import type { V3 } from './geometry';
 
 export interface BuiltMuscle {
@@ -13,13 +13,6 @@ export interface BuiltMuscle {
 
 let cache: BuiltMuscle[] | null = null;
 
-function autoPlacement(g: BufferGeometry): Placement {
-  const c = g.boundingBox!.getCenter({ x: 0, y: 0, z: 0 } as never) as unknown as { x: number; y: number; z: number };
-  if (c.z > 0.25) return 'f';
-  if (c.z < -0.3) return 'b';
-  return 'l';
-}
-
 /** Строит геометрию всех мышц один раз за сессию (около сотни тысяч вершин, быстро). */
 export function buildMuscles(): BuiltMuscle[] {
   if (cache) return cache;
@@ -32,7 +25,8 @@ export function buildMuscles(): BuiltMuscle[] {
     const dz = cz + 0.1;
     const l = Math.hypot(dx, dz) || 1;
     const spread: V3 = [dx / l, 0, dz / l];
-    return { def, geometry, label: labelPoint(geometry, def.label ?? autoPlacement(geometry)), spread };
+    const placement = def.label ?? (cz > 0.25 ? 'f' : cz < -0.30 ? 'b' : 'l');
+    return { def, geometry, label: labelPoint(geometry, placement), spread };
   });
   return cache;
 }

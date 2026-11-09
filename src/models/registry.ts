@@ -70,7 +70,7 @@ export const MODELS: Record<string, ModelEntry> = {
     camera: { position: [0, 0.75, 11.6], fov: 32 },
     target: [0, 0.3, 0],
     // скелет высокий: даём сдвинуться от стоп до макушки и подлететь вплотную к черепу
-    bounds: { min: [-0.75, -2.0, -0.45], max: [0.75, 2.45, 0.45] },
+    bounds: { min: [-0.75, -2.0, -0.45], max: [0.75, 2.72, 0.45] },
     minDistance: 1.1,
     description: modelDescriptions.skelet,
   },

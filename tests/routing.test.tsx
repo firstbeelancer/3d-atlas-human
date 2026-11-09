@@ -24,7 +24,7 @@ describe('routes', () => {
   });
 
   it('shows a coming-soon state for sections that are not ready', async () => {
-    renderAt('/razdel/pochki');
+    renderAt('/razdel/vnutrennie-organy');
     expect(await screen.findByText('Раздел готовится')).toBeInTheDocument();
   });
 

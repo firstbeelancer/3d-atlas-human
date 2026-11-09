@@ -1,9 +1,10 @@
-import { Suspense, createContext, useContext, useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { Suspense, createContext, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Color, Mesh, Plane, Vector3, type Group } from 'three';
 import type { CutKind, ModelProps } from '../../three/types';
 import { usePart } from '../../three/materials';
 import { Label } from '../../three/Label';
+import { ModelPending } from '../../three/StageLoading';
 import { useSelection } from '../../three/selection';
 import SkeletonModel from '../skeleton/SkeletonModel';
 import { CUT_RANGE, FLOOR, GROUP_OF, LAYER_SPREAD, SCALE } from './anatomy';
@@ -37,15 +38,16 @@ const Ctl = createContext<MutableRefObject<Control> | null>(null);
 const GHOST = 0.05;
 const SKELETON_GHOST = 0.3;
 const GLOW = new Color('#ffa77a');
-const MAIN = new Set([
-  'trapezius', 'deltoid', 'pectoralis-major', 'biceps-brachii', 'rectus-abdominis', 'external-oblique', 'latissimus-dorsi',
-  'gluteus-maximus', 'rectus-femoris', 'gastrocnemius', 'sternocleidomastoid', 'triceps-brachii', 'tibialis-anterior', 'biceps-femoris',
-]);
+const MAIN = {
+  front: new Set(['sternocleidomastoid', 'pectoralis-major', 'biceps-brachii', 'rectus-abdominis', 'rectus-femoris', 'tibialis-anterior']),
+  back: new Set(['trapezius', 'latissimus-dorsi', 'triceps-brachii', 'gluteus-maximus', 'biceps-femoris', 'gastrocnemius']),
+};
+const MIRRORED_LABELS = new Set(['biceps-brachii', 'tibialis-anterior', 'triceps-brachii', 'biceps-femoris']);
 
 function MusclePart({ built, names, labels }: { built: BuiltMuscle; names: Record<string, string>; labels: boolean }) {
   const { def, geometry, label, spread } = built;
   const ref = useContext(Ctl)!;
-  const { selected, hovered } = useSelection();
+  const { selected, hovered, isolate } = useSelection();
   const { handlers } = usePart(def.id);
   const invalidate = useThree((s) => s.invalidate);
   const left = useRef<Group>(null);
@@ -58,7 +60,8 @@ function MusclePart({ built, names, labels }: { built: BuiltMuscle; names: Recor
   const planes = useContext(PlanesCtx)!;
 
   const grp = GROUP_OF[def.id];
-  const active = selected === def.id || hovered === def.id || selected === grp || hovered === grp;
+  const focus = selected === def.id || selected === grp;
+  const active = focus || hovered === def.id || hovered === grp;
   const hot = hovered === def.id || hovered === grp;
 
   useEffect(() => () => mat.dispose(), [mat]);
@@ -93,8 +96,7 @@ function MusclePart({ built, names, labels }: { built: BuiltMuscle; names: Recor
     const L = left.current;
     const R = right.current;
     if (!L || !R) return;
-    const focus = c.selected !== null && (c.selected === def.id || c.selected === grp);
-    const hiddenByUser = c.hidden.has(def.id) || (c.deep && def.layer === 1);
+    const hiddenByUser = c.hidden.has(def.id) || (c.deep && def.layer === 1 && !isolate) || (isolate && !focus);
     let target = 1;
     if (hiddenByUser) target = 0;
     else if (c.isolate && c.selected !== null && !focus) target = GHOST;
@@ -106,7 +108,7 @@ function MusclePart({ built, names, labels }: { built: BuiltMuscle; names: Recor
     } else alpha.current = target;
     const a = alpha.current;
     L.visible = R.visible = a > 0.012;
-    interactive.current = !hiddenByUser && a > 0.5;
+    interactive.current = !hiddenByUser && a > 0.012 && (!selected || focus || !c.isolate);
 
     // сокращение
     let flex = 0;
@@ -150,18 +152,26 @@ function MusclePart({ built, names, labels }: { built: BuiltMuscle; names: Recor
   });
 
   const c0 = ref.current;
-  // подпись срезанной части не показываем: точка лежит по ту сторону плоскости, которую убрали
-  const cutAway = c0.cut && (c0.kind === 'side' ? label[2] > c0.cutV : c0.kind === 'fundus' ? label[1] > c0.cutV : label[0] > c0.cutV);
-  const showLabel = !!names[def.id] && !cutAway && (MAIN.has(def.id) || active);
+  const offset = c0.explode * LAYER_SPREAD[def.layer];
+  const x = label[0] + spread[0] * offset;
+  const z = label[2] + spread[2] * offset;
+  const cutAt = (side: number) => c0.cut && (c0.kind === 'side' ? z : c0.kind === 'fundus' ? label[1] : x * side) > c0.cutV;
+  const hidden = c0.hidden.has(def.id) || (c0.deep && def.layer === 1 && !isolate) || (isolate && !focus);
+  const showLabel = !hidden && (!selected || focus || !c0.isolate) && !!names[def.id] && (labels || active);
+  const caption = showLabel && <Label labels={labels} partId={def.id} text={names[def.id]} at={label} />;
+  const leftCut = cutAt(1);
+  const rightCut = cutAt(-1);
+  const rightLabel = !rightCut && (leftCut || (!active && MIRRORED_LABELS.has(def.id)));
   return (
     <>
       <group ref={left}>
         <mesh geometry={geometry} material={mat} {...handlers} />
+        {!rightLabel && !leftCut && caption}
       </group>
       <group ref={right} scale={[-1, 1, 1]}>
         <mesh geometry={geometry} material={mat} {...handlers} />
+        {rightLabel && caption}
       </group>
-      {showLabel && <Label labels={labels && MAIN.has(def.id)} partId={def.id} text={names[def.id]} at={label} />}
     </>
   );
 }
@@ -171,7 +181,7 @@ const PlanesCtx = createContext<Plane[] | null>(null);
 /** Скелет под мышцами: стоит в покое, не ловит клики, кости видны всегда. */
 function SkeletonUnder({ state, visible }: { state: ModelProps['state']; visible: boolean }) {
   const holder = useRef<Group>(null);
-  const frozen = useMemo(() => ({ current: 7 }), []);
+  const frozen = useMemo(() => ({ current: 0 }), []);
   const invalidate = useThree((s) => s.invalidate);
   const done = useRef(false);
   useFrame(() => {
@@ -194,7 +204,7 @@ function SkeletonUnder({ state, visible }: { state: ModelProps['state']; visible
   const st = useMemo(() => ({ ...state, cutaway: false, labels: false, time: frozen }), [state, frozen]);
   return (
     <group ref={holder}>
-      <Suspense fallback={null}>
+      <Suspense fallback={visible ? <ModelPending /> : null}>
         <SkeletonModel state={st} names={{}} />
       </Suspense>
     </group>
@@ -205,11 +215,13 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export default function MusclesModel({ state, names = {} }: ModelProps) {
   const built = useMemo(buildMuscles, []);
-  const { selected } = useSelection();
+  const { selected, isolate } = useSelection();
   const invalidate = useThree((s) => s.invalidate);
   const root = useRef<Group>(null);
   const planes = useMemo(() => [new Plane()], []);
   const everSkeleton = useRef(false);
+  const [facing, setFacing] = useState<'front' | 'back' | null>('front');
+  const lastFacing = useRef(facing);
   const skeleton = !!state.modes.skeleton;
   if (skeleton) everSkeleton.current = true;
 
@@ -231,7 +243,14 @@ export default function MusclesModel({ state, names = {} }: ModelProps) {
   };
 
   const tmpN = useMemo(() => new Vector3(), []);
-  useFrame(() => {
+  const direction = useMemo(() => new Vector3(), []);
+  useFrame(({ camera }) => {
+    camera.getWorldDirection(direction);
+    const next = direction.z < -0.28 ? 'front' : direction.z > 0.28 ? 'back' : null;
+    if (next !== lastFacing.current) {
+      lastFacing.current = next;
+      setFacing(next);
+    }
     const g = root.current;
     const c = ctl.current;
     if (!g || !c.cut) return;
@@ -252,10 +271,10 @@ export default function MusclesModel({ state, names = {} }: ModelProps) {
       <Ctl.Provider value={ctl}>
         <group ref={root} position={[0, FLOOR, 0]} scale={SCALE}>
           {built.map((b) => (
-            <MusclePart key={b.def.id} built={b} names={names} labels={state.labels} />
+            <MusclePart key={b.def.id} built={b} names={names} labels={state.labels && facing !== null && MAIN[facing].has(b.def.id)} />
           ))}
         </group>
-        {everSkeleton.current && <SkeletonUnder state={state} visible={skeleton} />}
+        {everSkeleton.current && <SkeletonUnder state={state} visible={skeleton && !isolate} />}
       </Ctl.Provider>
     </PlanesCtx.Provider>
   );

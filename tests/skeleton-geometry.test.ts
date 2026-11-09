@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { Vector3 } from 'three';
+import { Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { capsule, meshSdf, smooth, sphere, subtract } from '../src/models/skeleton/sdf';
 import { poseAt, REST, WAVE_CYCLE } from '../src/models/skeleton/pose';
-import { VERTEBRAE } from '../src/models/skeleton/anatomy';
+import { SKULL_ORIGIN, VERTEBRAE } from '../src/models/skeleton/anatomy';
+import { buildMandible, buildSkull } from '../src/models/skeleton/skull';
 import { innerR, outerR, CUT } from '../src/models/skeleton/cutBone';
 
 describe('skeleton geometry helpers', () => {
@@ -60,6 +61,34 @@ describe('skeleton geometry helpers', () => {
 });
 
 describe('skeleton anatomy', () => {
+  it('keeps the orbital and nasal recesses open and the incisors apart', () => {
+    const skull = buildSkull(1.35);
+    const jaw = buildMandible(1.35);
+    const material = new MeshBasicMaterial();
+    const mesh = new Mesh(skull, material);
+    const surfaceZ = (x: number, y: number) => {
+      const ray = new Raycaster(new Vector3(x, SKULL_ORIGIN[1] + y, 1.3), new Vector3(0, 0, -1));
+      return ray.intersectObject(mesh)[0].point.z;
+    };
+    const forehead = surfaceZ(0, 0.40);
+    expect(surfaceZ(0.28, -0.01)).toBeLessThan(forehead - 0.22);
+    expect(surfaceZ(-0.28, -0.01)).toBeLessThan(forehead - 0.22);
+    expect(surfaceZ(0.077, -0.29)).toBeLessThan(forehead - 0.24);
+
+    const incisorHeights = (geo: typeof skull) => {
+      const pos = geo.attributes.position;
+      const ys: number[] = [];
+      for (let i = 0; i < pos.count; i++) {
+        if (Math.abs(pos.getX(i)) < 0.09 && pos.getZ(i) > SKULL_ORIGIN[2] + 0.68) ys.push(pos.getY(i));
+      }
+      return ys;
+    };
+    expect(Math.min(...incisorHeights(skull)) - Math.max(...incisorHeights(jaw))).toBeGreaterThan(0.005);
+    skull.dispose();
+    jaw.dispose();
+    material.dispose();
+  });
+
   it('has 7 cervical, 12 thoracic and 5 lumbar vertebrae, top to bottom', () => {
     expect(VERTEBRAE.cervical).toHaveLength(7);
     expect(VERTEBRAE.thoracic).toHaveLength(12);

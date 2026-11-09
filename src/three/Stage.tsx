@@ -216,7 +216,7 @@ export function Stage({
         </p>
       )}
 
-      {isolate && selected && (
+      {isolate && selected && !explorer && (
         <div className="absolute left-1/2 top-4 z-40 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-plinth/95 py-1 pl-4 pr-1 shadow-[0_8px_24px_-12px_rgba(23,32,58,0.35)] backdrop-blur">
           <Focus size={16} aria-hidden className="shrink-0" />
           <span className="truncate text-[14px]">

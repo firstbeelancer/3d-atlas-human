@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff, Layers, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, EyeOff, Layers, Undo2, X } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
 import type { Part, PartGroup } from '../content/types';
 import { useSelection } from './selection';
@@ -192,14 +192,14 @@ export function ExplorerPanel(p: PanelProps) {
 
 /** Карточка выбранной части поверх сцены: название, латынь и пояснение. */
 export function PartCard({ parts, groups }: ExplorerProps) {
-  const { selected, select } = useSelection();
+  const { selected, select, isolate, setIsolate } = useSelection();
   if (!selected) return null;
   const part = parts.find((x) => x.id === selected);
   const group = groups?.find((g) => g.id === selected);
   const name = part?.name ?? group?.name;
   if (!name) return null;
   return (
-    <aside className="absolute bottom-[4.5rem] left-3 z-40 max-w-[min(360px,calc(100%-1.5rem))] rounded-[20px] border border-line bg-plinth/95 p-4 pr-11 shadow-[0_10px_30px_-14px_rgba(23,32,58,0.4)] backdrop-blur max-sm:right-3">
+    <aside className={`absolute bottom-[4.5rem] left-3 max-w-[min(360px,calc(100%-1.5rem))] rounded-[20px] border border-line bg-plinth/95 p-4 pr-11 shadow-[0_10px_30px_-14px_rgba(23,32,58,0.4)] backdrop-blur max-sm:right-3 ${isolate ? 'z-[46]' : 'z-40'}`}>
       <button
         type="button"
         onClick={() => select(null)}
@@ -213,6 +213,16 @@ export function PartCard({ parts, groups }: ExplorerProps) {
       </h3>
       {part?.latin && <p className="m-0 mt-0.5 text-[13px] italic text-ink-soft">{part.latin}</p>}
       {part && <p className="m-0 mt-2 text-[14px] leading-snug text-ink max-sm:line-clamp-4">{part.text}</p>}
+      {isolate && (
+        <button
+          type="button"
+          onClick={() => setIsolate(false)}
+          className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full bg-ink px-3 text-[14px] font-medium text-stone hover:opacity-90"
+        >
+          <Undo2 size={15} aria-hidden />
+          {t('stage.isolateOff')}
+        </button>
+      )}
     </aside>
   );
 }

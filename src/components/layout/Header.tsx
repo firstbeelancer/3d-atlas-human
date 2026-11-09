@@ -19,10 +19,10 @@ export function Header({ tools }: { tools?: ReactNode }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-stone/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-3 px-4 sm:px-6">
-        <Link to="/" className="mr-auto flex items-center gap-2.5 text-ink no-underline" aria-label={t('nav.home')}>
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-2 px-3 sm:gap-3 sm:px-6">
+        <Link to="/" className="mr-auto flex min-w-0 items-center gap-2.5 text-ink no-underline [&>svg]:shrink-0" aria-label={t('nav.home')}>
           <LogoMark />
-          <span className="whitespace-nowrap font-display text-[17px] font-bold tracking-[-0.02em] sm:text-[19px]">{t('site.name')}</span>
+          <span className="truncate font-display text-[17px] font-bold tracking-[-0.02em] sm:text-[19px]">{t('site.name')}</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label={t('nav.sections')}>
@@ -37,7 +37,7 @@ export function Header({ tools }: { tools?: ReactNode }) {
           ))}
         </nav>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {tools}
           <ThemeToggle />
           <button

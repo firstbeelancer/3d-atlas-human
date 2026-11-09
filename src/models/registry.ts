@@ -1,6 +1,6 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { ModelProps } from '../three/types';
-import type { StageMode } from '../three/Stage';
+import type { StageLegendItem, StageMode } from '../three/Stage';
 import type { Box } from '../three/cameraBounds';
 import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
@@ -10,6 +10,7 @@ import { CUT_DEFAULT_T } from './brain/anatomy';
 import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
 import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
+import { BLOOD_COLORS, BODY_FLOOR, OVERVIEW_CAMERA, OVERVIEW_TARGET } from './circulation/appearance';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
@@ -35,6 +36,7 @@ export interface ModelEntry {
   description: string;
   /** Дополнительные режимы модели (кнопки на сцене). */
   modes?: StageMode[];
+  legend?: readonly StageLegendItem[];
   /** Часть можно рассмотреть отдельно (кнопка в списке «Из чего состоит»). */
   isolate?: boolean;
 }
@@ -74,6 +76,25 @@ export const MODELS: Record<string, ModelEntry> = {
     bounds: { min: [-0.75, -2.0, -0.45], max: [0.75, 2.72, 0.45] },
     minDistance: 1.1,
     description: modelDescriptions.skelet,
+  },
+  'krovenosnaya-sistema': {
+    Component: lazy(() => import('./circulation/CirculationModel')),
+    camera: { position: OVERVIEW_CAMERA, fov: 32 },
+    target: OVERVIEW_TARGET,
+    floorY: BODY_FLOOR,
+    bounds: { min: [-3.6, -2.38, -0.9], max: [3.6, 2.99, 1.15] },
+    orbit: { minDistance: 0.6, maxDistance: 52, free: true },
+    isolate: true,
+    modes: [
+      { id: 'systemic', icon: 'activity', group: 'circuit', clearsSelection: true },
+      { id: 'pulmonary', icon: 'inside', group: 'circuit', clearsSelection: true },
+      { id: 'capillary-bed', icon: 'lobule', group: 'circuit', clearsSelection: true },
+    ],
+    legend: [
+      { label: 'circulation.oxygenated', color: BLOOD_COLORS.oxygenated },
+      { label: 'circulation.deoxygenated', color: BLOOD_COLORS.deoxygenated },
+    ],
+    description: modelDescriptions['krovenosnaya-sistema'],
   },
   pechen: {
     Component: lazy(() => import('./liver/LiverModel')),

@@ -76,6 +76,7 @@ export function SectionPage() {
                 initialCutaway={model.initialCutaway}
                 camera={model.camera}
                 modes={model.modes}
+                legend={model.legend}
                 names={names}
                 target={model.target}
                 floorY={model.floorY}

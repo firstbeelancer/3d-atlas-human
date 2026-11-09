@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, AudioWaveform, Bone, Box as BoxIcon, Brain, FlaskConical, Focus, Layers, Smile, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
-import { t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { CutKind, StageState } from './types';
 import { ExplorerPanel, PartCard, type ExplorerProps } from './StageExplorer';
@@ -16,6 +16,11 @@ export interface StageMode {
   /** Режимы одной группы взаимоисключающие: включение одного выключает остальные. */
   group?: string;
   clearsSelection?: boolean;
+}
+
+export interface StageLegendItem {
+  label: MessageKey;
+  color: string;
 }
 
 const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile, brain: Brain, waves: AudioWaveform, bone: Bone, activity: Activity } as const;
@@ -40,6 +45,7 @@ interface Props {
   explorer?: ExplorerProps;
   /** Режимы модели помимо разреза: «Разобрать», «Сегменты» и т. п. */
   modes?: StageMode[];
+  legend?: readonly StageLegendItem[];
   /** Названия частей — для плашки «Отдельно: …». */
   names?: Record<string, string>;
   bounds?: Box;
@@ -65,6 +71,7 @@ export function Stage({
   bounds,
   minDistance,
   modes = [],
+  legend,
   names = {},
   children,
   className = '',
@@ -266,6 +273,17 @@ export function Stage({
           })}
         </div>
       )}
+
+      {legend?.length ? (
+        <ul className="pointer-events-none absolute bottom-[4.75rem] left-3 z-30 m-0 flex list-none flex-col gap-0.5 rounded-xl border border-line bg-plinth/95 px-2.5 py-1.5 text-[11px] leading-4 text-ink-soft">
+          {legend.map(({ label, color }) => (
+            <li key={label} className="flex items-center gap-1.5">
+              <span aria-hidden className="size-2 rounded-full" style={{ background: color }} />
+              {t(label)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <div
         role="toolbar"

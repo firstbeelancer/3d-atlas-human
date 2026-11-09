@@ -71,6 +71,7 @@ export const ru = {
   'explorer.fundus': 'Дно глаза',
   'explorer.fundusBladder': 'Дно пузыря',
   'explorer.fundusIntestine': 'Срез сверху',
+  'explorer.fundusGallbladder': 'Срез поперёк',
   'explorer.fundusLungs': 'Срез сверху',
   'explorer.fundusBrain': 'Горизонтальный',
   'explorer.cutBrainSide': 'Сагиттальный',

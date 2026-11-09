@@ -70,10 +70,13 @@ export function buildBladder(): BladderGeometry {
   };
 
   /* ---------- Отделы пузыря (наружная поверхность) ---------- */
-  put('apex', [{ ...shell({ y0: 1.38, y1: Y_TOP, off: 0.014, wobble: 0.018, seed: 3 }), m: 'surface' }]);
-  put('body', [{ ...shell({ y0: -1.98, y1: 1.45, off: 0, wobble: 0.02, seed: 5 }), m: 'surface' }]);
+  const outerWall = { continuous: true, wobble: 0.012, seed: 5 };
+  const neckBoundary = -1.94;
+  const apexBoundary = 1.42;
+  put('apex', [{ ...shell({ ...outerWall, y0: apexBoundary, y1: Y_TOP }), m: 'surface' }]);
+  put('body', [{ ...shell({ ...outerWall, y0: neckBoundary, y1: apexBoundary }), m: 'surface' }]);
   put('neck', [
-    { ...shell({ y0: Y_BOTTOM, y1: -1.9, off: 0.007, wobble: 0.012, seed: 9 }), m: 'surface' },
+    { ...shell({ ...outerWall, y0: Y_BOTTOM, y1: neckBoundary }), m: 'surface' },
     // лобково-пузырные связки: шейка привязана к лобковым костям
     ...both((side) => [
       {
@@ -84,7 +87,7 @@ export function buildBladder(): BladderGeometry {
   ]);
   put('fundus', [
     {
-      ...shell({ y0: -2.32, y1: -0.42, off: 0.028, theta0: Math.PI / 2 - 0.3, theta1: (Math.PI * 3) / 2 + 0.3, wobble: 0.015, seed: 13 }),
+      ...shell({ ...outerWall, y0: -2.32, y1: -0.42, off: 0.018, theta0: Math.PI / 2 - 0.3, theta1: (Math.PI * 3) / 2 + 0.3 }),
       m: 'surfaceBack',
     },
   ]);
@@ -101,8 +104,6 @@ export function buildBladder(): BladderGeometry {
   /* ---------- Слои стенки ---------- */
   put('serosa', [
     { g: shellGeometry({ y0: 0.02, y1: Y_TOP - 0.02, off: WALL_OFF.serosa, wobble: 0.008, seed: 17, ySegs: 26, thetaSegs: 56 }), m: 'serosa', noPick: true },
-    // нижний край брюшины — свободная «юбка» у линии отражения
-    { g: shellGeometry({ y0: -0.38, y1: 0.06, off: WALL_OFF.serosa, displace: (y) => Math.max(0, 0.08 - y) * 0.55, seed: 19, ySegs: 8, thetaSegs: 56 }), m: 'serosa', noPick: true },
   ]);
   put('adventitia', [
     { g: shellGeometry({ y0: Y_BOTTOM + 0.04, y1: 0.14, off: WALL_OFF.adventitia, wobble: 0.01, seed: 23, ySegs: 26, thetaSegs: 56 }), m: 'adventitia', noPick: true },

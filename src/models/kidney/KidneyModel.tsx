@@ -63,6 +63,11 @@ function CameraRig({ micro, focus }: { micro: boolean; focus?: Box3 }) {
       const width = micro ? 6.55 : 8.35;
       const distance = width / (2 * aspect * Math.tan(31 * Math.PI / 360));
       eye.z = Math.max(eye.z, distance);
+      if (size.width < 440 && aspect > 0.83) {
+        eye.z *= 1.13;
+        target.y += 0.45;
+        eye.y += 0.45;
+      }
     }
     return { eye, target };
   }, [micro, focus, size.width, size.height]);

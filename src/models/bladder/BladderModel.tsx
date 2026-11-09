@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { CatmullRomCurve3, DoubleSide, Object3D, Vector3, type Group, type Mesh } from 'three';
+import { CatmullRomCurve3, DoubleSide, Object3D, Vector3, type Group, type Mesh, type PerspectiveCamera } from 'three';
 import type { ModelProps } from '../../three/types';
 import { useSelection } from '../../three/selection';
 import { Flow } from '../../three/Flow';
@@ -34,9 +34,9 @@ function BMaterial({ kind, tex }: { kind: MatKey; tex: Record<string, Tex> }) {
     case 'surfaceBack':
       return <meshPhysicalMaterial map={tex.surface} color="#e6c3ae" roughness={0.42} clearcoat={0.45} clearcoatRoughness={0.35} sheen={0.4} sheenColor="#ffd9cc" />;
     case 'serosa':
-      return <meshStandardMaterial map={tex.serosa} transparent opacity={0.5} roughness={0.25} metalness={0} depthWrite={false} side={DoubleSide} />;
+      return <meshStandardMaterial map={tex.serosa} transparent opacity={0.18} roughness={0.32} depthWrite={false} side={DoubleSide} />;
     case 'adventitia':
-      return <meshStandardMaterial map={tex.adventitia} roughness={0.85} side={DoubleSide} />;
+      return <meshStandardMaterial map={tex.adventitia} transparent opacity={0.17} roughness={0.85} depthWrite={false} side={DoubleSide} />;
     case 'detrusor':
       return <meshPhysicalMaterial map={tex.detrusor} bumpMap={tex.detrusor} bumpScale={1.1} roughness={0.55} clearcoat={0.25} clearcoatRoughness={0.4} sheen={0.4} sheenColor="#ff9d8a" />;
     case 'submucosa':
@@ -74,7 +74,7 @@ function BMaterial({ kind, tex }: { kind: MatKey; tex: Record<string, Tex> }) {
     case 'lumenDark':
       return <meshStandardMaterial color="#4a2320" roughness={0.65} side={DoubleSide} />;
     case 'ureterWall':
-      return <meshStandardMaterial map={tex.surface} color="#e2b49c" roughness={0.5} />;
+      return <meshStandardMaterial map={tex.surface} color="#e2b49c" roughness={0.5} transparent opacity={0.78} depthWrite={false} />;
     case 'ureterSheath':
       return <meshStandardMaterial color="#e8dcc8" transparent opacity={0.32} roughness={0.55} depthWrite={false} />;
     case 'urethraWall':
@@ -100,9 +100,9 @@ interface Rig {
 function CameraRig({ ctrl, selected, explode }: { ctrl: RefObject<BladderControl>; selected: string | null; explode: number }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as Rig | null;
+  const { width, height } = useThree((s) => s.size);
   const invalidate = useThree((s) => s.invalidate);
   const goal = useRef<{ at: Vector3; offset: Vector3 } | null>(null);
-  const first = useRef(true);
   const cut = ctrl.current!.cut;
   const kind = ctrl.current!.kind;
   const spread = explode > 0.02;
@@ -117,22 +117,24 @@ function CameraRig({ ctrl, selected, explode }: { ctrl: RefObject<BladderControl
   }, [controls]);
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (!controls) return;
     let f: Focus;
-    if (selected && FOCUS[selected]) f = FOCUS[selected];
+    const focus = selected ? FOCUS[selected] : undefined;
+    if (focus) f = focus;
     else if (spread) f = SPREAD_VIEW;
     else if (cut) f = kind === 'fundus' ? FUNDUS_VIEW : CUT_VIEW;
     else f = OVERVIEW;
+    const aspect = Math.max(0.3, width / Math.max(1, height));
+    const horizontalSpan = spread ? 12.2 : cut && kind === 'fundus' ? 10.0 : 11.45;
+    const fov = (camera as PerspectiveCamera).fov;
+    const fit = horizontalSpan / (2 * aspect * Math.tan(fov * Math.PI / 360));
+    const distance = focus && focus !== OVERVIEW ? f.dist : Math.max(f.dist, fit);
     goal.current = {
       at: new Vector3(...f.at),
-      offset: new Vector3(...f.dir).normalize().multiplyScalar(f.dist),
+      offset: new Vector3(...f.dir).normalize().multiplyScalar(distance),
     };
     invalidate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cut, kind, spread, invalidate]);
+  }, [camera, controls, selected, cut, kind, spread, width, height, invalidate]);
 
   useFrame((_, dt) => {
     const g = goal.current;

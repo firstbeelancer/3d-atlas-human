@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Vector3 } from 'three';
 import {
   ORIFICE_Y,
   PROFILE,
@@ -88,6 +89,24 @@ describe('bladder anatomy', () => {
 
 describe('bladder geometry build', () => {
   const built = buildBladder();
+  it('joins the external wall bands without steps and faces their triangles outwards', () => {
+    const [neck, body, apex] = ['neck', 'body', 'apex'].map((id) => built[id][0].g);
+    for (const [lower, upper] of [[neck, body], [body, apex]]) {
+      for (const attr of ['position', 'normal', 'uv']) {
+        const a = lower.getAttribute(attr);
+        const b = upper.getAttribute(attr);
+        const ringSize = 81 * a.itemSize;
+        expect(a.array.slice(-ringSize)).toEqual(b.array.slice(0, ringSize));
+      }
+    }
+    const indices = body.index!;
+    const points = body.getAttribute('position');
+    const a = new Vector3().fromBufferAttribute(points, indices.getX(0));
+    const b = new Vector3().fromBufferAttribute(points, indices.getX(1));
+    const c = new Vector3().fromBufferAttribute(points, indices.getX(2));
+    expect(b.sub(a).cross(c.sub(a)).z).toBeGreaterThan(0);
+  });
+
 
   it('builds every part of the model', () => {
     expect(Object.keys(built).sort()).toEqual([...BLADDER_PART_IDS].sort());

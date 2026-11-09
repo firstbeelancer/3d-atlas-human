@@ -36,6 +36,7 @@ interface ShellOptions {
   /** Лёгкая органическая неровность радиуса (доля), с заданным зерном. */
   wobble?: number;
   seed?: number;
+  continuous?: boolean;
   /** Смещение каждой точки по нормали профиля — для складок и бугорков. */
   displace?: (y: number, theta: number) => number;
 }
@@ -56,25 +57,38 @@ export function shellGeometry(o: ShellOptions): BufferGeometry {
   const cols = thetaSegs + 1;
   const pos = new Float32Array(rows * cols * 3);
   const uv = new Float32Array(rows * cols * 2);
+  const normals = o.continuous ? new Float32Array(pos.length) : null;
+  const around = new Vector3();
+  const vertical = new Vector3();
+  const sample = new Vector3();
+  const pointAt = (y: number, theta: number) => {
+    let d = off;
+    if (o.wobble) {
+      d += o.wobble * (
+        Math.sin(theta * 3 + wobPhases[0] + y * 1.7) * 0.5 +
+        Math.sin(theta * 5 + wobPhases[1] - y * 2.3) * 0.3 +
+        Math.sin(theta * 8 + wobPhases[2] + y * 4.1) * 0.2
+      );
+    }
+    return wallPoint(y, theta, d + (o.displace?.(y, theta) ?? 0));
+  };
   for (let i = 0; i < rows; i++) {
     const v = i / ySegs;
     const y = o.y0 + (o.y1 - o.y0) * v;
     for (let j = 0; j < cols; j++) {
       const u = j / thetaSegs;
       const theta = theta0 + (theta1 - theta0) * u;
-      let d = off;
-      if (o.wobble) {
-        d +=
-          o.wobble *
-          (Math.sin(theta * 3 + wobPhases[0] + y * 1.7) * 0.5 +
-            Math.sin(theta * 5 + wobPhases[1] - y * 2.3) * 0.3 +
-            Math.sin(theta * 8 + wobPhases[2] + y * 4.1) * 0.2);
-      }
-      if (o.displace) d += o.displace(y, theta);
-      const p = wallPoint(y, theta, d);
       const k = i * cols + j;
-      pos.set(p, k * 3);
-      uv.set([u, v], k * 2);
+      pos.set(pointAt(y, theta), k * 3);
+      if (normals) {
+        // Adjacent wall bands share tangents and texture coordinates at their seams.
+        around.set(...pointAt(y, theta + 0.002)).sub(sample.set(...pointAt(y, theta - 0.002)));
+        vertical.set(...pointAt(y + 0.002, theta)).sub(sample.set(...pointAt(y - 0.002, theta)));
+        around.cross(vertical).normalize().toArray(normals, k * 3);
+        uv.set([theta / (Math.PI * 2), (y - Y_BOTTOM) / (Y_TOP - Y_BOTTOM)], k * 2);
+      } else {
+        uv.set([u, v], k * 2);
+      }
     }
   }
   const idx: number[] = [];
@@ -82,14 +96,15 @@ export function shellGeometry(o: ShellOptions): BufferGeometry {
     for (let j = 0; j < thetaSegs; j++) {
       const a = i * cols + j;
       const b = a + cols;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
+      idx.push(a, a + 1, b, b, a + 1, b + 1);
     }
   }
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(pos, 3));
   g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
-  g.computeVertexNormals();
+  if (normals) g.setAttribute('normal', new Float32BufferAttribute(normals, 3));
+  else g.computeVertexNormals();
   return g;
 }
 
@@ -121,7 +136,7 @@ export function tubeGeometry(points: V3[], r0: number, r1 = r0, tubular = 0, rad
     for (let j = 0; j < radial; j++) {
       const a = i * (radial + 1) + j;
       const b = a + radial + 1;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
+      idx.push(a, a + 1, b, b, a + 1, b + 1);
     }
   }
   const g = new BufferGeometry();
@@ -156,7 +171,7 @@ export function loopGeometry(points: V3[], radius: number, radial = 10): BufferG
     for (let j = 0; j < radial; j++) {
       const a = i * (radial + 1) + j;
       const b = a + radial + 1;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
+      idx.push(a, a + 1, b, b, a + 1, b + 1);
     }
   }
   const g = new BufferGeometry();

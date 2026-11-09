@@ -25,11 +25,11 @@ export interface Focus {
   dist: number;
 }
 
-export const OVERVIEW: Focus = { at: [0, -0.2, 0], dir: [0.42, 0.24, 0.88], dist: 11.6 };
+export const OVERVIEW: Focus = { at: [0, 0.16, -0.38], dir: [0.28, 0.12, 0.95], dist: 19.5 };
 /** Вид на фронтальный разрез: спереди и чуть сверху, чтобы был виден просвет и треугольник. */
-export const CUT_VIEW: Focus = { at: [0, -0.4, -0.4], dir: [0.18, 0.3, 0.94], dist: 10.6 };
+export const CUT_VIEW: Focus = { at: [0, -0.25, -0.5], dir: [0.13, 0.22, 0.96], dist: 17.2 };
 /** Вид на поперечный разрез сверху: смотрим внутрь, на дно и треугольник. */
-export const FUNDUS_VIEW: Focus = { at: [0, -0.9, -0.3], dir: [0.12, 0.92, 0.38], dist: 10.2 };
+export const FUNDUS_VIEW: Focus = { at: [0, -0.9, -0.3], dir: [0.12, 0.92, 0.38], dist: 15.4 };
 /** Вид при разносе на части: чуть сбоку, чтобы слои читались по очереди. */
 export const SPREAD_VIEW: Focus = { at: [0, -0.1, 0], dir: [0.62, 0.3, 0.72], dist: 14.5 };
 
@@ -133,7 +133,7 @@ export const LABEL_AT: Record<string, V3> = {
 };
 
 /** Какие части подписаны на модели сразу (остальные — при выборе). */
-export const MAIN_LABELS = new Set(['apex', 'body', 'neck', 'ureters', 'urethra', 'trigone', 'pubic-symphysis']);
+export const MAIN_LABELS = new Set(['apex', 'body', 'neck', 'ureters', 'urethra', 'trigone']);
 
 /** Подписи внутренних частей видны сквозь стенки и не прячутся при повороте. */
 export const INNER_LABELS = new Set([

@@ -238,7 +238,7 @@ export function Stage({
         <div
           role="toolbar"
           aria-label={t('stage.modes')}
-          className={`absolute top-3 z-40 flex flex-col gap-1 ${explorer ? 'left-3 items-start @max-[29rem]:top-[3.75rem]' : 'right-3 items-end'}`}
+          className={`absolute top-3 z-40 flex flex-col gap-1 ${explorer ? 'left-3 items-start @max-[29rem]:right-3 @max-[29rem]:top-[3.75rem] @max-[29rem]:flex-row @max-[29rem]:flex-wrap' : 'right-3 items-end'}`}
         >
           {modes.map((m) => {
             const Icon = MODE_ICONS[m.icon];
@@ -257,7 +257,7 @@ export function Stage({
                     return next;
                   });
                 }}
-                className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-plinth/95 px-3 text-[13.5px] font-medium text-ink shadow-[0_6px_18px_-12px_rgba(23,32,58,0.4)] backdrop-blur transition-colors hover:bg-wash aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-stone"
+                className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-plinth/95 px-3 text-[13.5px] font-medium text-ink shadow-[0_6px_18px_-12px_rgba(23,32,58,0.4)] backdrop-blur transition-colors hover:bg-wash aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-stone @max-[29rem]:px-2 @max-[29rem]:text-[12.5px]"
               >
                 <Icon size={16} aria-hidden />
                 {t(`stage.mode.${m.id}` as never)}

@@ -76,6 +76,8 @@ export function BladderPart({ id, children }: { id: string; children: ReactNode 
       if (m && (o.userData as { fillClip?: boolean }).fillClip) fillSet.add(m);
       if (m && !set.has(m)) {
         set.add(m);
+        // The cap lies on the cut plane itself. Clipping it causes speckling at the rim.
+        if (o.userData.cap) m.userData.noClip = true;
         (m.userData as { base?: BaseProps }).base = { opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite };
         if (m.emissive) {
           m.emissive.copy(GLOW);
@@ -206,5 +208,7 @@ export function PartLabel({ id, names }: { id: string; names: Record<string, str
   const focus = selected === null || selected === id || selected === grp;
   if (c.hidden.has(id) || (c.isolate && !focus)) return null;
   if (c.cut && (c.kind === 'fundus' ? at[1] > CUT_Y + 0.4 : at[2] > CUT_Z + 0.4)) return null;
-  return <Label at={at} partId={id} text={names[id]} labels={c.labels && (MAIN_LABELS.has(id) || selected === grp || selected === id)} inner={INNER_LABELS.has(id)} />;
+  const inner = INNER_LABELS.has(id);
+  const defaultLabel = MAIN_LABELS.has(id) && (!inner || c.cut);
+  return <Label at={at} partId={id} text={names[id]} labels={c.labels && (defaultLabel || selected === grp || selected === id)} inner={inner} />;
 }

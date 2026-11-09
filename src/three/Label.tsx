@@ -70,7 +70,10 @@ export function Label({ at, partId, text, labels, inner }: Props) {
           <button
             type="button"
             className="atlas-label__text"
-            onClick={() => select(partId)}
+            onClick={(event) => {
+              event.stopPropagation();
+              select(partId);
+            }}
             onPointerEnter={() => hover(partId)}
             onPointerLeave={() => hover(null)}
           >

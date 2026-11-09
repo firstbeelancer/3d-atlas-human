@@ -38,24 +38,39 @@ export const PROFILE: [number, number][] = [
   [Y_TOP, 0.03],
 ];
 
-/** Плавная интерполяция Кэтмулла–Рома по контрольным точкам профиля. */
+function profileSlope(i: number): number {
+  const [y, r] = PROFILE[i];
+  const prev = PROFILE[i - 1];
+  const next = PROFILE[i + 1];
+  if (!prev) return (next[1] - r) / (next[0] - y);
+  if (!next) return (r - prev[1]) / (y - prev[0]);
+  const leftStep = y - prev[0];
+  const rightStep = next[0] - y;
+  const left = (r - prev[1]) / leftStep;
+  const right = (next[1] - r) / rightStep;
+  if (left * right <= 0) return 0;
+  const a = 2 * rightStep + leftStep;
+  const b = rightStep + 2 * leftStep;
+  return (a + b) / (a / left + b / right);
+}
+
+const SLOPES = PROFILE.map((_, i) => profileSlope(i));
+
+/** Плавный монотонный профиль с общей касательной на стыках сегментов. */
 export function radiusAt(y: number): number {
   const pts = PROFILE;
   if (y <= pts[0][0]) return pts[0][1];
   if (y >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
   let i = 0;
   while (i < pts.length - 2 && y > pts[i + 1][0]) i++;
-  const p0 = pts[Math.max(0, i - 1)];
   const p1 = pts[i];
   const p2 = pts[i + 1];
-  const p3 = pts[Math.min(pts.length - 1, i + 2)];
-  const t = (y - p1[0]) / (p2[0] - p1[0]);
+  const step = p2[0] - p1[0];
+  const t = (y - p1[0]) / step;
   const t2 = t * t;
   const t3 = t2 * t;
-  // радиусы соседних сегментов приводим к локальному шагу — профиль неравномерный
-  const catmull = (a: number, b: number, c: number, d: number) =>
-    0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
-  return Math.max(0.02, catmull(p0[1], p1[1], p2[1], p3[1]));
+  return (2 * t3 - 3 * t2 + 1) * p1[1] + (t3 - 2 * t2 + t) * step * SLOPES[i]
+    + (-2 * t3 + 3 * t2) * p2[1] + (t3 - t2) * step * SLOPES[i + 1];
 }
 
 /** Смещение оси пузыря по z: шейка и верхушка поданы вперёд, к лобку. */

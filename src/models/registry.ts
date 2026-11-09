@@ -6,6 +6,7 @@ import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
 import type { MessageKey } from '../i18n';
 import { CUT_DEFAULT_T } from './brain/anatomy';
+import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
@@ -191,6 +192,31 @@ export const MODELS: Record<string, ModelEntry> = {
       { id: 'meninges', icon: 'layers' },
     ],
     description: modelDescriptions.mozg,
+  },
+  uho: {
+    Component: lazy(() => import('./ear/EarModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusEar',
+    explorerCuts: { sideKey: 'explorer.cutEarSide', coronalKey: 'explorer.cutEarCoronal', defaults: EAR_CUT_T },
+    isolate: true,
+    camera: {
+      position: [
+        (EAR_VIEW.at[0] + EAR_VIEW.dir[0] * EAR_VIEW.dist) * EAR_SCALE,
+        (EAR_VIEW.at[1] + EAR_VIEW.dir[1] * EAR_VIEW.dist) * EAR_SCALE,
+        (EAR_VIEW.at[2] + EAR_VIEW.dir[2] * EAR_VIEW.dist) * EAR_SCALE,
+      ],
+      fov: 32,
+    },
+    target: [EAR_VIEW.at[0] * EAR_SCALE, EAR_VIEW.at[1] * EAR_SCALE, EAR_VIEW.at[2] * EAR_SCALE],
+    floorY: -4.2,
+    bounds: { min: [-7, -5, -9], max: [7, 5, 5] },
+    orbit: { minDistance: 0.35, maxDistance: 46, free: true },
+    modes: [
+      { id: 'sound', icon: 'waves' },
+      { id: 'inner', icon: 'inside' },
+    ],
+    description: modelDescriptions.uho,
   },
   kishechnik: {
     Component: lazy(() => import('./intestine/IntestineModel')),

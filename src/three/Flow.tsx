@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, Object3D, type CatmullRomCurve3, type InstancedMesh } from 'three';
+import { Color, Object3D, type CatmullRomCurve3, type InstancedMesh, type Plane } from 'three';
 import type { StageState } from './types';
 
 interface Props {
@@ -13,10 +13,12 @@ interface Props {
   state: StageState;
   /** Множитель скорости во времени (например, толчки при сокращении сердца). */
   pulse?: (time: number) => number;
+  /** Плоскости среза: частицы по ту сторону, которая убрана, не рисуются. */
+  planes?: Plane[];
 }
 
 /** Частицы крови, бегущие по кривой. */
-export function Flow({ path, count, speed, color, size = 0.06, state, pulse }: Props) {
+export function Flow({ path, count, speed, color, size = 0.06, state, pulse, planes }: Props) {
   const ref = useRef<InstancedMesh>(null);
   const dummy = useMemo(() => new Object3D(), []);
   const offsets = useMemo(() => Array.from({ length: count }, (_, i) => i / count + Math.random() * 0.02), [count]);
@@ -45,7 +47,7 @@ export function Flow({ path, count, speed, color, size = 0.06, state, pulse }: P
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, count]} raycast={() => null}>
       <sphereGeometry args={[1, 10, 8]} />
-      <meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.45} roughness={0.4} />
+      <meshStandardMaterial clippingPlanes={planes ?? null} color={col} emissive={col} emissiveIntensity={0.45} roughness={0.4} />
     </instancedMesh>
   );
 }

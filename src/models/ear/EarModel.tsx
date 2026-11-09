@@ -1,8 +1,7 @@
 import { Suspense, use, useEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject, type ReactNode, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { CatmullRomCurve3, Matrix4, Quaternion, Vector3, type Group, type Material } from 'three';
-import { t } from '../../i18n';
+import { ModelPending } from '../../three/StageLoading';
 import type { ModelProps } from '../../three/types';
 import { useSelection } from '../../three/selection';
 import { Flow } from '../../three/Flow';
@@ -25,15 +24,8 @@ import { VIB, WAVE, buildTextures, makeMaterial, type EarTextures } from './mate
 */
 
 function Loading() {
-  const p = useSyncExternalStore(subscribeProgress, getProgress);
-  const pct = Math.round((p.done / Math.max(1, p.total)) * 100);
-  return (
-    <Html center>
-      <div style={{ whiteSpace: 'nowrap', fontSize: 14, color: '#5b6275' }}>
-        {t('stage.building')} {pct}%
-      </div>
-    </Html>
-  );
+  const { done, total } = useSyncExternalStore(subscribeProgress, getProgress);
+  return <ModelPending progress={total ? done / total : undefined} />;
 }
 
 interface Rig {

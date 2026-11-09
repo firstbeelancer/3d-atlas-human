@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { Link } from 'react-router';
 import { SECTIONS } from '../content/sections';
 import { systemColor, SYSTEMS } from '../content/systems';
@@ -72,11 +72,7 @@ export function HomePage() {
               minDistance={1.6}
               className="aspect-[4/5] w-full max-h-[80vh] sm:aspect-square lg:aspect-[5/6]"
             >
-              {(state) => (
-                <Suspense fallback={null}>
-                  <BodyFigure state={state} />
-                </Suspense>
-              )}
+              {(state) => <BodyFigure state={state} />}
             </Stage>
             <ExhibitCaption />
           </div>

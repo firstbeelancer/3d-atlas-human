@@ -7,6 +7,7 @@ import { ExplorerPanel, PartCard, type ExplorerProps } from './StageExplorer';
 import { StageBoundary } from './StageBoundary';
 import { useSelection } from './selection';
 import type { Box } from './cameraBounds';
+import { ModelPending, ModelProgress, StageLoading, type PendingModel } from './StageLoading';
 
 /** Дополнительные режимы модели (кнопки над основной панелью). */
 export interface StageMode {
@@ -14,6 +15,7 @@ export interface StageMode {
   icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland' | 'jaw' | 'arch' | 'brain' | 'waves';
   /** Режимы одной группы взаимоисключающие: включение одного выключает остальные. */
   group?: string;
+  clearsSelection?: boolean;
 }
 
 const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile, brain: Brain, waves: AudioWaveform } as const;
@@ -27,6 +29,7 @@ interface Props {
   /** Текстовое описание модели: для скринридеров и для браузеров без WebGL. */
   description: string;
   hasCutaway?: boolean;
+  initialCutaway?: boolean;
   camera?: { position: [number, number, number]; fov?: number };
   target?: [number, number, number];
   /** Высота пола (для мягкой тени). */
@@ -53,6 +56,7 @@ export function Stage({
   label,
   description,
   hasCutaway,
+  initialCutaway = false,
   camera,
   target,
   floorY,
@@ -65,14 +69,14 @@ export function Stage({
   children,
   className = '',
 }: Props) {
-  const { selected, isolate, setIsolate } = useSelection();
+  const { selected, select, isolate, setIsolate } = useSelection();
   const [activeModes, setActiveModes] = useState<Record<string, boolean>>({});
   const [webgl] = useState(hasWebGL);
   // 3D сломалась (ошибка модели, не загрузился кусок, потерян WebGL-контекст) — показываем текстовую заглушку
   const [failed, setFailed] = useState(false);
   const fail = useCallback(() => setFailed(true), []);
   const [paused, setPaused] = useState(prefersReducedMotion);
-  const [cutaway, setCutaway] = useState(false);
+  const [cutaway, setCutaway] = useState(initialCutaway);
   // на узких экранах подписи по умолчанию скрыты: касание части всё равно показывает её подпись
   const [labels, setLabels] = useState(() => window.innerWidth >= 640);
   const [show, setShow] = useState(false);
@@ -87,6 +91,21 @@ export function Stage({
   const [resetKey, setResetKey] = useState(0);
   const time = useRef(0);
   const box = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState(() => new Map<symbol, PendingModel>());
+  const report = useCallback((id: symbol, work: PendingModel | null) => {
+    setPending((previous) => {
+      const next = new Map(previous);
+      if (work) next.set(id, work);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+  const jobs = [...pending.values()];
+  const building = jobs.filter((job) => job.phase === 'building');
+  const phase = building.length ? 'building' : 'loading';
+  const progress = building.length && building.every((job) => job.progress !== undefined)
+    ? building.reduce((total, job) => total + job.progress!, 0) / building.length
+    : undefined;
 
   const toggleShow = useCallback(() => {
     const el = box.current;
@@ -145,25 +164,28 @@ export function Stage({
       }`}
     >
       <p className="sr-only">{description}</p>
-      <StageBoundary onError={fail}>
-        <Suspense fallback={null}>
-          <StageCanvas
-            key={resetKey}
-            label={label}
-            camera={camera}
-            target={target}
-            floorY={floorY}
-            orbit={orbit}
-            bounds={bounds}
-            minDistance={minDistance}
-            paused={paused}
-            time={time}
-            onContextLost={fail}
-          >
-            {children(state)}
-          </StageCanvas>
-        </Suspense>
-      </StageBoundary>
+      <ModelProgress.Provider value={report}>
+        <StageBoundary onError={fail}>
+          <Suspense fallback={<ModelPending phase="loading" />}>
+            <StageCanvas
+              key={resetKey}
+              label={label}
+              camera={camera}
+              target={target}
+              floorY={floorY}
+              orbit={orbit}
+              bounds={bounds}
+              minDistance={minDistance}
+              paused={paused}
+              time={time}
+              onContextLost={fail}
+            >
+              {children(state)}
+            </StageCanvas>
+          </Suspense>
+        </StageBoundary>
+      </ModelProgress.Provider>
+      {jobs.length > 0 && <StageLoading key={phase} phase={phase} progress={progress} />}
 
       {explorer && (
         <>
@@ -216,7 +238,7 @@ export function Stage({
         <div
           role="toolbar"
           aria-label={t('stage.modes')}
-          className={`absolute top-3 z-40 flex flex-col gap-1 ${explorer ? 'left-3 items-start' : 'right-3 items-end'}`}
+          className={`absolute top-3 z-40 flex flex-col gap-1 ${explorer ? 'left-3 items-start @max-[29rem]:top-[3.75rem]' : 'right-3 items-end'}`}
         >
           {modes.map((m) => {
             const Icon = MODE_ICONS[m.icon];
@@ -226,14 +248,15 @@ export function Stage({
                 key={m.id}
                 type="button"
                 aria-pressed={on}
-                onClick={() =>
+                onClick={() => {
+                  if (m.clearsSelection) select(null);
                   setActiveModes((v) => {
                     const next = { ...v, [m.id]: !v[m.id] };
                     if (next[m.id] && m.group)
                       for (const other of modes) if (other.group === m.group && other.id !== m.id) next[other.id] = false;
                     return next;
-                  })
-                }
+                  });
+                }}
                 className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-plinth/95 px-3 text-[13.5px] font-medium text-ink shadow-[0_6px_18px_-12px_rgba(23,32,58,0.4)] backdrop-blur transition-colors hover:bg-wash aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-stone"
               >
                 <Icon size={16} aria-hidden />
@@ -266,7 +289,8 @@ export function Stage({
             if (explorer) {
               setExplode(0);
               setHidden(new Set());
-              setCutaway(false);
+              setCutaway(initialCutaway);
+              if (initialCutaway) setCutKind('side');
               setGhost(true);
             }
           }}

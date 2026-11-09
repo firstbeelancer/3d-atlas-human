@@ -5,12 +5,14 @@ import type { Box } from '../three/cameraBounds';
 import { teethText } from '../content/ru/teeth-model';
 import { modelDescriptions } from '../content/ru/models';
 import type { MessageKey } from '../i18n';
+import { KIDNEY_CAMERA, KIDNEY_TARGET } from './kidney/anatomy';
 import { CUT_DEFAULT_T } from './brain/anatomy';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 
 export interface ModelEntry {
   Component: LazyExoticComponent<ComponentType<ModelProps>>;
   hasCutaway?: boolean;
+  initialCutaway?: boolean;
   camera?: { position: [number, number, number]; fov?: number };
   /** Пределы приближения камеры и свободное вращение. */
   orbit?: { minDistance?: number; maxDistance?: number; free?: boolean };
@@ -112,6 +114,24 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 1.8, maxDistance: 38, free: true },
     modes: [{ id: 'xray', icon: 'inside' }],
     description: modelDescriptions.serdce,
+  },
+  pochki: {
+    Component: lazy(() => import('./kidney/KidneyModel')),
+    hasCutaway: true,
+    initialCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.kidneyVessels',
+    isolate: true,
+    camera: { position: KIDNEY_CAMERA, fov: 31 },
+    target: KIDNEY_TARGET,
+    floorY: -3.36,
+    bounds: { min: [-3.7, -3.36, -1.25], max: [3.7, 3.1, 1.25] },
+    orbit: { minDistance: 1.3, maxDistance: 58, free: true },
+    modes: [
+      { id: 'nephron', icon: 'lobule', clearsSelection: true },
+      { id: 'renal-flow', icon: 'waves' },
+    ],
+    description: modelDescriptions.pochki,
   },
   'mochevoj-puzyr': {
     Component: lazy(() => import('./bladder/BladderModel')),

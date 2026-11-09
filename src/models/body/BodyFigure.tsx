@@ -15,6 +15,7 @@ import { JOINTS, VERTEBRAE, type VertebraSpot } from '../skeleton/anatomy';
 import type { SkeletonGeometry } from '../skeleton/bones';
 import type { V3 } from '../skeleton/sdf';
 import { loadBodyPart } from './loader';
+import { ModelPending } from '../../three/StageLoading';
 import { LABEL_AT, MATERIALS, PARTS, PIVOTS, type PartSpec } from './meta';
 import { ARM_ABDUCTION } from './skin';
 
@@ -417,19 +418,19 @@ export default function BodyFigure({ state }: ModelProps) {
   return (
     <group ref={group} position={[0, -0.35, 0]}>
       <group position={[0, FOOT_Y, 0]} scale={SCALE}>
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelPending />}>
           <Skin />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelPending />}>
           <Skeleton />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelPending />}>
           <OrganSet name="thorax" state={state} />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelPending />}>
           <OrganSet name="abdomen" state={state} />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense fallback={<ModelPending />}>
           <OrganSet name="vessels" state={state} />
         </Suspense>
         <Eyes />

@@ -19,6 +19,7 @@ import {
 } from './anatomy';
 import { buildStatic, glandParts, type MatKey, type MeshDef, type PancGeometry } from './build';
 import { loadGlandMesh } from './loader';
+import { ModelPending } from '../../three/StageLoading';
 import { makeMaterial } from './materials';
 import { CUT_VIEWS, FOCUS, MACRO_PART_IDS, MICRO_ONLY, MICRO_VIEW, OVERVIEW, SPREAD_VIEW, type Focus } from './parts';
 import { PancContext, PancPart, PartLabel, type PancControl } from './PancreasPart';
@@ -168,14 +169,13 @@ export default function PancreasModel({ state, names = {} }: ModelProps) {
   const base = useMemo(buildStatic, []);
   const tex = useMemo(buildTextures, []);
   const [gland, setGland] = useState<PancGeometry | null>(null);
+  const [glandFailed, setGlandFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     loadGlandMesh()
       .then((d) => alive && setGland(glandParts(d)))
-      .catch(() => {
-        /* без железы остальная сцена работает, раздел показывает текст */
-      });
+      .catch(() => alive && setGlandFailed(true));
     return () => {
       alive = false;
     };
@@ -222,6 +222,7 @@ export default function PancreasModel({ state, names = {} }: ModelProps) {
   const hideLabels = explodeTarget > 0.02;
   return (
     <PancContext.Provider value={ctrl}>
+      {!micro && !gland && !glandFailed && <ModelPending />}
       <CameraRig ctrl={ctrl} selected={selected} explode={explodeTarget} micro={micro} />
       {micro ? (
         <MicroScene state={state} names={names} />

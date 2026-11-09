@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode, type MutableRefObject } from 'react';
+import { Suspense, useEffect, useRef, useState, type ReactNode, type MutableRefObject } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { AdaptiveDpr, ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { useSelection } from './selection';
 import { frameloopFor } from './frameloop';
 import { clampTarget, defaultBounds, type Box } from './cameraBounds';
+import { ModelPending } from './StageLoading';
 
 /** Только в режиме разработки: доступ к камере из консоли для осмотра моделей. */
 function DevHandle() {
@@ -88,6 +89,7 @@ export function StageCanvas({
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
+  const [created, setCreated] = useState(false);
   const { select } = useSelection();
   // на телефоне отодвигаем камеру, чтобы модель целиком помещалась в узкий кадр
   const [cameraPosition] = useState<[number, number, number]>(() => {
@@ -106,6 +108,7 @@ export function StageCanvas({
 
   return (
     <div ref={host} className="absolute inset-0" onPointerDown={() => setInteracted(true)}>
+      {!created && <ModelPending phase="loading" />}
       <Canvas
         aria-label={label}
         frameloop={frameloopFor(visible, paused)}
@@ -114,6 +117,7 @@ export function StageCanvas({
         camera={{ position: cameraPosition, fov: camera?.fov ?? 32 }}
         onPointerMissed={() => select(null)}
         onCreated={({ gl }) => {
+          setCreated(true);
           // локальные плоскости разреза у моделей, которые умеют «резаться»
           gl.localClippingEnabled = true;
           gl.domElement.addEventListener('webglcontextlost', (e) => {
@@ -124,7 +128,7 @@ export function StageCanvas({
       >
         <Clock paused={paused} time={time} />
         <Studio />
-        {children}
+        <Suspense fallback={<ModelPending />}>{children}</Suspense>
         <ContactShadows resolution={256} position={[0, floorY, 0]} opacity={0.32} scale={9} blur={2.6} far={4.5} color="#3a2e24" />
         <OrbitControls
           makeDefault

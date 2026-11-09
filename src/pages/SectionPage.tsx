@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { getSection } from '../content/sections';
 import { systemColor, SYSTEMS } from '../content/systems';
@@ -73,6 +73,7 @@ export function SectionPage() {
                 label={section.title}
                 description={model.description}
                 hasCutaway={model.hasCutaway}
+                initialCutaway={model.initialCutaway}
                 camera={model.camera}
                 modes={model.modes}
                 names={names}
@@ -84,11 +85,7 @@ export function SectionPage() {
                 minDistance={model.minDistance}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
               >
-                {(state) => (
-                  <Suspense fallback={null}>
-                    <model.Component state={state} names={names} />
-                  </Suspense>
-                )}
+                {(state) => <model.Component state={state} names={names} />}
               </Stage>
             </div>
           )}

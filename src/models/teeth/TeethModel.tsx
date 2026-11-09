@@ -5,7 +5,7 @@ import { CatmullRomCurve3, TubeGeometry, Vector3, type BufferGeometry, type Grou
 import type { ModelProps } from '../../three/types';
 import { Label } from '../../three/Label';
 import { useSelection } from '../../three/selection';
-import { t } from '../../i18n';
+import { ModelPending } from '../../three/StageLoading';
 import { teethText } from '../../content/ru/teeth-model';
 import { SHOWCASE, SPECS, type ToothKind } from './anatomy';
 import { archLayout, OCCLUSAL_Y } from './arch';
@@ -171,14 +171,6 @@ function Caption({ at, text, partId }: { at: [number, number, number]; text?: st
   );
 }
 
-function Building() {
-  return (
-    <Html center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
-      <div style={{ fontSize: 13, color: TIP_COLORS.soft, whiteSpace: 'nowrap' }}>{t('stage.building')}</div>
-    </Html>
-  );
-}
-
 /** Короткое имя части для подписи: «Премоляр (малый коренной)» -> «Премоляр». */
 const shortName = (s?: string) => s?.replace(/\s*\(.*\)\s*$/, '');
 
@@ -272,7 +264,7 @@ function ShowcaseTooth({
   const highlighted = matches(kind, selected);
   return (
     <group position={[x, 0, 0]}>
-      {set ? <ToothLayers set={set} state={state} onHover={onHover} /> : <Building />}
+      {set ? <ToothLayers set={set} state={state} onHover={onHover} /> : <ModelPending />}
       {highlighted && set && <SelectionRing y={-minRoot - 0.2} />}
       {state.labels && <Caption at={[0, -minRoot - 0.32, 0]} text={shortName(names?.[kind])} partId={kind} />}
       {state.cutaway &&
@@ -407,7 +399,7 @@ function JawView({ state, names, onHover }: { state: ModelProps['state']; names?
           )}
         </>
       ) : (
-        <Building />
+        <ModelPending />
       )}
     </group>
   );
@@ -445,7 +437,7 @@ function useArch(): { teeth: Record<string, BufferGeometry>; upper: BufferGeomet
 
 function ArchView({ state, names, onHover }: { state: ModelProps['state']; names?: Record<string, string>; onHover: HoverAt }) {
   const arch = useArch();
-  if (!arch) return <Building />;
+  if (!arch) return <ModelPending />;
   // подписи типов — на правой половине нижней челюсти
   const captionFor: Record<string, ToothKind> = { 'l-i1': 'incisor', 'l-c': 'canine', 'l-p1': 'premolar', 'l-m1': 'molar' };
   return (

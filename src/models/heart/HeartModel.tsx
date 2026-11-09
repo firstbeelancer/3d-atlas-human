@@ -1,6 +1,5 @@
 import { Suspense, use, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { CatmullRomCurve3, Color, Mesh, Plane, Vector3, type MeshPhysicalMaterial } from 'three';
 import type { CutKind, ModelProps } from '../../three/types';
 import { heartbeat } from '../../three/geometry';
@@ -8,7 +7,7 @@ import { usePart } from '../../three/materials';
 import { Label } from '../../three/Label';
 import { Flow } from '../../three/Flow';
 import { useSelection } from '../../three/selection';
-import { t } from '../../i18n';
+import { ModelPending } from '../../three/StageLoading';
 import { ALSO, FLOW_BLUE, FLOW_RED, FOCUS, INTERIOR, LABEL_AT, spreadOf, type Vec } from './anatomy';
 import { cutPlane, type CutKey } from './field';
 import { loadHeart, loadHeartCut, type HeartPiece } from './loader';
@@ -220,13 +219,6 @@ function CameraRig({ ctrl }: { ctrl: MutableRefObject<Ctrl> }) {
   return null;
 }
 
-function Building() {
-  return (
-    <Html center>
-      <div style={{ fontSize: 13, color: '#556', whiteSpace: 'nowrap' }}>{t('stage.building')}</div>
-    </Html>
-  );
-}
 
 const toCurve = (pts: Vec[]) => new CatmullRomCurve3(pts.map((p) => new Vector3(...p)), false, 'centripetal');
 
@@ -343,7 +335,7 @@ function Organ({ state, names = {} }: ModelProps) {
 
 export default function HeartModel(props: ModelProps) {
   return (
-    <Suspense fallback={<Building />}>
+    <Suspense fallback={<ModelPending />}>
       <Organ {...props} />
     </Suspense>
   );

@@ -13,6 +13,7 @@ vi.mock('../src/three/StageCanvas', () => ({
 
 import { Stage } from '../src/three/Stage';
 import { SelectionProvider } from '../src/three/selection';
+import { ModelPending } from '../src/three/StageLoading';
 
 function Boom(): never {
   throw new Error('model failed');
@@ -22,6 +23,20 @@ beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => {}));
 afterEach(() => vi.restoreAllMocks());
 
 describe('Stage robustness', () => {
+  it('shows one overlay with measured progress and clears it when the work is done', async () => {
+    const scene = (pending: boolean) => (
+      <SelectionProvider>
+        <Stage label="Почки" description="Модель почек.">
+          {() => pending ? <><ModelPending progress={0.25} /><ModelPending progress={0.75} /></> : null}
+        </Stage>
+      </SelectionProvider>
+    );
+    const { rerender } = render(scene(true));
+    expect(await screen.findByRole('progressbar', { name: 'Собираю модель…' })).toHaveAttribute('aria-valuenow', '50');
+    rerender(scene(false));
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
   it('shows the text fallback instead of crashing when the model throws', async () => {
     render(
       <SelectionProvider>

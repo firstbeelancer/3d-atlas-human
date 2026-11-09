@@ -1,8 +1,7 @@
 import { Suspense, use, useEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { DoubleSide, BackSide, Matrix4, Vector3, type BufferGeometry, type Mesh } from 'three';
-import { t } from '../../i18n';
+import { ModelPending } from '../../three/StageLoading';
 import type { ModelProps } from '../../three/types';
 import { useSelection } from '../../three/selection';
 import { loadBrain, getProgress, subscribeProgress, type BrainData } from './loader';
@@ -45,15 +44,8 @@ const STEM_COLOR: Record<string, string> = { midbrain: '#e6d4b6', tectum: '#d8a9
 const TUBE_COLOR: Record<TubeKind, string> = { artery: '#cb392f', vein: '#3f62b4', nerve: '#e9c44c', dura: '#cdb9a2' };
 
 function Loading() {
-  const p = useSyncExternalStore(subscribeProgress, getProgress);
-  const pct = Math.round((p.done / Math.max(1, p.total)) * 100);
-  return (
-    <Html center>
-      <div style={{ whiteSpace: 'nowrap', fontSize: 14, color: '#5b6275' }}>
-        {t('stage.building')} {pct}%
-      </div>
-    </Html>
-  );
+  const { done, total } = useSyncExternalStore(subscribeProgress, getProgress);
+  return <ModelPending progress={total ? done / total : undefined} />;
 }
 
 const VERT = /* glsl */ `

@@ -1,12 +1,11 @@
 import { Suspense, use, useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { Color, Mesh, Plane, Vector3, type Group, type MeshPhysicalMaterial } from 'three';
 import type { CutKind, ModelProps } from '../../three/types';
 import { usePart } from '../../three/materials';
 import { Label } from '../../three/Label';
 import { useSelection } from '../../three/selection';
-import { t } from '../../i18n';
+import { ModelPending } from '../../three/StageLoading';
 import { ALSO, ALVEOLUS_PARTS, CUT_Y, CUT_Z, FOCUS, LABEL_AT, OUTER_KINDS, spreadOf, type Vec } from './anatomy';
 import { loadLungGeometry, type LungEntity } from './loader';
 import { makeLungMaterial } from './materials';
@@ -215,14 +214,6 @@ function CameraRig({ ctrl }: { ctrl: MutableRefObject<Ctrl> }) {
   return null;
 }
 
-function Building() {
-  return (
-    <Html center>
-      <div style={{ fontSize: 13, color: '#556', whiteSpace: 'nowrap' }}>{t('stage.building')}</div>
-    </Html>
-  );
-}
-
 function Organ({ state, names = {} }: ModelProps) {
   const entities = use(loadLungGeometry());
   const { selected, hovered } = useSelection();
@@ -299,6 +290,6 @@ function Organ({ state, names = {} }: ModelProps) {
 export default function LungsModel(props: ModelProps) {
   const { selected } = useSelection();
   const micro = !!props.state.modes.alveolus || (selected !== null && ALVEOLUS_PARTS.has(selected));
-  return <Suspense fallback={<Building />}>{micro ? <AlveolusScene state={props.state} names={props.names} /> : <Organ {...props} />}</Suspense>;
+  return <Suspense fallback={<ModelPending />}>{micro ? <AlveolusScene state={props.state} names={props.names} /> : <Organ {...props} />}</Suspense>;
 }
 

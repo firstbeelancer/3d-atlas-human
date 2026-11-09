@@ -7,6 +7,10 @@ import { heartbeat } from '../../three/geometry';
 import { Label } from '../../three/Label';
 import { useIsActive, useSelection } from '../../three/selection';
 import { getSection } from '../../content/sections';
+import { t } from '../../i18n';
+
+/** Подписи, которые называют сам орган, а не раздел: селезёнка ведёт в обзорный раздел «Внутренние органы». */
+const LABEL_TEXT: Record<string, () => string> = { 'vnutrennie-organy': () => t('home.spleen') };
 import { JOINTS, VERTEBRAE, type VertebraSpot } from '../skeleton/anatomy';
 import type { SkeletonGeometry } from '../skeleton/bones';
 import type { V3 } from '../skeleton/sdf';
@@ -396,7 +400,7 @@ function Labels({ labels }: { labels: boolean }) {
   return (
     <>
       {Object.entries(LABEL_AT).map(([slug, at]) => (
-        <Label key={slug} labels={labels} partId={slug} text={getSection(slug)?.title ?? slug} at={at} inner />
+        <Label key={slug} labels={labels} partId={slug} text={LABEL_TEXT[slug]?.() ?? getSection(slug)?.title ?? slug} at={at} inner />
       ))}
     </>
   );

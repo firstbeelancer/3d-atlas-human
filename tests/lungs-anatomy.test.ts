@@ -36,3 +36,45 @@ describe('lungs anatomy', () => {
     expect(Object.keys(LUNG_GROUPS)).toEqual((legkie.groups ?? []).map((g) => g.id));
   });
 });
+
+describe('arch branches and the lung apices', () => {
+  it('starts the right subclavian and right carotid at the end of the brachiocephalic trunk', async () => {
+    const { ARCH_BRANCHES } = await import('../src/models/lungs/field');
+    const trunkEnd = ARCH_BRANCHES[0].path.at(-1)!;
+    const starts = ARCH_BRANCHES.slice(1).map((b) => b.path[0]);
+    const fromTrunk = starts.filter((p) => Math.hypot(p[0] - trunkEnd[0], p[1] - trunkEnd[1], p[2] - trunkEnd[2]) < 1e-6);
+    expect(fromTrunk.length).toBe(2);
+  });
+
+  it('never runs an arch branch through a lung (they only groove its surface)', async () => {
+    const { ARCH_BRANCHES, lungField, LUNG_OPTS } = await import('../src/models/lungs/field');
+    const { CatmullRomCurve3, Vector3 } = await import('three');
+    for (const br of ARCH_BRANCHES) {
+      const c = new CatmullRomCurve3(br.path.map((p) => new Vector3(...p)));
+      for (let i = 0; i <= 40; i++) {
+        const p = c.getPointAt(i / 40);
+        for (const side of [-1, 1] as const) expect(lungField(side, p.x, p.y, p.z, LUNG_OPTS), `${side} ${p.toArray()}`).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe('lungs text accuracy', () => {
+  const all = () => JSON.stringify(legkie);
+  it('uses the right length of the airways (≈2 400 km, not 1 500 miles taken as km)', () => {
+    expect(all()).not.toMatch(/1 500 км/);
+    expect(all()).toMatch(/2 400 км/);
+  });
+  it('does not claim alveoli/surfactant appeared only in reptiles', () => {
+    expect(all()).not.toMatch(/рептили/);
+  });
+  it('does not call the lungs the only floating organ', () => {
+    expect(all()).not.toMatch(/единственный орган/);
+  });
+  it('does not say the right hilum is higher', () => {
+    expect(legkie.parts.find((p) => p.id === 'hilum')!.text).not.toMatch(/Справа ворота выше/);
+  });
+  it('does not say lower lobes get almost no air at rest', () => {
+    expect(all()).not.toMatch(/в покое почти не доходит воздух/);
+  });
+});

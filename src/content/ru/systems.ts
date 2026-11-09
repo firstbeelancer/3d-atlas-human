@@ -7,6 +7,7 @@ export const systemTitles: Record<SystemId, string> = {
   nervous: 'Нервная система и чувства',
   respiratory: 'Дыхание',
   circulatory: 'Кровообращение',
+  lymphatic: 'Лимфатическая система',
   digestive: 'Пищеварение',
   urinary: 'Мочевыделение',
   skin: 'Кожа, волосы и ногти',

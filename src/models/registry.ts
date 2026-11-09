@@ -8,6 +8,7 @@ import type { MessageKey } from '../i18n';
 import { KIDNEY_CAMERA, KIDNEY_TARGET } from './kidney/anatomy';
 import { CUT_DEFAULT_T } from './brain/anatomy';
 import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
+import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 
 export interface ModelEntry {
@@ -195,6 +196,25 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 1.6, maxDistance: 110, free: true },
     modes: [{ id: 'micro', icon: 'lobule' }],
     description: modelDescriptions.podzheludochnaya,
+  },
+  selezenka: {
+    Component: lazy(() => import('./spleen/SpleenModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusSpleen',
+    explorerCuts: { sideKey: 'explorer.cutSpleenSide', coronalKey: 'explorer.cutSpleenCoronal', defaults: SPLEEN_CUT_T },
+    isolate: true,
+    camera: { position: [-19.3, 9.6, 37.4], fov: 32 },
+    target: [-2.2, -0.6, 0.4],
+    floorY: -14,
+    bounds: { min: [-15, -14, -11], max: [11, 11, 13] },
+    orbit: { minDistance: 1.6, maxDistance: 110, free: true },
+    modes: [
+      { id: 'xray', icon: 'inside' },
+      { id: 'segments', icon: 'segments' },
+      { id: 'pulp', icon: 'lobule', clearsSelection: true },
+    ],
+    description: modelDescriptions.selezenka,
   },
   mozg: {
     Component: lazy(() => import('./brain/BrainModel')),

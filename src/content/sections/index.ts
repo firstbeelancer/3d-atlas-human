@@ -1,7 +1,7 @@
 import type { SectionBase, SectionMeta } from '../types';
 import { sectionTexts } from '../ru/sections';
 
-/** Реестр 23 разделов в порядке таблицы §5 спецификации. Тексты — из файлов языка. */
+/** Реестр разделов. Тексты берутся из файлов языка. */
 const BASE: SectionBase[] = [
   { slug: 'kletki-i-belki', system: 'cells', icon: 'cell', ready: false },
   { slug: 'skelet', system: 'support', icon: 'skeleton', ready: true },
@@ -13,6 +13,7 @@ const BASE: SectionBase[] = [
   { slug: 'zub', system: 'digestive', icon: 'tooth', ready: true },
   { slug: 'legkie', system: 'respiratory', icon: 'lungs', ready: true },
   { slug: 'serdce', system: 'circulatory', icon: 'heart', ready: true },
+  { slug: 'selezenka', system: 'lymphatic', icon: 'spleen', ready: true },
   { slug: 'zheludok', system: 'digestive', icon: 'stomach', ready: true },
   { slug: 'pechen', system: 'digestive', icon: 'liver', ready: true },
   { slug: 'podzheludochnaya', system: 'digestive', icon: 'pancreas', ready: true },

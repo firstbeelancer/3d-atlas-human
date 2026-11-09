@@ -66,6 +66,11 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Pancreas',
     tagline: 'Делает сразу два дела: ферменты для еды и инсулин для крови',
   },
+  selezenka: {
+    title: 'Селезёнка',
+    latin: 'Splen',
+    tagline: 'Фильтрует кровь и помогает иммунитету распознавать микробов',
+  },
   'zhelchnyj-puzyr': {
     title: 'Желчный пузырь',
     latin: 'Vesica biliaris',

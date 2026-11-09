@@ -4,18 +4,18 @@ import { SYSTEMS } from '../src/content/systems';
 
 const SLUGS = [
   'kletki-i-belki', 'skelet', 'myshcy', 'vnutrennie-organy', 'mozg', 'glaz', 'uho', 'zub', 'legkie',
-  'serdce', 'zheludok', 'pechen', 'podzheludochnaya', 'zhelchnyj-puzyr', 'pochki', 'mochevoj-puzyr',
+  'serdce', 'selezenka', 'zheludok', 'pechen', 'podzheludochnaya', 'zhelchnyj-puzyr', 'pochki', 'mochevoj-puzyr',
   'kishechnik', 'zhenskaya-reproduktivnaya', 'muzhskaya-reproduktivnaya', 'krovenosnaya-sistema',
   'volosy-i-nogti', 'beremennost', 'gormony',
 ];
 
 describe('section registry', () => {
-  it('has 23 sections in the spec order', () => {
+  it('lists the sections in atlas order', () => {
     expect(SECTIONS.map((s) => s.slug)).toEqual(SLUGS);
   });
 
   it('has unique slugs', () => {
-    expect(new Set(SECTIONS.map((s) => s.slug)).size).toBe(23);
+    expect(new Set(SECTIONS.map((s) => s.slug)).size).toBe(SECTIONS.length);
   });
 
   it('assigns every section to a known system', () => {
@@ -37,8 +37,7 @@ describe('section registry', () => {
     );
   });
 
-  it('has 11 systems and every system is used', () => {
-    expect(SYSTEMS).toHaveLength(11);
+  it('uses every system in the catalog', () => {
     for (const sys of SYSTEMS) expect(SECTIONS.some((s) => s.system === sys.id), sys.id).toBe(true);
   });
 

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { HomePage } from '../src/pages/HomePage';
 import { SYSTEMS } from '../src/content/systems';
+import { SECTIONS } from '../src/content/sections';
 import { ThemeProvider } from '../src/lib/theme';
 
 function renderHome() {
@@ -16,19 +17,20 @@ function renderHome() {
 }
 
 describe('home page', () => {
-  it('lists all 11 systems in order', () => {
+  it('lists all systems in order', () => {
     renderHome();
     const index = screen.getByRole('region', { name: 'Разделы атласа' });
     const titles = within(index).getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     expect(titles).toEqual(SYSTEMS.map((s) => s.title));
   });
 
-  it('links to all 23 sections', () => {
+  it('links to all sections', () => {
     renderHome();
     const index = screen.getByRole('region', { name: 'Разделы атласа' });
     const links = within(index).getAllByRole('link');
-    expect(links).toHaveLength(23);
+    expect(links).toHaveLength(SECTIONS.length);
     expect(links.map((a) => a.getAttribute('href'))).toContain('/razdel/serdce');
+    expect(links.map((a) => a.getAttribute('href'))).toContain('/razdel/selezenka');
   });
 
   it('marks sections that are not ready yet', () => {

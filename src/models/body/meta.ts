@@ -80,7 +80,7 @@ export const PARTS: PartSpec[] = [
   { set: 'abdomen', key: 'gallbladder', slug: 'zhelchnyj-puzyr', mat: 'gallbladder' },
   { set: 'abdomen', key: 'stomach', slug: 'zheludok', mat: 'stomach' },
   { set: 'abdomen', key: 'esophagus', slug: 'zheludok', mat: 'esophagus' },
-  { set: 'abdomen', key: 'spleen', slug: 'vnutrennie-organy', mat: 'spleen' },
+  { set: 'abdomen', key: 'spleen', slug: 'selezenka', mat: 'spleen' },
   { set: 'abdomen', key: 'pancreas', slug: 'podzheludochnaya', mat: 'pancreas' },
   { set: 'abdomen', key: 'kidneyL', slug: 'pochki', mat: 'kidney' },
   { set: 'abdomen', key: 'kidneyR', slug: 'pochki', mat: 'kidney' },
@@ -120,5 +120,5 @@ export const LABEL_AT: Record<string, V3> = {
   skelet: [-1.55, 12.6, 0.7],
   'krovenosnaya-sistema': [0.9, 7.6, 0.5],
   gormony: [0.25, 14.66, 0.32],
-  'vnutrennie-organy': [1.2, 11.7, -0.6],
+  selezenka: [1.2, 11.7, -0.6],
 };

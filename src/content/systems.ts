@@ -1,7 +1,7 @@
 import type { SystemId, SystemMeta } from './types';
 import { systemTitles } from './ru/systems';
 
-/** Порядок систем на главной — как в §4.2 спецификации. */
+/** Порядок систем на главной. */
 const ORDER: SystemId[] = [
   'cells',
   'support',
@@ -9,6 +9,7 @@ const ORDER: SystemId[] = [
   'nervous',
   'respiratory',
   'circulatory',
+  'lymphatic',
   'digestive',
   'urinary',
   'skin',

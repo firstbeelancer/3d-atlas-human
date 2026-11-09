@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { SECTIONS } from '../src/content/sections';
 // @ts-expect-error — plain ESM script without type declarations
 import { findEmoji } from '../scripts/check-no-emoji.mjs';
 
@@ -36,9 +37,10 @@ describe.skipIf(!built)('build output', () => {
     expect(readFileSync(join(DIST, '404.html'), 'utf8')).toContain('<title>Страница не найдена — 3D-атлас человека</title>');
   });
 
-  it('lists home, about and 23 sections in the sitemap', () => {
+  it('lists home, about and all sections in the sitemap', () => {
     const xml = readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
-    expect(xml.match(/<loc>/g)).toHaveLength(25);
+    expect(xml.match(/<loc>/g)).toHaveLength(SECTIONS.length + 2);
+    expect(xml).toContain('/razdel/selezenka');
     expect(readFileSync(join(DIST, 'robots.txt'), 'utf8')).toContain('Sitemap:');
   });
 

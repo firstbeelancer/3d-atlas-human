@@ -61,7 +61,7 @@ describe('skeleton geometry helpers', () => {
 });
 
 describe('skeleton anatomy', () => {
-  it('keeps the orbital and nasal recesses open and the incisors apart', () => {
+  it('keeps the orbital and nasal recesses distinct and the incisors nearly together', () => {
     const skull = buildSkull(1.35);
     const jaw = buildMandible(1.35);
     const material = new MeshBasicMaterial();
@@ -74,6 +74,9 @@ describe('skeleton anatomy', () => {
     expect(surfaceZ(0.28, -0.01)).toBeLessThan(forehead - 0.22);
     expect(surfaceZ(-0.28, -0.01)).toBeLessThan(forehead - 0.22);
     expect(surfaceZ(0.077, -0.29)).toBeLessThan(forehead - 0.24);
+    // The bony wall between the orbit and the nose must remain at the face.
+    expect(surfaceZ(0.12, -0.17)).toBeGreaterThan(forehead - 0.09);
+    expect(surfaceZ(-0.12, -0.17)).toBeGreaterThan(forehead - 0.09);
 
     const incisorHeights = (geo: typeof skull) => {
       const pos = geo.attributes.position;
@@ -83,7 +86,9 @@ describe('skeleton anatomy', () => {
       }
       return ys;
     };
-    expect(Math.min(...incisorHeights(skull)) - Math.max(...incisorHeights(jaw))).toBeGreaterThan(0.005);
+    const incisorGap = Math.min(...incisorHeights(skull)) - Math.max(...incisorHeights(jaw));
+    expect(incisorGap).toBeGreaterThan(0.005);
+    expect(incisorGap).toBeLessThan(0.035);
     skull.dispose();
     jaw.dispose();
     material.dispose();

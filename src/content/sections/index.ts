@@ -5,7 +5,7 @@ import { sectionTexts } from '../ru/sections';
 const BASE: SectionBase[] = [
   { slug: 'kletki-i-belki', system: 'cells', icon: 'cell', ready: false },
   { slug: 'skelet', system: 'support', icon: 'skeleton', ready: true },
-  { slug: 'myshcy', system: 'support', icon: 'muscle', ready: false },
+  { slug: 'myshcy', system: 'support', icon: 'muscle', ready: true },
   { slug: 'vnutrennie-organy', system: 'overview', icon: 'organs', ready: false },
   { slug: 'mozg', system: 'nervous', icon: 'brain', ready: true },
   { slug: 'glaz', system: 'nervous', icon: 'eye', ready: true },

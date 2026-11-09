@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AudioWaveform, Box as BoxIcon, Brain, FlaskConical, Focus, Layers, Smile, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
+import { Activity, AudioWaveform, Bone, Box as BoxIcon, Brain, FlaskConical, Focus, Layers, Smile, Maximize2, Microscope, Minimize2, Move3d, Pause, Play, Puzzle, RotateCcw, Scissors, Tags, Undo2, Waypoints } from 'lucide-react';
 import { t } from '../i18n';
 import { hasWebGL } from './webgl';
 import type { CutKind, StageState } from './types';
@@ -12,13 +12,13 @@ import { ModelPending, ModelProgress, StageLoading, type PendingModel } from './
 /** Дополнительные режимы модели (кнопки над основной панелью). */
 export interface StageMode {
   id: string;
-  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland' | 'jaw' | 'arch' | 'brain' | 'waves';
+  icon: 'explode' | 'segments' | 'inside' | 'lobule' | 'layers' | 'gland' | 'jaw' | 'arch' | 'brain' | 'waves' | 'bone' | 'activity';
   /** Режимы одной группы взаимоисключающие: включение одного выключает остальные. */
   group?: string;
   clearsSelection?: boolean;
 }
 
-const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile, brain: Brain, waves: AudioWaveform } as const;
+const MODE_ICONS = { explode: Move3d, segments: Puzzle, inside: Waypoints, lobule: Microscope, layers: Layers, gland: FlaskConical, jaw: BoxIcon, arch: Smile, brain: Brain, waves: AudioWaveform, bone: Bone, activity: Activity } as const;
 
 // three.js и r3f — тяжёлые; грузим их отдельным куском, только когда на странице есть сцена
 const StageCanvas = lazy(() => import('./StageCanvas').then((m) => ({ default: m.StageCanvas })));

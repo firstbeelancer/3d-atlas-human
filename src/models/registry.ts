@@ -7,6 +7,7 @@ import { modelDescriptions } from '../content/ru/models';
 import type { MessageKey } from '../i18n';
 import { KIDNEY_CAMERA, KIDNEY_TARGET } from './kidney/anatomy';
 import { CUT_DEFAULT_T } from './brain/anatomy';
+import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 
 export interface ModelEntry {
@@ -238,6 +239,24 @@ export const MODELS: Record<string, ModelEntry> = {
       { id: 'inner', icon: 'inside' },
     ],
     description: modelDescriptions.uho,
+  },
+  myshcy: {
+    Component: lazy(() => import('./muscles/MusclesModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusMuscles',
+    explorerCuts: { sideKey: 'explorer.cutMusclesFrontal', coronalKey: 'explorer.cutMusclesSagittal', defaults: MUSCLES_CUT_T },
+    isolate: true,
+    camera: { position: [0, 0.75, 11.6], fov: 32 },
+    target: [0, 0.3, 0],
+    bounds: { min: [-1.4, -2.0, -0.7], max: [1.4, 2.45, 0.7] },
+    orbit: { minDistance: 0.8, maxDistance: 22, free: true },
+    modes: [
+      { id: 'skeleton', icon: 'bone' },
+      { id: 'work', icon: 'activity' },
+      { id: 'peel', icon: 'layers' },
+    ],
+    description: modelDescriptions.myshcy,
   },
   kishechnik: {
     Component: lazy(() => import('./intestine/IntestineModel')),

@@ -149,7 +149,10 @@ function MusclePart({ built, names, labels }: { built: BuiltMuscle; names: Recor
     }
   });
 
-  const showLabel = !!names[def.id] && (MAIN.has(def.id) || active);
+  const c0 = ref.current;
+  // подпись срезанной части не показываем: точка лежит по ту сторону плоскости, которую убрали
+  const cutAway = c0.cut && (c0.kind === 'side' ? label[2] > c0.cutV : c0.kind === 'fundus' ? label[1] > c0.cutV : label[0] > c0.cutV);
+  const showLabel = !!names[def.id] && !cutAway && (MAIN.has(def.id) || active);
   return (
     <>
       <group ref={left}>

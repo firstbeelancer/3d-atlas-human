@@ -78,7 +78,7 @@ export function makeMuscleMaterial(): MuscleMaterial {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying float vFlex;\nuniform vec3 uCut;')
       .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.35, 0.72, 0.7), clamp(vFlex * 0.9, 0.0, 1.0));')
-      .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (!gl_FrontFacing) gl_FragColor = vec4(uCut * (0.88 + 0.12 * sin(gl_FragCoord.x * 0.9) * sin(gl_FragCoord.y * 0.9)), gl_FragColor.a);');
+      .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (!gl_FrontFacing) gl_FragColor = vec4(uCut * (0.95 + 0.05 * sin(gl_FragCoord.x * 0.35 + gl_FragCoord.y * 0.2)), gl_FragColor.a);');
   };
   m.customProgramCacheKey = () => 'muscle-v1';
   return m;

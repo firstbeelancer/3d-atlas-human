@@ -202,7 +202,7 @@ export function buildSkull(detail: number) {
 
 export function buildMandible(detail: number) {
   return meshSdf(union(mandible(), teeth(false)), {
-    min: [-0.65, -1.16, -0.38], max: [0.65, -0.26, 0.85], cell: 0.011 * detail, ao: 0.036,
+    min: [-0.65, -1.16, -0.38], max: [0.65, -0.26, 0.85], cell: 0.011 * detail,
   })
     .translate(...SKULL_ORIGIN);
 }

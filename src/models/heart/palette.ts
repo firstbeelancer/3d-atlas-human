@@ -24,7 +24,15 @@ const OUTER: Record<string, Rgb> = {
 const RIGHT = new Set(['right-atrium', 'right-ventricle', 'superior-vena-cava', 'inferior-vena-cava', 'pulmonary-trunk', 'pulmonary-arteries']);
 const VESSEL = new Set(['aorta', 'aortic-arch-branches', 'pulmonary-veins', 'pulmonary-trunk', 'pulmonary-arteries', 'superior-vena-cava', 'inferior-vena-cava']);
 
-export function paletteColor(part: string, surf: Surf, _x: number, _y: number, _z: number, _vertexPart: string): Rgb {
+/** Цвета выше заданы в sRGB, а цвета вершин three.js читает как линейные: без перевода сердце выходит бледным. */
+const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const toLinear = (c: Rgb): Rgb => [lin(c[0]), lin(c[1]), lin(c[2])];
+
+export function paletteColor(part: string, surf: Surf, x: number, y: number, z: number, vertexPart: string): Rgb {
+  return toLinear(srgbColor(part, surf, x, y, z, vertexPart));
+}
+
+function srgbColor(part: string, surf: Surf, _x: number, _y: number, _z: number, _vertexPart: string): Rgb {
   const base = OUTER[part] ?? [0.7, 0.3, 0.27];
   if (surf === 2) return VESSEL.has(part) ? [0.93, 0.76, 0.66] : [0.86, 0.5, 0.45];
   if (surf === 1) {

@@ -44,6 +44,8 @@ interface Props {
   names?: Record<string, string>;
   bounds?: Box;
   minDistance?: number;
+  /** Режим 18+: передаётся модели в состоянии, чтобы подгрузить 18+-части. */
+  adult?: boolean;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -64,6 +66,7 @@ export function Stage({
   explorer,
   bounds,
   minDistance,
+  adult,
   modes = [],
   names = {},
   children,
@@ -152,6 +155,7 @@ export function Stage({
     labels,
     modes: activeModes,
     time,
+    adult,
     ...(explorer ? { explode, isolate: ghost, hidden, cutKind, cutAt: cutT[cutKind] } : {}),
   };
 

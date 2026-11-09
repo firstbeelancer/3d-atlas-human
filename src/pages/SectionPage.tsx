@@ -23,6 +23,9 @@ import { Stage } from '../three/Stage';
 import { SelectionProvider } from '../three/selection';
 import { NotFoundPage } from './NotFoundPage';
 import { AdultOnly } from '../components/AdultOnly';
+import { useAdult } from '../lib/adult';
+import { loadAdultContent } from '../content/adult/loadAdult';
+import type { Part, PartGroup } from '../content/types';
 
 const loadAdultNote = () => import('../content/adult/AdultSectionNote');
 
@@ -32,6 +35,8 @@ export function SectionPage() {
   const [content, setContent] = useState<SectionContent | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const { adult } = useAdult();
+  const [adultExtra, setAdultExtra] = useState<{ groups: PartGroup[]; parts: Part[] } | null>(null);
   useDocumentMeta(section?.title ?? null, section?.tagline);
 
   useEffect(() => {
@@ -48,12 +53,34 @@ export function SectionPage() {
     };
   }, [section, attempt]);
 
+  // части 18+ добавляются к тексту раздела только при включённом режиме 18+
+  useEffect(() => {
+    let alive = true;
+    setAdultExtra(null);
+    if (adult && section?.adultParts) {
+      loadAdultContent(section.slug)
+        .then((c) => alive && c && setAdultExtra({ groups: c.adultGroups, parts: c.adultParts }))
+        .catch(() => undefined);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [adult, section]);
+
+  const fullContent = useMemo(
+    () =>
+      content && adultExtra
+        ? { ...content, groups: [...(content.groups ?? []), ...adultExtra.groups], parts: [...content.parts, ...adultExtra.parts] }
+        : content,
+    [content, adultExtra],
+  );
+
   const names = useMemo(
     () =>
-      content
-        ? Object.fromEntries([...(content.groups ?? []), ...content.parts].map((p) => [p.id, p.name]))
+      fullContent
+        ? Object.fromEntries([...(fullContent.groups ?? []), ...fullContent.parts].map((p) => [p.id, p.name]))
         : undefined,
-    [content],
+    [fullContent],
   );
 
   if (!section) return <NotFoundPage />;
@@ -80,7 +107,8 @@ export function SectionPage() {
                 target={model.target}
                 floorY={model.floorY}
                 orbit={model.orbit}
-                explorer={model.explorer && content ? { parts: content.parts, groups: content.groups, fundusKey: model.explorerFundusKey, cuts: model.explorerCuts } : undefined}
+                explorer={model.explorer && fullContent ? { parts: fullContent.parts, groups: fullContent.groups, fundusKey: model.explorerFundusKey, cuts: model.explorerCuts } : undefined}
+                adult={adult}
                 bounds={model.bounds}
                 minDistance={model.minDistance}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
@@ -113,7 +141,7 @@ export function SectionPage() {
                   <Paragraphs items={content.does} />
                 </Block>
                 <Block title={t('section.parts')}>
-                  <PartsList parts={content.parts} groups={content.groups} canIsolate={!!model?.isolate} />
+                  <PartsList parts={fullContent!.parts} groups={fullContent!.groups} canIsolate={!!model?.isolate} />
                 </Block>
                 <Block title={t('section.kid')}>
                   <KidSay lines={content.kidSay} />

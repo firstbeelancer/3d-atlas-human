@@ -101,8 +101,15 @@ export const MODELS: Record<string, ModelEntry> = {
   serdce: {
     Component: lazy(() => import('./heart/HeartModel')),
     hasCutaway: true,
-    camera: { position: [0.6, 0.9, 12], fov: 32 },
-    target: [0, 0.35, 0],
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusHeart',
+    isolate: true,
+    camera: { position: [0.9, 1.0, 13.6], fov: 32 },
+    target: [0, 0.4, 0],
+    floorY: -2.5,
+    bounds: { min: [-3, -2.6, -2.2], max: [3, 3.2, 2.2] },
+    orbit: { minDistance: 1.8, maxDistance: 38, free: true },
+    modes: [{ id: 'xray', icon: 'inside' }],
     description: modelDescriptions.serdce,
   },
   'mochevoj-puzyr': {

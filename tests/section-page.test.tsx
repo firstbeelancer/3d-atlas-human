@@ -35,7 +35,7 @@ describe('heart section page', () => {
 
   it('marks a part as current when it is clicked in the list', async () => {
     renderHeart();
-    const aorta = await screen.findByRole('button', { name: /^Аорта/ });
+    const aorta = await screen.findByRole('button', { name: /^Аорта(?![а-яё])/ });
     expect(aorta).not.toHaveAttribute('aria-current');
     await userEvent.click(aorta);
     expect(aorta).toHaveAttribute('aria-current', 'true');

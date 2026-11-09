@@ -153,6 +153,26 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 1.8, maxDistance: 80, free: true },
     description: modelDescriptions['zhelchnyj-puzyr'],
   },
+  podzheludochnaya: {
+    Component: lazy(() => import('./pancreas/PancreasModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusPancreas',
+    // три плоскости среза с ползунком: фронтальный, поперечный (сверху), боковой; положения по умолчанию — через протоки и головку
+    explorerCuts: {
+      sideKey: 'explorer.cutPancreasFrontal',
+      coronalKey: 'explorer.cutPancreasSagittal',
+      defaults: { side: 0.46, fundus: 0.5, coronal: 0.81 },
+    },
+    isolate: true,
+    camera: { position: [10.0, 12.4, 63.2], fov: 32 },
+    target: [0.8, 1.2, -1.2],
+    floorY: -12.5,
+    bounds: { min: [-17, -13, -10], max: [18, 14, 7] },
+    orbit: { minDistance: 1.6, maxDistance: 110, free: true },
+    modes: [{ id: 'micro', icon: 'lobule' }],
+    description: modelDescriptions.podzheludochnaya,
+  },
   mozg: {
     Component: lazy(() => import('./brain/BrainModel')),
     hasCutaway: true,

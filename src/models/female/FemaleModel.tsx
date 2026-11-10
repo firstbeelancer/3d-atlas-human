@@ -308,6 +308,7 @@ function Oocyte({ state, tex }: { state: ModelProps['state']; tex: Tx }) {
 function CycleHud({ state }: { state: ModelProps['state'] }) {
   const box = useRef<HTMLDivElement>(null);
   const last = useRef('');
+  const invalidate = useThree((s) => s.invalidate);
   useFrame(() => {
     const el = box.current;
     if (!el) return;
@@ -321,8 +322,8 @@ function CycleHud({ state }: { state: ModelProps['state'] }) {
     el.lastElementChild!.textContent = name;
   });
   return (
-    <Html fullscreen zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-      <div ref={box} className="pointer-events-none absolute bottom-[4.6rem] right-3 flex min-w-[10.5rem] flex-col rounded-2xl border border-line bg-plinth/90 px-3.5 py-2 shadow-[0_8px_24px_-14px_rgba(23,32,58,0.45)] backdrop-blur max-sm:hidden">
+    <Html fullscreen calculatePosition={(_, __, size) => [size.width / 2, size.height / 2]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+      <div ref={(el) => { box.current = el; if (el) invalidate(); }} className="pointer-events-none absolute bottom-[4.6rem] right-3 flex min-w-[10.5rem] flex-col rounded-2xl border border-line bg-plinth/90 px-3.5 py-2 shadow-[0_8px_24px_-14px_rgba(23,32,58,0.45)] backdrop-blur max-sm:hidden">
         <span className="text-[12px] text-ink-soft"> </span>
         <span className="text-[15px] font-semibold text-ink"> </span>
       </div>

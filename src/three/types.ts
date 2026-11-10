@@ -18,6 +18,8 @@ export interface StageState {
   cutKind?: CutKind;
   /** Положение среза 0..1 (у моделей с ползунком среза). */
   cutAt?: number;
+  /** Включён режим 18+ (модели могут подгрузить дополнительные части). */
+  adult?: boolean;
 }
 
 export interface ModelProps {

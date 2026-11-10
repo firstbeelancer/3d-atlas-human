@@ -7,6 +7,7 @@ import { modelDescriptions } from '../content/ru/models';
 import type { MessageKey } from '../i18n';
 import { KIDNEY_CAMERA, KIDNEY_TARGET } from './kidney/anatomy';
 import { CUT_DEFAULT_T } from './brain/anatomy';
+import { CUT_DEFAULT_T as FEMALE_CUT_T } from './female/anatomy';
 import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
 import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
@@ -167,6 +168,22 @@ export const MODELS: Record<string, ModelEntry> = {
     bounds: { min: [-4.8, -4.7, -3.6], max: [4.8, 5.1, 3.8] },
     orbit: { minDistance: 2.4, maxDistance: 72, free: true },
     description: modelDescriptions['mochevoj-puzyr'],
+  },
+  'zhenskaya-reproduktivnaya': {
+    Component: lazy(() => import('./female/FemaleModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusFemale',
+    // три плоскости среза с ползунком: фронтальный, горизонтальный, сагиттальный (вид сбоку)
+    explorerCuts: { sideKey: 'explorer.cutFemaleFrontal', coronalKey: 'explorer.cutFemaleSagittal', defaults: FEMALE_CUT_T },
+    isolate: true,
+    camera: { position: [9, 5, 40], fov: 32 },
+    target: [0, -1.4, 0.4],
+    floorY: -13.4,
+    bounds: { min: [-12, -14, -12], max: [12, 11, 10] },
+    orbit: { minDistance: 2.2, maxDistance: 90, free: true },
+    modes: [{ id: 'xray', icon: 'inside' }],
+    description: modelDescriptions['zhenskaya-reproduktivnaya'],
   },
   legkie: {
     Component: lazy(() => import('./lungs/LungsModel')),

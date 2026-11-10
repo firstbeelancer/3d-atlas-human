@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { getSection } from '../content/sections';
 import { systemColor, SYSTEMS } from '../content/systems';
 import { loadSectionContent } from '../content/loadSection';
-import type { SectionContent } from '../content/types';
+import type { Part, PartGroup, SectionContent } from '../content/types';
 import { useDocumentMeta } from '../lib/meta';
 import { t } from '../i18n';
 import { ComingSoon } from '../components/section/ComingSoon';
@@ -23,6 +23,8 @@ import { Stage } from '../three/Stage';
 import { SelectionProvider } from '../three/selection';
 import { NotFoundPage } from './NotFoundPage';
 import { AdultOnly } from '../components/AdultOnly';
+import { useAdult } from '../lib/adult';
+import { loadAdultContent } from '../content/adult/loadAdult';
 
 const loadAdultNote = () => import('../content/adult/AdultSectionNote');
 
@@ -32,6 +34,8 @@ export function SectionPage() {
   const [content, setContent] = useState<SectionContent | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const { adult } = useAdult();
+  const [adultExtra, setAdultExtra] = useState<{ slug: string; groups: PartGroup[]; parts: Part[] } | null>(null);
   useDocumentMeta(section?.title ?? null, section?.tagline);
 
   useEffect(() => {
@@ -48,12 +52,32 @@ export function SectionPage() {
     };
   }, [section, attempt]);
 
+  // части 18+ добавляются к тексту раздела только при включённом режиме 18+
+  useEffect(() => {
+    let alive = true;
+    setAdultExtra(null);
+    if (adult && section?.adultParts) {
+      loadAdultContent(section.slug)
+        .then((c) => alive && c && setAdultExtra({ slug: section.slug, groups: c.adultGroups, parts: c.adultParts }))
+        .catch(() => undefined);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [adult, section]);
+
+  const fullContent = useMemo(() => {
+    if (content?.slug !== slug) return null;
+    if (!adult || adultExtra?.slug !== slug) return content;
+    return { ...content, groups: [...(content.groups ?? []), ...adultExtra.groups], parts: [...content.parts, ...adultExtra.parts] };
+  }, [content, adult, adultExtra, slug]);
+
   const names = useMemo(
     () =>
-      content
-        ? Object.fromEntries([...(content.groups ?? []), ...content.parts].map((p) => [p.id, p.name]))
+      fullContent
+        ? Object.fromEntries([...(fullContent.groups ?? []), ...fullContent.parts].map((p) => [p.id, p.name]))
         : undefined,
-    [content],
+    [fullContent],
   );
 
   if (!section) return <NotFoundPage />;
@@ -81,7 +105,8 @@ export function SectionPage() {
                 target={model.target}
                 floorY={model.floorY}
                 orbit={model.orbit}
-                explorer={model.explorer && content ? { parts: content.parts, groups: content.groups, fundusKey: model.explorerFundusKey, cuts: model.explorerCuts } : undefined}
+                explorer={model.explorer && fullContent ? { parts: fullContent.parts, groups: fullContent.groups, fundusKey: model.explorerFundusKey, cuts: model.explorerCuts } : undefined}
+                adult={section.adultParts ? adult : undefined}
                 bounds={model.bounds}
                 minDistance={model.minDistance}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
@@ -107,26 +132,26 @@ export function SectionPage() {
                 </button>
               </div>
             )}
-            {content && (
+            {fullContent && (
               <>
-                <StatCards stats={content.stats} />
+                <StatCards stats={fullContent.stats} />
                 <Block title={t('section.does')}>
-                  <Paragraphs items={content.does} />
+                  <Paragraphs items={fullContent.does} />
                 </Block>
                 <Block title={t('section.parts')}>
-                  <PartsList parts={content.parts} groups={content.groups} canIsolate={!!model?.isolate} />
+                  <PartsList parts={fullContent.parts} groups={fullContent.groups} canIsolate={!!model?.isolate} />
                 </Block>
                 <Block title={t('section.kid')}>
-                  <KidSay lines={content.kidSay} />
+                  <KidSay lines={fullContent.kidSay} />
                 </Block>
                 <Block title={t('section.facts')}>
-                  <FactList facts={content.facts} />
+                  <FactList facts={fullContent.facts} />
                 </Block>
                 <Block title={t('section.care')}>
-                  <CareList items={content.care} />
+                  <CareList items={fullContent.care} />
                 </Block>
                 <Block title={t('section.related')}>
-                  <RelatedSections slugs={content.related} />
+                  <RelatedSections slugs={fullContent.related} />
                 </Block>
               </>
             )}

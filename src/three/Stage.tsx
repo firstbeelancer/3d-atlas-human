@@ -50,6 +50,8 @@ interface Props {
   names?: Record<string, string>;
   bounds?: Box;
   minDistance?: number;
+  /** Режим 18+: передаётся модели в состоянии, чтобы подгрузить 18+-части. */
+  adult?: boolean;
   children: (state: StageState) => ReactNode;
   className?: string;
 }
@@ -70,6 +72,7 @@ export function Stage({
   explorer,
   bounds,
   minDistance,
+  adult,
   modes = [],
   legend,
   names = {},
@@ -113,6 +116,10 @@ export function Stage({
   const progress = building.length && building.every((job) => job.progress !== undefined)
     ? building.reduce((total, job) => total + job.progress!, 0) / building.length
     : undefined;
+
+  useEffect(() => {
+    if (adult === false && selected && !Object.hasOwn(names, selected)) select(null);
+  }, [adult, names, select, selected]);
 
   const toggleShow = useCallback(() => {
     const el = box.current;
@@ -159,6 +166,7 @@ export function Stage({
     labels,
     modes: activeModes,
     time,
+    adult,
     ...(explorer ? { explode, isolate: ghost, hidden, cutKind, cutAt: cutT[cutKind] } : {}),
   };
 

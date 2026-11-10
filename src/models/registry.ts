@@ -9,6 +9,8 @@ import { KIDNEY_CAMERA, KIDNEY_TARGET } from './kidney/anatomy';
 import { CUT_DEFAULT_T } from './brain/anatomy';
 import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
 import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
+import { CUT_DEFAULT_T as HAIR_CUT_T } from './hair/anatomy';
+import { CUT_VIEWS as HAIR_CUT_VIEWS } from './hair/parts';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 
 export interface ModelEntry {
@@ -196,6 +198,35 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 1.6, maxDistance: 110, free: true },
     modes: [{ id: 'micro', icon: 'lobule' }],
     description: modelDescriptions.podzheludochnaya,
+  },
+  'volosy-i-nogti': {
+    Component: lazy(() => import('./hair/HairModel')),
+    hasCutaway: true,
+    initialCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusHair',
+    explorerCuts: { sideKey: 'explorer.cutHairSide', coronalKey: 'explorer.cutHairCoronal', defaults: HAIR_CUT_T },
+    isolate: true,
+    camera: {
+      position: [
+        HAIR_CUT_VIEWS.follicle.side.at[0] + HAIR_CUT_VIEWS.follicle.side.dir[0] * HAIR_CUT_VIEWS.follicle.side.dist,
+        HAIR_CUT_VIEWS.follicle.side.at[1] + HAIR_CUT_VIEWS.follicle.side.dir[1] * HAIR_CUT_VIEWS.follicle.side.dist,
+        HAIR_CUT_VIEWS.follicle.side.at[2] + HAIR_CUT_VIEWS.follicle.side.dir[2] * HAIR_CUT_VIEWS.follicle.side.dist,
+      ],
+      fov: 32,
+    },
+    target: HAIR_CUT_VIEWS.follicle.side.at,
+    floorY: -40,
+    bounds: { min: [-14, -18, -12], max: [18, 30, 12] },
+    orbit: { minDistance: 1.2, maxDistance: 150, free: true },
+    modes: [
+      { id: 'cycle', icon: 'sprout', group: 'view', clearsSelection: true },
+      { id: 'shaft', icon: 'lobule', group: 'view', clearsSelection: true },
+      { id: 'nail', icon: 'fingerprint', group: 'view', clearsSelection: true },
+      { id: 'goose', icon: 'activity' },
+      { id: 'xray', icon: 'inside' },
+    ],
+    description: modelDescriptions['volosy-i-nogti'],
   },
   selezenka: {
     Component: lazy(() => import('./spleen/SpleenModel')),

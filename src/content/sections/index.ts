@@ -24,7 +24,7 @@ const BASE: SectionBase[] = [
   { slug: 'zhenskaya-reproduktivnaya', system: 'reproductive', icon: 'uterus', ready: false, adultParts: true },
   { slug: 'muzhskaya-reproduktivnaya', system: 'reproductive', icon: 'testis', ready: false, adultParts: true },
   { slug: 'krovenosnaya-sistema', system: 'circulatory', icon: 'vessels', ready: false },
-  { slug: 'volosy-i-nogti', system: 'skin', icon: 'hair', ready: false },
+  { slug: 'volosy-i-nogti', system: 'skin', icon: 'hair', ready: true },
   { slug: 'beremennost', system: 'reproductive', icon: 'pregnancy', ready: false, adultParts: true },
   { slug: 'gormony', system: 'endocrine', icon: 'hormones', ready: false },
 ];

@@ -157,19 +157,19 @@ function CameraRig({ ctrl, selected, explode, focus }: { ctrl: RefObject<FemaleC
     if (!controls) return;
     const f: Focus | undefined = selected ? focus[selected] ?? EXTRA_FOCUS[selected] : undefined;
     let v: Focus = OVERVIEW;
-    let span = 19;
+    let span = 21;
     if (f) v = f;
     else if (spread) {
       v = SPREAD_VIEW;
       span = 30;
     } else if (cut) {
       v = kind === 'fundus' ? { ...TOP_VIEW } : kind === 'coronal' ? { ...SIDE_VIEW } : OVERVIEW;
-      span = kind === 'fundus' ? 16 : 19;
+      span = kind === 'fundus' ? 16 : 21;
     }
     const aspect = Math.max(0.3, width / Math.max(1, height));
     const fov = (camera as PerspectiveCamera).fov;
     const fit = span / (2 * aspect * Math.tan((fov * Math.PI) / 360));
-    const fitV = (f ? 0 : spread ? 28 : 25) / (2 * Math.tan((fov * Math.PI) / 360));
+    const fitV = (f ? 0 : spread ? 28 : 26.5) / (2 * Math.tan((fov * Math.PI) / 360));
     const distance = f ? f.dist : Math.max(v.dist, fit, fitV);
     goal.current = { at: new Vector3(...v.at), offset: new Vector3(...v.dir).normalize().multiplyScalar(distance) };
     invalidate();

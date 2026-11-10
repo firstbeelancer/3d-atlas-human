@@ -51,6 +51,9 @@ function CameraRig({ ctrl, selected, explode, scene }: { ctrl: RefObject<HairCon
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as Rig | null;
   const invalidate = useThree((s) => s.invalidate);
+  const { width, height } = useThree((s) => s.size);
+  const overviewAspect = scene === 'shaft' || scene === 'cycle' ? 0.91 : 0.76;
+  const widthFit = Math.max(1, overviewAspect * height / Math.max(1, width));
   const goal = useRef<{ at: Vector3; offset: Vector3 } | null>(null);
   const first = useRef(true);
   const cut = ctrl.current!.cut;
@@ -69,17 +72,18 @@ function CameraRig({ ctrl, selected, explode, scene }: { ctrl: RefObject<HairCon
   useEffect(() => {
     if (first.current) {
       first.current = false;
-      return;
+      if (widthFit <= 1.02) return;
     }
     let f: Focus;
     if (selected && FOCUS[selected]) f = FOCUS[selected];
     else if (spread) f = SPREAD_VIEW[scene];
     else if (cut) f = CUT_VIEWS[scene][kind];
     else f = OVERVIEW[scene];
-    goal.current = { at: new Vector3(...f.at), offset: new Vector3(...f.dir).normalize().multiplyScalar(f.dist) };
+    const distance = selected && FOCUS[selected] ? f.dist : Math.min(148, f.dist * widthFit);
+    goal.current = { at: new Vector3(...f.at), offset: new Vector3(...f.dir).normalize().multiplyScalar(distance) };
     invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cut, kind, spread, scene, invalidate]);
+  }, [selected, cut, kind, spread, scene, widthFit, invalidate]);
 
   useFrame((_, dt) => {
     const g = goal.current;

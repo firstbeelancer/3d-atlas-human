@@ -28,8 +28,7 @@ export const GROUP_OF: Record<string, string> = {
 
 /** Подписи на модели по умолчанию (остальные появляются при выборе части). */
 export const MAIN_LABELS = new Set([
-  'fundus', 'body', 'cervix', 'ampulla', 'infundibulum', 'ovary', 'vagina', 'round-ligament', 'broad-ligament',
-  'bladder', 'rectum', 'follicle-graafian', 'corpus-luteum',
+  'fundus', 'body', 'cervix', 'infundibulum', 'ovary', 'vagina', 'bladder', 'rectum',
 ]);
 
 /** Внутренние части: подпись видна сквозь стенки и не прячется при повороте. */

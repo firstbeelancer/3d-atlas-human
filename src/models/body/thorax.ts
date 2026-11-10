@@ -9,7 +9,7 @@ import type { GeometrySet } from './transfer';
 
 /* ---------------- Мозг ---------------- */
 
-function cerebrumField(): Sdf {
+export function cerebrumField(): Sdf {
   const hemi = smooth(
     0.12,
     E([0.32, 16.8, -0.1], [0.33, 0.55, 0.84]),
@@ -27,7 +27,7 @@ function cerebrumField(): Sdf {
   return grooved(brain, 10.5, 0.04, 4, 0.16);
 }
 
-function cerebellumField(): Sdf {
+export function cerebellumField(): Sdf {
   const lobes = smooth(
     0.07,
     // мозжечок лежит в задней черепной ямке под затылочными долями и не выходит за затылок

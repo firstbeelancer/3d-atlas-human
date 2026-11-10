@@ -71,6 +71,8 @@ export const ru = {
   'stage.mode.shaft': 'Волос под микроскопом',
   'stage.mode.nail': 'Ноготь на пальце',
   'stage.mode.goose': 'Мурашки',
+  'stage.mode.reflex': 'Рефлекторная дуга',
+  'stage.mode.neuron': 'Нейрон под микроскопом',
   'stage.building': 'Собираю модель…',
   'stage.loading': 'Загружаю модель…',
   'stage.isolate': 'Рассмотреть отдельно',

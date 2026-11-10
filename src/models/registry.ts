@@ -99,6 +99,21 @@ export const MODELS: Record<string, ModelEntry> = {
     ],
     description: modelDescriptions['krovenosnaya-sistema'],
   },
+  'nervnaya-sistema': {
+    Component: lazy(() => import('./nerves/NervesModel')),
+    // та же фигура и тот же вид, что у кровеносной системы
+    camera: { position: OVERVIEW_CAMERA, fov: 32 },
+    target: OVERVIEW_TARGET,
+    floorY: BODY_FLOOR,
+    bounds: { min: [-3.6, -2.38, -0.9], max: [3.6, 2.99, 1.15] },
+    orbit: { minDistance: 0.35, maxDistance: 52, free: true },
+    isolate: true,
+    modes: [
+      { id: 'reflex', icon: 'activity', group: 'view', clearsSelection: true },
+      { id: 'neuron', icon: 'lobule', group: 'view', clearsSelection: true },
+    ],
+    description: modelDescriptions['nervnaya-sistema'],
+  },
   pechen: {
     Component: lazy(() => import('./liver/LiverModel')),
     camera: { position: [0.6, 1.4, 20], fov: 32 },

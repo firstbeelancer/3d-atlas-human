@@ -21,6 +21,11 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Viscera',
     tagline: 'Как органы уложены внутри тела и кто с кем соседствует',
   },
+  'nervnaya-sistema': {
+    title: 'Нервная система',
+    latin: 'Systema nervosum',
+    tagline: 'Сеть нервов от мозга до кончиков пальцев: по самым быстрым из них сигнал мчится до 120 метров в секунду',
+  },
   mozg: {
     title: 'Мозг',
     latin: 'Encephalon',

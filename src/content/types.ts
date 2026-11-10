@@ -18,6 +18,7 @@ export type OrganIconName =
   | 'muscle'
   | 'organs'
   | 'brain'
+  | 'nerves'
   | 'eye'
   | 'ear'
   | 'tooth'

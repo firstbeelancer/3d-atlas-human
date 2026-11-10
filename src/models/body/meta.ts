@@ -64,7 +64,7 @@ export const PARTS: PartSpec[] = [
   { set: 'thorax', key: 'brain', slug: 'mozg', mat: 'brain' },
   { set: 'thorax', key: 'cerebellum', slug: 'mozg', mat: 'cerebellum' },
   { set: 'thorax', key: 'cord', slug: 'mozg', mat: 'cord' },
-  { set: 'vessels', key: 'nerves', slug: 'mozg', mat: 'nerve' },
+  { set: 'vessels', key: 'nerves', slug: 'nervnaya-sistema', mat: 'nerve' },
   { set: 'thorax', key: 'optic', slug: 'glaz', mat: 'optic' },
   { set: 'thorax', key: 'ear', slug: 'uho', mat: 'ear', mirror: true },
   { set: 'thorax', key: 'lungL', slug: 'legkie', mat: 'lung', anim: 'breathe' },

@@ -36,6 +36,11 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Auris',
     tagline: 'Слышит шёпот и одновременно следит за равновесием',
   },
+  yazyk: {
+    title: 'Язык',
+    latin: 'Lingua',
+    tagline: 'Мышечный орган без единой кости: пробует вкус, помогает жевать, глотать и говорить',
+  },
   zub: {
     title: 'Зуб',
     latin: 'Dens',

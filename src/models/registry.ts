@@ -12,6 +12,8 @@ import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
 import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
 import { CUT_DEFAULT_T as HAIR_CUT_T } from './hair/anatomy';
 import { CUT_VIEWS as HAIR_CUT_VIEWS } from './hair/parts';
+import { CUT_DEFAULT_T as TONGUE_CUT_T } from './tongue/anatomy';
+import { OVERVIEW as TONGUE_VIEW } from './tongue/parts';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 import { BLOOD_COLORS, BODY_FLOOR, OVERVIEW_CAMERA, OVERVIEW_TARGET } from './circulation/appearance';
 
@@ -60,6 +62,33 @@ export const MODELS: Record<string, ModelEntry> = {
       { id: 'arch', icon: 'arch', group: 'view' },
     ],
     description: teethText.description,
+  },
+  yazyk: {
+    Component: lazy(() => import('./tongue/TongueModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusTongue',
+    // три плоскости среза с ползунком: сагиттальный (вид сбоку), поперечный (спереди), горизонтальный (сверху)
+    explorerCuts: { sideKey: 'explorer.cutTongueSagittal', coronalKey: 'explorer.cutTongueHorizontal', defaults: TONGUE_CUT_T },
+    isolate: true,
+    camera: {
+      position: [
+        TONGUE_VIEW.tongue.at[0] + TONGUE_VIEW.tongue.dir[0] * TONGUE_VIEW.tongue.dist,
+        TONGUE_VIEW.tongue.at[1] + TONGUE_VIEW.tongue.dir[1] * TONGUE_VIEW.tongue.dist,
+        TONGUE_VIEW.tongue.at[2] + TONGUE_VIEW.tongue.dir[2] * TONGUE_VIEW.tongue.dist,
+      ],
+      fov: 32,
+    },
+    target: TONGUE_VIEW.tongue.at,
+    floorY: -6.4,
+    bounds: { min: [-8, -7, -6], max: [8, 8, 6] },
+    orbit: { minDistance: 1.2, maxDistance: 70, free: true },
+    modes: [
+      { id: 'bud', icon: 'lobule', group: 'view', clearsSelection: true },
+      { id: 'move', icon: 'activity' },
+      { id: 'xray', icon: 'inside' },
+    ],
+    description: modelDescriptions.yazyk,
   },
   glaz: {
     Component: lazy(() => import('./eye/EyeModel')),

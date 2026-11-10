@@ -11,6 +11,7 @@ const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
   pechen: () => import('./ru/pechen'),
   zheludok: () => import('./ru/zheludok'),
   zub: () => import('./ru/zub'),
+  yazyk: () => import('./ru/yazyk'),
   'mochevoj-puzyr': () => import('./ru/mochevoj-puzyr'),
   legkie: () => import('./ru/legkie'),
   kishechnik: () => import('./ru/kishechnik'),

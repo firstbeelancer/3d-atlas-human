@@ -45,6 +45,8 @@ interface Props {
   explorer?: ExplorerProps;
   /** Режимы модели помимо разреза: «Разобрать», «Сегменты» и т. п. */
   modes?: StageMode[];
+  /** Резервирует место для многострочной панели режимов на телефоне. */
+  mobileModeRoom?: boolean;
   legend?: readonly StageLegendItem[];
   /** Названия частей — для плашки «Отдельно: …». */
   names?: Record<string, string>;
@@ -74,6 +76,7 @@ export function Stage({
   minDistance,
   adult,
   modes = [],
+  mobileModeRoom = false,
   legend,
   names = {},
   children,
@@ -176,29 +179,31 @@ export function Stage({
       data-show={show || undefined}
       className={`stage-plinth group @container overflow-hidden ${
         show ? 'stage-show fixed inset-0 z-[60] h-dvh w-screen' : `relative rounded-[28px] border border-line ${className}`
-      }`}
+      } ${mobileModeRoom && !show ? 'max-sm:aspect-auto max-sm:h-[clamp(460px,65svh,550px)] max-sm:max-h-none' : ''}`}
     >
       <p className="sr-only">{description}</p>
       <ModelProgress.Provider value={report}>
-        <StageBoundary onError={fail}>
-          <Suspense fallback={<ModelPending phase="loading" />}>
-            <StageCanvas
-              key={resetKey}
-              label={label}
-              camera={camera}
-              target={target}
-              floorY={floorY}
-              orbit={orbit}
-              bounds={bounds}
-              minDistance={minDistance}
-              paused={paused}
-              time={time}
-              onContextLost={fail}
-            >
-              {children(state)}
-            </StageCanvas>
-          </Suspense>
-        </StageBoundary>
+        <div className={`absolute inset-0 ${mobileModeRoom ? 'max-sm:top-[11.25rem] max-sm:bottom-16' : ''}`}>
+          <StageBoundary onError={fail}>
+            <Suspense fallback={<ModelPending phase="loading" />}>
+              <StageCanvas
+                key={resetKey}
+                label={label}
+                camera={camera}
+                target={target}
+                floorY={floorY}
+                orbit={orbit}
+                bounds={bounds}
+                minDistance={minDistance}
+                paused={paused}
+                time={time}
+                onContextLost={fail}
+              >
+                {children(state)}
+              </StageCanvas>
+            </Suspense>
+          </StageBoundary>
+        </div>
       </ModelProgress.Provider>
       {jobs.length > 0 && <StageLoading key={phase} phase={phase} progress={progress} />}
 

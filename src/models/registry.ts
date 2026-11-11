@@ -42,6 +42,8 @@ export interface ModelEntry {
   description: string;
   /** Дополнительные режимы модели (кнопки на сцене). */
   modes?: StageMode[];
+  /** На телефоне панель режимов и модель занимают разные области. */
+  mobileModeRoom?: boolean;
   legend?: readonly StageLegendItem[];
   /** Часть можно рассмотреть отдельно (кнопка в списке «Из чего состоит»). */
   isolate?: boolean;
@@ -66,6 +68,7 @@ export const MODELS: Record<string, ModelEntry> = {
   },
   yazyk: {
     Component: lazy(() => import('./tongue/TongueModel')),
+    mobileModeRoom: true,
     hasCutaway: true,
     explorer: true,
     explorerFundusKey: 'explorer.fundusTongue',

@@ -59,6 +59,7 @@ function CameraRig({ ctrl, selected, explode, scene, underside, dissection }: {
   const invalidate = useThree((s) => s.invalidate);
   const { width, height } = useThree((s) => s.size);
   const widthFit = Math.max(1, ((scene === 'bud' ? 0.85 : 0.73) * height) / Math.max(1, width));
+  const compactFit = width > 0 && width < 450 ? (scene === 'bud' ? 0.82 : 0.84) : 1;
   const goal = useRef<{ at: Vector3; offset: Vector3 } | null>(null);
   const first = useRef(true);
   const cut = ctrl.current!.cut;
@@ -77,7 +78,7 @@ function CameraRig({ ctrl, selected, explode, scene, underside, dissection }: {
   useEffect(() => {
     if (first.current) {
       first.current = false;
-      if (widthFit <= 1.02 && scene === 'tongue' && !cut && !selected && !underside && !dissection && !spread) return;
+      if (widthFit <= 1.02 && compactFit === 1 && scene === 'tongue' && !cut && !selected && !underside && !dissection && !spread) return;
     }
     let f: Focus;
     if (selected && FOCUS[selected]) f = FOCUS[selected];
@@ -86,11 +87,11 @@ function CameraRig({ ctrl, selected, explode, scene, underside, dissection }: {
     else if (dissection) f = DISSECTION;
     else if (underside) f = UNDERSIDE;
     else f = OVERVIEW[scene];
-    const distance = Math.min(69, f.dist * widthFit);
+    const distance = Math.min(69, f.dist * widthFit * (selected ? 1 : compactFit));
     goal.current = { at: new Vector3(...f.at), offset: new Vector3(...f.dir).normalize().multiplyScalar(distance) };
     invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cut, kind, spread, scene, widthFit, underside, dissection, invalidate]);
+  }, [selected, cut, kind, spread, scene, widthFit, compactFit, underside, dissection, invalidate]);
 
   useFrame((_, dt) => {
     const g = goal.current;

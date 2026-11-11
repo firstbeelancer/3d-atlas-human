@@ -109,6 +109,7 @@ export function SectionPage() {
                 adult={section.adultParts ? adult : undefined}
                 bounds={model.bounds}
                 minDistance={model.minDistance}
+                mobileModeRoom={model.mobileModeRoom}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
               >
                 {(state) => <model.Component state={state} names={names} />}

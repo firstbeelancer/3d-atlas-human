@@ -41,6 +41,11 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Auris',
     tagline: 'Слышит шёпот и одновременно следит за равновесием',
   },
+  nos: {
+    title: 'Нос',
+    latin: 'Nasus',
+    tagline: 'Фильтр, обогреватель и увлажнитель воздуха, который ещё и чувствует запахи',
+  },
   zub: {
     title: 'Зуб',
     latin: 'Dens',

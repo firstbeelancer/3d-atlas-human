@@ -22,6 +22,7 @@ export type OrganIconName =
   | 'eye'
   | 'ear'
   | 'tooth'
+  | 'nose'
   | 'lungs'
   | 'heart'
   | 'stomach'

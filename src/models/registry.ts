@@ -13,6 +13,7 @@ import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
 import { CUT_DEFAULT_T as HAIR_CUT_T } from './hair/anatomy';
 import { CUT_VIEWS as HAIR_CUT_VIEWS } from './hair/parts';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
+import { CUT_DEFAULT_T as NOSE_CUT_T, OVERVIEW as NOSE_VIEW } from './nose/anatomy';
 import { BLOOD_COLORS, BODY_FLOOR, OVERVIEW_CAMERA, OVERVIEW_TARGET } from './circulation/appearance';
 
 export interface ModelEntry {
@@ -343,6 +344,32 @@ export const MODELS: Record<string, ModelEntry> = {
       { id: 'inner', icon: 'inside' },
     ],
     description: modelDescriptions.uho,
+  },
+  nos: {
+    Component: lazy(() => import('./nose/NoseModel')),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusNose',
+    explorerCuts: { sideKey: 'explorer.cutNoseSide', coronalKey: 'explorer.cutNoseCoronal', defaults: NOSE_CUT_T },
+    isolate: true,
+    camera: {
+      position: [
+        NOSE_VIEW.at[0] + NOSE_VIEW.dir[0] * NOSE_VIEW.dist,
+        NOSE_VIEW.at[1] + NOSE_VIEW.dir[1] * NOSE_VIEW.dist,
+        NOSE_VIEW.at[2] + NOSE_VIEW.dir[2] * NOSE_VIEW.dist,
+      ],
+      fov: 32,
+    },
+    target: NOSE_VIEW.at,
+    floorY: -4.6,
+    bounds: { min: [-5, -4.5, -5.5], max: [5, 5.5, 4.5] },
+    orbit: { minDistance: 0.5, maxDistance: 60, free: true },
+    modes: [
+      { id: 'airflow', icon: 'waves' },
+      { id: 'smell', icon: 'activity' },
+      { id: 'xray', icon: 'inside' },
+    ],
+    description: modelDescriptions.nos,
   },
   myshcy: {
     Component: lazy(() => import('./muscles/MusclesModel')),

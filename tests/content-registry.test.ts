@@ -3,7 +3,7 @@ import { SECTIONS, getSection } from '../src/content/sections';
 import { SYSTEMS } from '../src/content/systems';
 
 const SLUGS = [
-  'kletki-i-belki', 'skelet', 'myshcy', 'vnutrennie-organy', 'nervnaya-sistema', 'mozg', 'glaz', 'uho', 'zub', 'legkie',
+  'kletki-i-belki', 'skelet', 'myshcy', 'vnutrennie-organy', 'nervnaya-sistema', 'mozg', 'glaz', 'uho', 'zub', 'nos', 'legkie',
   'serdce', 'selezenka', 'zheludok', 'pechen', 'podzheludochnaya', 'zhelchnyj-puzyr', 'pochki', 'mochevoj-puzyr',
   'kishechnik', 'zhenskaya-reproduktivnaya', 'muzhskaya-reproduktivnaya', 'krovenosnaya-sistema',
   'volosy-i-nogti', 'beremennost', 'gormony',

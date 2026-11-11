@@ -8,11 +8,13 @@ import c_glaz from './ru/glaz';
 import c_pechen from './ru/pechen';
 import c_zheludok from './ru/zheludok';
 import c_zub from './ru/zub';
+import c_nos from './ru/nos';
 import c_mochevoj_puzyr from './ru/mochevoj-puzyr';
 import c_legkie from './ru/legkie';
 import c_kishechnik from './ru/kishechnik';
 import c_zhelchnyj_puzyr from './ru/zhelchnyj-puzyr';
 import c_mozg from './ru/mozg';
+import c_nervnaya_sistema from './ru/nervnaya-sistema';
 import c_uho from './ru/uho';
 import c_podzheludochnaya from './ru/podzheludochnaya';
 import c_pochki from './ru/pochki';
@@ -33,11 +35,13 @@ export const ALL_SECTION_CONTENT: Record<string, SectionContent> = {
   'pechen': c_pechen,
   'zheludok': c_zheludok,
   'zub': c_zub,
+  'nos': c_nos,
   'mochevoj-puzyr': c_mochevoj_puzyr,
   'legkie': c_legkie,
   'kishechnik': c_kishechnik,
   'zhelchnyj-puzyr': c_zhelchnyj_puzyr,
   'mozg': c_mozg,
+  'nervnaya-sistema': c_nervnaya_sistema,
   'uho': c_uho,
   'podzheludochnaya': c_podzheludochnaya,
   'pochki': c_pochki,

@@ -46,6 +46,11 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Nasus',
     tagline: 'Фильтр, обогреватель и увлажнитель воздуха, который ещё и чувствует запахи',
   },
+  yazyk: {
+    title: 'Язык',
+    latin: 'Lingua',
+    tagline: 'Мышечный орган без единой кости: пробует вкус, помогает жевать, глотать и говорить',
+  },
   zub: {
     title: 'Зуб',
     latin: 'Dens',

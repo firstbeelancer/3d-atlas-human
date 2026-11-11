@@ -8,6 +8,7 @@ import c_glaz from './ru/glaz';
 import c_pechen from './ru/pechen';
 import c_zheludok from './ru/zheludok';
 import c_zub from './ru/zub';
+import c_yazyk from './ru/yazyk';
 import c_nos from './ru/nos';
 import c_mochevoj_puzyr from './ru/mochevoj-puzyr';
 import c_legkie from './ru/legkie';
@@ -35,6 +36,7 @@ export const ALL_SECTION_CONTENT: Record<string, SectionContent> = {
   'pechen': c_pechen,
   'zheludok': c_zheludok,
   'zub': c_zub,
+  'yazyk': c_yazyk,
   'nos': c_nos,
   'mochevoj-puzyr': c_mochevoj_puzyr,
   'legkie': c_legkie,

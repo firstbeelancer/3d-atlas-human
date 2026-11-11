@@ -75,6 +75,13 @@ const ICONS: Record<OrganIconName, ReactNode> = {
       <path d="M8.8 18.6c.5-.5 1.2-.8 2-.8M15.2 18.6c-.5-.5-1.2-.8-2-.8" />
     </>
   ),
+  tongue: (
+    <>
+      <path d="M3 7.5c2.6 1.6 5.6 2.4 9 2.4s6.4-.8 9-2.4" />
+      <path d="M7 9.4v4.1a5 5 0 0 0 10 0V9.4" />
+      <path d="M12 10.6v4.6" />
+    </>
+  ),
   lungs: (
     <>
       <path d="M12 3v7M12 10l-2.2 1.6M12 10l2.2 1.6" />

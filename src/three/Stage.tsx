@@ -211,6 +211,7 @@ export function Stage({
         <>
           <ExplorerPanel
             {...explorer}
+            showCutControls={!!hasCutaway}
             cutaway={cutaway}
             cutKind={cutKind}
             onView={(on, kind) => {

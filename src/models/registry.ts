@@ -116,8 +116,8 @@ export const MODELS: Record<string, ModelEntry> = {
   },
   'krovenosnaya-sistema': {
     Component: lazy(() => import('./circulation/CirculationModel')),
-    hasCutaway: true,
     explorer: true,
+    mobileModeRoom: true,
     camera: { position: OVERVIEW_CAMERA, fov: 32 },
     target: OVERVIEW_TARGET,
     floorY: BODY_FLOOR,
@@ -128,6 +128,7 @@ export const MODELS: Record<string, ModelEntry> = {
       { id: 'systemic', icon: 'activity', group: 'circuit', clearsSelection: true },
       { id: 'pulmonary', icon: 'inside', group: 'circuit', clearsSelection: true },
       { id: 'capillary-bed', icon: 'lobule', group: 'circuit', clearsSelection: true },
+      { id: 'capillary-wall', icon: 'layers', group: 'circuit', clearsSelection: true },
     ],
     legend: [
       { label: 'circulation.oxygenated', color: BLOOD_COLORS.oxygenated },

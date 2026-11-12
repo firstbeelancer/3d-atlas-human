@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { hasSectionContent, loadSectionContent } from '../src/content/loadSection';
 import { getSection } from '../src/content/sections';
 import { systemicArteries, systemicVeins } from '../src/models/body/bloodPaths';
-import { LUNG_GROUP, MICRO_GROUP, PART_GROUPS, VESSELS } from '../src/models/circulation/anatomy';
+import { ARTERY_GROUP, LUNG_GROUP, MICRO_GROUP, PART_GROUPS, SYSTEMIC_BRANCHES, VEIN_GROUP, VESSELS } from '../src/models/circulation/anatomy';
 import { buildStreams, buildVesselMeshes } from '../src/models/circulation/geometry';
+import { armPoint, fingerChains } from '../src/models/body/skin';
 
 const slug = 'krovenosnaya-sistema';
 const endpoints = (id: string, end: 'first' | 'last') => VESSELS
@@ -51,6 +52,35 @@ describe('circulatory atlas', () => {
     }
     expect(streams.some(({ group }) => group === LUNG_GROUP)).toBe(true);
     expect(streams.some(({ group }) => group === MICRO_GROUP)).toBe(true);
+  });
+
+  it('joins every added systemic branch to its vascular tree at a modeled junction', () => {
+    for (const [group, additions] of [[ARTERY_GROUP, SYSTEMIC_BRANCHES.arteries], [VEIN_GROUP, SYSTEMIC_BRANCHES.veins]] as const) {
+      const ownPaths = new Set(additions.map(({ points }) => points));
+      const junctions = new Set(VESSELS.filter((v) => v.group === group && !ownPaths.has(v.points))
+        .flatMap(({ points }) => points.map((point) => point.join(','))));
+      let pending = [...additions];
+      while (pending.length) {
+        const disconnected = pending.filter(({ points }) => {
+          if (!junctions.has(points[0].join(','))) return true;
+          points.forEach((point) => junctions.add(point.join(',')));
+          return false;
+        });
+        expect(disconnected.length, disconnected.map(({ part, points }) => `${part}: ${points[0]}`).join('; ')).toBeLessThan(pending.length);
+        pending = disconnected;
+      }
+    }
+  });
+
+  it('keeps the digital arteries inside the posed fingers on both hands', () => {
+    const tips = fingerChains().map((finger) => armPoint(finger[finger.length - 1]));
+    const arteries = endpoints('hand-arteries', 'last');
+    expect(arteries).toHaveLength(20);
+    for (const side of [-1, 1]) {
+      for (const tip of tips) {
+        expect(arteries.filter(([x, y, z]) => Math.hypot(x * side - tip[0], y - tip[1], z - tip[2]) < 0.04)).toHaveLength(2);
+      }
+    }
   });
 
   it('builds finite selectable meshes and colors the gas-exchange beds', () => {

@@ -67,6 +67,7 @@ export const ru = {
   'stage.mode.systemic': 'Большой круг',
   'stage.mode.pulmonary': 'Малый круг',
   'stage.mode.capillary-bed': 'Капилляры',
+  'stage.mode.capillary-wall': 'Стенка капилляра',
   'circulation.oxygenated': 'Больше кислорода',
   'circulation.deoxygenated': 'Меньше кислорода',
   'stage.mode.cycle': 'Цикл роста волоса',

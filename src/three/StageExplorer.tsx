@@ -15,6 +15,7 @@ export interface ExplorerProps {
 }
 
 interface PanelProps extends ExplorerProps {
+  showCutControls: boolean;
   cutaway: boolean;
   cutKind: CutKind;
   onView: (cutaway: boolean, kind: CutKind) => void;
@@ -117,7 +118,7 @@ export function ExplorerPanel(p: PanelProps) {
       </button>
       {open && (
         <div className="flex min-h-0 flex-col gap-3 overflow-y-auto px-3 pb-3">
-          <div role="group" aria-label={t('explorer.view')} className={p.cuts ? 'grid grid-cols-2 gap-0.5 rounded-[18px] border border-line p-0.5' : 'flex gap-0.5 rounded-full border border-line p-0.5'}>
+          {p.showCutControls && <div role="group" aria-label={t('explorer.view')} className={p.cuts ? 'grid grid-cols-2 gap-0.5 rounded-[18px] border border-line p-0.5' : 'flex gap-0.5 rounded-full border border-line p-0.5'}>
             <Segment pressed={view === 'whole'} onClick={() => p.onView(false, p.cutKind)}>
               {t('explorer.whole')}
             </Segment>
@@ -132,9 +133,9 @@ export function ExplorerPanel(p: PanelProps) {
                 {t(p.cuts.coronalKey)}
               </Segment>
             )}
-          </div>
+          </div>}
 
-          {p.cuts && p.cutaway && (
+          {p.showCutControls && p.cuts && p.cutaway && (
             <label className="flex flex-col gap-1.5 text-[13px] font-medium text-ink">
               <span className="flex items-center justify-between">
                 {t('explorer.cutPos')}

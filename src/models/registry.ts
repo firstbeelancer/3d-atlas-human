@@ -116,6 +116,8 @@ export const MODELS: Record<string, ModelEntry> = {
   },
   'krovenosnaya-sistema': {
     Component: lazy(() => import('./circulation/CirculationModel')),
+    hasCutaway: true,
+    explorer: true,
     camera: { position: OVERVIEW_CAMERA, fov: 32 },
     target: OVERVIEW_TARGET,
     floorY: BODY_FLOOR,

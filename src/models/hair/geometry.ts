@@ -47,6 +47,21 @@ export function vnoise(x: number, y: number, z: number): number {
   return lerp(lerp(x00, x10, uy), lerp(x01, x11, uy), uz);
 }
 
+/** Многооктавный фрактальный шум (fBm), 0..1, для органического микрорельефа. */
+export function fbm(x: number, y: number, z: number, octaves = 3): number {
+  let sum = 0;
+  let amp = 0.5;
+  let freq = 1;
+  let norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    sum += amp * vnoise(x * freq, y * freq, z * freq);
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2.03;
+  }
+  return sum / (norm || 1);
+}
+
 const sgnPow = (v: number, p: number): number => Math.sign(v) * Math.abs(v) ** p;
 
 function ensureIndex(g: BufferGeometry): void {
@@ -72,7 +87,7 @@ export function merge(list: BufferGeometry[]): BufferGeometry {
   return out ?? new BufferGeometry();
 }
 
-/** Кольца (каждое замкнуто: первая и последняя точки совпадают) → поверхность с наружными нормалями. */
+/** Кольца (каждое замкнуто: первая и последняя точки совпадают) -> поверхность с наружными нормалями. */
 export function ringsToGeometry(rings: Vector3[][], colors?: RGB[][], uvLen?: number): BufferGeometry {
   const rows = rings.length;
   const cols = rings[0].length;
@@ -160,8 +175,8 @@ interface Ring {
 
 /** Трубка вокруг кривой с радиусом, зависящим от параметра: параллельный перенос рамки, закрытые торцы. */
 export function sweep(curve: Curve<Vector3>, radius: (u: number) => number, o: SweepOpt = {}): BufferGeometry {
-  const n = o.n ?? 48;
-  const m = o.m ?? 20;
+  const n = o.n ?? 64;
+  const m = o.m ?? 28;
   const u0 = o.u0 ?? 0;
   const u1 = o.u1 ?? 1;
   const sq = (u: number) => (typeof o.squash === 'function' ? o.squash(u) : (o.squash ?? 1));
@@ -190,8 +205,8 @@ export function sweep(curve: Curve<Vector3>, radius: (u: number) => number, o: S
   const last = samples[samples.length - 1];
   if (o.cap0 === 'round') {
     const len = o.roundLen0 ?? first.r;
-    for (let k = 6; k >= 1; k--) {
-      const phi = (k / 6) * (Math.PI / 2);
+    for (let k = 8; k >= 1; k--) {
+      const phi = (k / 8) * (Math.PI / 2);
       list.push({ ...first, c: first.c.clone().addScaledVector(first.T, -len * Math.sin(phi)), r: first.r * Math.cos(phi) });
     }
   } else if (o.cap0 === 'flat') {
@@ -200,8 +215,8 @@ export function sweep(curve: Curve<Vector3>, radius: (u: number) => number, o: S
   list.push(...samples);
   if (o.cap1 === 'round') {
     const len = o.roundLen1 ?? last.r;
-    for (let k = 1; k <= 6; k++) {
-      const phi = (k / 6) * (Math.PI / 2);
+    for (let k = 1; k <= 8; k++) {
+      const phi = (k / 8) * (Math.PI / 2);
       list.push({ ...last, c: last.c.clone().addScaledVector(last.T, len * Math.sin(phi)), r: last.r * Math.cos(phi) });
     }
   } else if (o.cap1 === 'flat') {
@@ -236,7 +251,7 @@ export const curveOf = (pts: V3[], closed = false, tension = 0.5): CatmullRomCur
 /** Трубка по ломаной (сосуды, нервы, протоки). */
 export function tube(pts: V3[], r: number | ((u: number) => number), o: SweepOpt = {}): BufferGeometry {
   const rad = typeof r === 'number' ? () => r : r;
-  return sweep(curveOf(pts), rad, { n: Math.max(12, pts.length * 8), m: 10, cap0: 'round', cap1: 'round', ...o });
+  return sweep(curveOf(pts), rad, { n: Math.max(18, pts.length * 10), m: 14, cap0: 'round', cap1: 'round', ...o });
 }
 
 export interface SectionShape {
@@ -249,6 +264,8 @@ export interface SectionShape {
   cz?: number;
   /** Показатель суперэллипса: 2 — эллипс, больше — «подушка». */
   p?: number;
+  /** Необязательная модуляция радиуса по углу (для мыщелков и костных выступов). */
+  mod?: (a: number) => number;
 }
 
 export interface LoftOpt {
@@ -263,19 +280,18 @@ export interface LoftOpt {
 
 /** Тело вдоль оси x: сечение — суперэллипс, размеры задаются функцией от x. Основа пальца и костей. */
 export function loft(x0: number, x1: number, sec: (x: number) => SectionShape, o: LoftOpt = {}): BufferGeometry {
-  const n = o.n ?? 60;
-  const m = o.m ?? 28;
-  /** Кольцо с формой сечения в xs, смещённое в положение xp и уменьшенное в scale раз. */
+  const n = o.n ?? 72;
+  const m = o.m ?? 36;
   const ringAt = (xs: number, xp: number, scale: number): Vector3[] => {
     const s = sec(xs);
     const p = 2 / (s.p ?? 2.4);
     const out: Vector3[] = [];
     for (let j = 0; j <= m; j++) {
       const a = (j / m) * Math.PI * 2;
-      // (y, z, x) — правая тройка: обход от y к z даёт наружные нормали при росте x
+      const k = s.mod ? s.mod(a) : 1;
       const cy = sgnPow(Math.cos(a), p);
       const cz = sgnPow(Math.sin(a), p);
-      out.push(new Vector3(xp, s.cy + s.ry * cy * scale, (s.cz ?? 0) + s.hw * cz * scale));
+      out.push(new Vector3(xp, s.cy + s.ry * cy * scale * k, (s.cz ?? 0) + s.hw * cz * scale * k));
     }
     return out;
   };
@@ -286,8 +302,8 @@ export function loft(x0: number, x1: number, sec: (x: number) => SectionShape, o
   const rings: Vector3[][] = [];
   if (o.cap0 === 'round') {
     const len = o.roundLen0 ?? sec(x0).ry;
-    for (let k = 6; k >= 1; k--) {
-      const phi = (k / 6) * (Math.PI / 2);
+    for (let k = 8; k >= 1; k--) {
+      const phi = (k / 8) * (Math.PI / 2);
       rings.push(ringAt(x0, x0 - len * Math.sin(phi), Math.cos(phi)));
     }
   } else if (o.cap0 === 'flat') {
@@ -299,8 +315,8 @@ export function loft(x0: number, x1: number, sec: (x: number) => SectionShape, o
   }
   if (o.cap1 === 'round') {
     const len = o.roundLen1 ?? sec(x1).ry;
-    for (let k = 1; k <= 6; k++) {
-      const phi = (k / 6) * (Math.PI / 2);
+    for (let k = 1; k <= 8; k++) {
+      const phi = (k / 8) * (Math.PI / 2);
       rings.push(ringAt(x1, x1 + len * Math.sin(phi), Math.cos(phi)));
     }
   } else if (o.cap1 === 'flat') {
@@ -321,18 +337,22 @@ export interface SlabOpt {
 
 /** Замкнутая плита с переменной верхней и нижней поверхностью: слои кожи, пластина ногтя, ложе. */
 export function heightSlab(o: SlabOpt): BufferGeometry {
-  const nx = o.nx ?? 24;
-  const nz = o.nz ?? 16;
+  const nx = o.nx ?? 32;
+  const nz = o.nz ?? 24;
   const zhOf = (x: number) => (typeof o.zh === 'function' ? o.zh(x) : o.zh);
   const P: number[] = [];
+  const UV: number[] = [];
   const I: number[] = [];
+  const spanX = Math.max(1e-4, o.x1 - o.x0);
   const grid = (f: (x: number, z: number) => number, flip: boolean) => {
     const base = P.length / 3;
     for (let i = 0; i <= nx; i++) {
-      const x = o.x0 + ((o.x1 - o.x0) * i) / nx;
+      const x = o.x0 + (spanX * i) / nx;
+      const zh = zhOf(x);
       for (let j = 0; j <= nz; j++) {
-        const z = ((2 * j) / nz - 1) * zhOf(x);
+        const z = ((2 * j) / nz - 1) * zh;
         P.push(x, f(x, z), z);
+        UV.push((x - o.x0) / spanX, j / nz);
       }
     }
     for (let i = 0; i < nx; i++) {
@@ -351,6 +371,7 @@ export function heightSlab(o: SlabOpt): BufferGeometry {
   const quad = (p0: V3, p1: V3, p2: V3, p3: V3, out: V3) => {
     const base = P.length / 3;
     P.push(...p0, ...p1, ...p2, ...p3);
+    UV.push(0, 0, 1, 0, 0, 1, 1, 1);
     const u = new Vector3(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]);
     const v = new Vector3(p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]);
     const nrm = new Vector3().crossVectors(u, v);
@@ -359,8 +380,8 @@ export function heightSlab(o: SlabOpt): BufferGeometry {
   };
   const pt = (x: number, z: number, top: boolean): V3 => [x, top ? o.top(x, z) : o.bot(x, z), z];
   for (let i = 0; i < nx; i++) {
-    const xa = o.x0 + ((o.x1 - o.x0) * i) / nx;
-    const xb = o.x0 + ((o.x1 - o.x0) * (i + 1)) / nx;
+    const xa = o.x0 + (spanX * i) / nx;
+    const xb = o.x0 + (spanX * (i + 1)) / nx;
     quad(pt(xa, -zhOf(xa), true), pt(xb, -zhOf(xb), true), pt(xa, -zhOf(xa), false), pt(xb, -zhOf(xb), false), [0, 0, -1]);
     quad(pt(xa, zhOf(xa), true), pt(xb, zhOf(xb), true), pt(xa, zhOf(xa), false), pt(xb, zhOf(xb), false), [0, 0, 1]);
   }
@@ -373,6 +394,7 @@ export function heightSlab(o: SlabOpt): BufferGeometry {
   }
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(P, 3));
+  g.setAttribute('uv', new Float32BufferAttribute(UV, 2));
   g.setIndex(I);
   g.computeVertexNormals();
   return g;
@@ -391,8 +413,8 @@ export interface BlobOpt {
 
 /** Неровный эллипсоид: клетки, дольки, железы, тельца. */
 export function blob(c: V3, r: V3, o: BlobOpt = {}): BufferGeometry {
-  const seg = o.seg ?? 14;
-  let g: BufferGeometry = new SphereGeometry(1, seg, Math.max(6, Math.round(seg * 0.7)));
+  const seg = o.seg ?? 18;
+  let g: BufferGeometry = new SphereGeometry(1, seg, Math.max(8, Math.round(seg * 0.75)));
   g.deleteAttribute('uv');
   g.deleteAttribute('normal');
   g = mergeVertices(g, 1e-4);
@@ -404,7 +426,7 @@ export function blob(c: V3, r: V3, o: BlobOpt = {}): BufferGeometry {
     const x = p.getX(i);
     const y = p.getY(i);
     const z = p.getZ(i);
-    const k = 1 + amp * (vnoise(x * f + seed, y * f - seed, z * f + seed * 0.5) - 0.5) * 2;
+    const k = 1 + amp * (fbm(x * f + seed, y * f - seed, z * f + seed * 0.5, 2) - 0.5) * 2;
     p.setXYZ(i, x * k * r[0], y * k * r[1], z * k * r[2]);
   }
   if (o.rot) g.applyMatrix4(new Matrix4().makeRotationFromEuler(new Euler(...o.rot)));
@@ -421,7 +443,7 @@ export function place(g: BufferGeometry, pos: V3, rot: V3 = [0, 0, 0], scale: V3
 
 /** Диск-торец в плоскости x = const с наружной нормалью по -x: срез волокна, сечения типов волоса. */
 export function disc(x: number, ry: number, rz: number, o: { cy?: number; cz?: number; shape?: (a: number) => number; m?: number; thick?: number } = {}): BufferGeometry {
-  const m = o.m ?? 40;
+  const m = o.m ?? 56;
   const thick = o.thick ?? 0.04;
   const shape = o.shape ?? (() => 1);
   const cy = o.cy ?? 0;

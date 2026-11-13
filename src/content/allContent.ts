@@ -21,6 +21,7 @@ import c_podzheludochnaya from './ru/podzheludochnaya';
 import c_pochki from './ru/pochki';
 import c_zhenskaya_reproduktivnaya from './ru/zhenskaya-reproduktivnaya';
 import c_volosy_i_nogti from './ru/volosy-i-nogti';
+import c_kozha from './ru/kozha';
 
 /**
  * Весь контент разделов разом — только для пререндера HTML при сборке (scripts/prerender-meta.ts),
@@ -48,5 +49,6 @@ export const ALL_SECTION_CONTENT: Record<string, SectionContent> = {
   'podzheludochnaya': c_podzheludochnaya,
   'pochki': c_pochki,
   'zhenskaya-reproduktivnaya': c_zhenskaya_reproduktivnaya,
+  'kozha': c_kozha,
   'volosy-i-nogti': c_volosy_i_nogti,
 };

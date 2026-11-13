@@ -16,6 +16,8 @@ import { CUT_DEFAULT_T as TONGUE_CUT_T } from './tongue/anatomy';
 import { OVERVIEW as TONGUE_VIEW } from './tongue/parts';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 import { CUT_DEFAULT_T as NOSE_CUT_T, OVERVIEW as NOSE_VIEW } from './nose/anatomy';
+import { CUT_DEFAULT_T as SKIN_CUT_T } from './skin/anatomy';
+import { OVERVIEW as SKIN_VIEW } from './skin/parts';
 import { BLOOD_COLORS, BODY_FLOOR, OVERVIEW_CAMERA, OVERVIEW_TARGET } from './circulation/appearance';
 
 export interface ModelEntry {
@@ -288,6 +290,34 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 1.6, maxDistance: 110, free: true },
     modes: [{ id: 'micro', icon: 'lobule' }],
     description: modelDescriptions.podzheludochnaya,
+  },
+  kozha: {
+    Component: lazy(() => import('./skin/SkinModel')),
+    hasCutaway: true,
+    initialCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusSkin',
+    explorerCuts: { sideKey: 'explorer.cutSkinSide', coronalKey: 'explorer.cutSkinCoronal', defaults: SKIN_CUT_T },
+    isolate: true,
+    camera: {
+      position: [
+        SKIN_VIEW.at[0] + SKIN_VIEW.dir[0] * SKIN_VIEW.dist,
+        SKIN_VIEW.at[1] + SKIN_VIEW.dir[1] * SKIN_VIEW.dist,
+        SKIN_VIEW.at[2] + SKIN_VIEW.dir[2] * SKIN_VIEW.dist,
+      ],
+      fov: 32,
+    },
+    target: SKIN_VIEW.at,
+    floorY: -11.6,
+    bounds: { min: [-11, -12, -7], max: [11, 6, 7] },
+    orbit: { minDistance: 1.2, maxDistance: 120, free: true },
+    modes: [
+      { id: 'xray', icon: 'inside' },
+      { id: 'goose', icon: 'activity' },
+      { id: 'sweat', icon: 'waves' },
+      { id: 'sense', icon: 'brain' },
+    ],
+    description: modelDescriptions.kozha,
   },
   'volosy-i-nogti': {
     Component: lazy(() => import('./hair/HairModel')),

@@ -121,6 +121,11 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Systema cardiovasculare',
     tagline: 'Сеть сосудов, по которой кровь доходит до каждой клетки тела',
   },
+  kozha: {
+    title: 'Кожа',
+    latin: 'Cutis',
+    tagline: 'Самый большой орган тела: живой барьер, термостат и орган чувств в одном',
+  },
   'volosy-i-nogti': {
     title: 'Волосы и ногти',
     latin: 'Pili et ungues',

@@ -173,6 +173,16 @@ const ICONS: Record<OrganIconName, ReactNode> = {
       <path d="M3 14h4.5M16.5 14H21" />
     </>
   ),
+  skin: (
+    <>
+      <path d="M3 6.5c2-1.4 4-1.4 6 0s4 1.4 6 0 4-1.4 6 0" />
+      <path d="M3 11.5h18M3 16.5h18" />
+      <path d="M14.5 6.5 12.2 15.5" />
+      <ellipse cx="12" cy="16.9" rx="1.1" ry="1.3" />
+      <circle cx="6.5" cy="14" r="1.5" />
+      <path d="M6.5 12.5V6.5" />
+    </>
+  ),
   pregnancy: (
     <>
       <circle cx="12" cy="12" r="9" />

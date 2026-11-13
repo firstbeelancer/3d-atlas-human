@@ -38,6 +38,7 @@ export type OrganIconName =
   | 'testis'
   | 'vessels'
   | 'hair'
+  | 'skin'
   | 'pregnancy'
   | 'hormones';
 

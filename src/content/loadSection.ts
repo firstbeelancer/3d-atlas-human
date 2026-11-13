@@ -23,6 +23,7 @@ const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
   podzheludochnaya: () => import('./ru/podzheludochnaya'),
   pochki: () => import('./ru/pochki'),
   'zhenskaya-reproduktivnaya': () => import('./ru/zhenskaya-reproduktivnaya'),
+  kozha: () => import('./ru/kozha'),
   'volosy-i-nogti': () => import('./ru/volosy-i-nogti'),
 };
 

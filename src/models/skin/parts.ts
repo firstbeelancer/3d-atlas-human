@@ -137,7 +137,7 @@ const INFO: Record<string, Info> = {
   'lymph-capillaries': f([2.2, -1.7, 0.3], 6),
   // нервы и рецепторы
   'nerve-plexus': f([2.0, -5.6, 0.3], 8, { main: true }),
-  meissner: f([MEISSNER_SPOTS[0][0], epiBase(MEISSNER_SPOTS[0][0], MEISSNER_SPOTS[0][1]) + 0.4, MEISSNER_SPOTS[0][1]], 5, { main: true }),
+  meissner: f([MEISSNER_SPOTS[0][0], epiBase(MEISSNER_SPOTS[0][0], MEISSNER_SPOTS[0][1]) - 0.45, MEISSNER_SPOTS[0][1]], 5, { main: true }),
   pacinian: f([PACINIAN_SPOTS[0][0], PACINIAN_SPOTS[0][1], PACINIAN_SPOTS[0][2]], 6, { main: true }),
   ruffini: f([RUFFINI_SPOTS[0][0], RUFFINI_SPOTS[0][1], RUFFINI_SPOTS[0][2]], 6),
   'free-endings': f([-7.0, -1.1, 0.3], 5),

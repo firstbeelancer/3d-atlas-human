@@ -44,7 +44,7 @@ function skinSlabs(): Parts {
   const cornBot = (x: number, z: number) => SK.corneum + 0.25 * (reliefTop(x, z) - 0.028);
   return {
     'skin-microrelief': [d(heightSlab({ ...wavy, top: (x, z) => reliefTop(x, z), bot: (x, z) => reliefTop(x, z) - 0.05 }), 'corneum')],
-    'stratum-corneum': [d(heightSlab({ ...wavy, top: (x, z) => cornBot(x, z) + 0.012, bot: cornBot }), 'corneum')],
+    'stratum-corneum': [d(heightSlab({ ...wavy, top: (x, z) => reliefTop(x, z) - 0.04, bot: cornBot }), 'corneum')],
     'stratum-lucidum': [d(heightSlab({ ...wavy, top: (x, z) => cornBot(x, z) + 0.01, bot: () => SK.lucidum }), 'lucidum')],
     'stratum-granulosum': [d(heightSlab({ ...wavy, top: () => SK.lucidum + 0.01, bot: () => SK.granulosum }), 'granulosum')],
     'stratum-spinosum': [d(heightSlab({ ...wavy, top: () => SK.granulosum + 0.01, bot: (x, z) => epiBase(x, z) + 0.03 }), 'spinosum')],
@@ -301,7 +301,7 @@ export function buildSkin(): Parts {
   for (let x = -9; x <= 9; x += 1.15) {
     for (let z = -5; z <= 5; z += 1.35) {
       if (nearAxis(x, -1.5, z) < 1.4 || nearGlands(x, -1.5, z) < 0.4) continue;
-      const apex = epiBase(x, z) + 0.12;
+      const apex = epiBase(x, z) - 0.1;
       loops.push(tube([[x - 0.1, -2.15, z], [x - 0.08, -1.5, z], [x, apex, z], [x + 0.08, -1.5, z], [x + 0.1, -2.15, z]], 0.03, { n: 24, m: 8 }));
     }
   }
@@ -319,7 +319,7 @@ export function buildSkin(): Parts {
   const lymph: BufferGeometry[] = [];
   const lymphSpots: [number, number][] = [[-8.2, 2.2], [-4.6, -1.8], [-1.2, 3.4], [1.8, -2.6], [4.4, 3.0], [7.2, -1.2], [8.8, 2.6], [-6.4, 4.2]];
   for (const [x, z] of lymphSpots) {
-    const apex = epiBase(x, z) + 0.2;
+    const apex = epiBase(x, z) - 0.15;
     lymph.push(tube([[x - 0.16, -2.0, z], [x - 0.14, apex - 0.2, z], [x, apex, z], [x + 0.14, apex - 0.2, z], [x + 0.16, -2.0, z]], 0.06, { n: 26, m: 9 }));
   }
   lymph.push(tube([[-9.2, -7.4, -4.6], [-4, -7.5, -4.3], [1, -7.45, -4.5], [6, -7.5, -4.2], [9.2, -7.4, -4.4]], 0.12, { n: 70, m: 12 }));
@@ -340,7 +340,7 @@ export function buildSkin(): Parts {
   const meiCap: BufferGeometry[] = [];
   const meiNerve: BufferGeometry[] = [];
   MEISSNER_SPOTS.forEach(([x, z], i) => {
-    const y = epiBase(x, z) + 0.4;
+    const y = epiBase(x, z) - 0.45;
     meiCap.push(blob([x, y, z], [0.3, 0.44, 0.3], { seg: 18, amp: 0.04, seed: i + 40 }));
     for (let k = 0; k < 6; k++) {
       mei.push(blob([x, y - 0.3 + k * 0.12, z], [0.22, 0.05, 0.22], { seg: 12, amp: 0.08, seed: i * 7 + k }));

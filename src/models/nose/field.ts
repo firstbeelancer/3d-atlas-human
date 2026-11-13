@@ -148,6 +148,28 @@ export function nostrilDist(px: number, py: number, pz: number, s: 1 | -1): { d:
   return sdEllipticCapsule(px, py, pz, f.a, f.b, f.side, f.ra, f.rb);
 }
 
+/** Точка на стенке канала ноздри: w — вдоль оси от основания (мм), theta — угол по овалу. */
+export function nostrilWallPoint(s: 1 | -1, w: number, theta: number): V3 {
+  const f = nostrilFrame(s);
+  let dx = f.b[0] - f.a[0];
+  let dy = f.b[1] - f.a[1];
+  let dz = f.b[2] - f.a[2];
+  const len = Math.hypot(dx, dy, dz) || 1;
+  dx /= len; dy /= len; dz /= len;
+  const sd = f.side[0] * dx + f.side[1] * dy + f.side[2] * dz;
+  let sx = f.side[0] - dx * sd;
+  let sy = f.side[1] - dy * sd;
+  let sz = f.side[2] - dz * sd;
+  const sl = Math.hypot(sx, sy, sz) || 1;
+  sx /= sl; sy /= sl; sz /= sl;
+  const fx = dy * sz - dz * sy;
+  const fy = dz * sx - dx * sz;
+  const fz = dx * sy - dy * sx;
+  const c = Math.cos(theta) * f.ra;
+  const sn = Math.sin(theta) * f.rb;
+  return [f.a[0] + dx * w + sx * c + fx * sn, f.a[1] + dy * w + sy * c + fy * sn, f.a[2] + dz * w + sz * c + fz * sn];
+}
+
 /** Крыльная борозда: линия между крылом, кончиком и щекой (для стороны s). */
 export function alarGroove(s: 1 | -1): V3[] {
   return [

@@ -289,3 +289,44 @@ export function empty(): BufferGeometry {
   g.setIndex([]);
   return g;
 }
+
+
+/** Плоская лента вдоль сплайна с управляемым наклоном сечения: для хрящевых ножек и пластинок. */
+export function sweep(
+  pts: V3[],
+  ups: V3[],
+  half: (t: number) => [number, number],
+  opts: { segs?: number; radial?: number; n?: number } = {},
+): BufferGeometry {
+  const segs = opts.segs ?? Math.max(12, pts.length * 6);
+  const radial = opts.radial ?? 16;
+  const curve = new CatmullRomCurve3(pts.map((p) => new Vector3(...p)), false, 'centripetal');
+  const upCurve = new CatmullRomCurve3(ups.map((p) => new Vector3(...p)), false, 'centripetal');
+  const e = 2 / (opts.n ?? 2.6);
+  const rings: V3[][] = [];
+  const T = new Vector3();
+  const up = new Vector3();
+  const side = new Vector3();
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    const c = curve.getPointAt(t);
+    curve.getTangentAt(t, T);
+    up.copy(upCurve.getPointAt(t));
+    up.addScaledVector(T, -up.dot(T)).normalize();
+    side.crossVectors(up, T).normalize();
+    const [hw, ht] = half(t);
+    const ringPts: V3[] = [];
+    for (let j = 0; j < radial; j++) {
+      const th = (j / radial) * Math.PI * 2;
+      const cx = Math.sign(Math.cos(th)) * Math.pow(Math.abs(Math.cos(th)), e);
+      const cy = Math.sign(Math.sin(th)) * Math.pow(Math.abs(Math.sin(th)), e);
+      ringPts.push([
+        c.x + side.x * hw * cx + up.x * ht * cy,
+        c.y + side.y * hw * cx + up.y * ht * cy,
+        c.z + side.z * hw * cx + up.z * ht * cy,
+      ]);
+    }
+    rings.push(ringPts);
+  }
+  return loft(rings, { closed: true, capStart: true, capEnd: true });
+}

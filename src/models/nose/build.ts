@@ -11,7 +11,9 @@ import {
   ROOF_Y,
   type V3,
 } from './anatomy';
-import { add, blob, bothSides, bump, cross, ellipsoid, empty, grid, lerp, loft, merge, mirrorX, norm, plate, ring, smoothOutline, smoothstep, spline, tube, xf } from './geometry';
+import { add, blob, bothSides, bump, cross, ellipsoid, empty, grid, lerp, loft, merge, mirrorX, norm, plate, ring, smoothOutline, smoothstep, spline, sweep, tube, xf } from './geometry';
+import { EXTERNAL_BOX, externalField, externalPart, faceZ, nostrilFrame, nostrilWallPoint, skinTint } from './field';
+import { meshField, splitMesh } from './mesh';
 
 export type MatKey =
   | 'skin'
@@ -111,37 +113,11 @@ function shell(t0: number, t1: number, th0: number, th1: number, depth: number, 
 }
 
 function buildExternal(): Record<string, BufferGeometry> {
-  const th0 = -0.22 * Math.PI;
-  const th1 = 1.22 * Math.PI;
-  const root = shell(0.0, 0.2, th0, th1, 0, 0, 10, 48);
-  const dors = shell(0.2, 0.52, th0, th1, 0, 0, 16, 48);
-  const tip = shell(0.52, 0.74, th0, th1, 0, 0, 16, 48);
-  const col = shell(0.74, 1.0, 0, Math.PI, 0, 0, 12, 24);
-  // крылья: толстые дуги от дольки кончика к основанию крыла
-  const alaPath = (s: 1 | -1): V3[] => [
-    [s * 4, -9, 42],
-    [s * 9, -8.5, 40.5],
-    [s * 13.5, -9.5, 36],
-    [s * 16.5, -12.5, 30],
-    [s * 17.5, -16, 25.5],
-    [s * 16, -19.5, 22],
-  ];
-  const alaR = (t: number) => 3.2 + 3.2 * Math.sin(Math.PI * Math.min(1, t * 1.15)) + 1.2 * smoothstep(0.5, 1, t);
-  const alaL = tube(alaPath(1), alaR, { segs: 36, radial: 20, flat: 0.8 });
-  const alaRt = tube(alaPath(-1), alaR, { segs: 36, radial: 20, flat: 0.8 });
-  // ноздри: овальные края отверстий под крыльями + тёмный просвет
-  const nostril = (s: 1 | -1) => {
-    const c: V3 = [s * 7.5, -20, 32];
-    const pts: V3[] = [];
-    for (let j = 0; j < 24; j++) {
-      const th = (j / 24) * TAU;
-      pts.push([c[0] + s * 3.2 * Math.cos(th), c[1] + 1.2 * Math.sin(th) * Math.cos(th), c[2] + 6 * Math.sin(th)]);
-    }
-    const rim = tube(pts, 1.1, { segs: 48, radial: 10, caps: false, closedCurve: true });
-    return rim;
-  };
-  const opening = (s: 1 | -1) => xf(new SphereGeometry(1, 20, 12), { pos: [s * 7.5, -19.2, 32], scale: [3.2, 1.2, 6] });
-  // волоски преддверия
+  // единая органическая поверхность: спинка, кончик с дольками, крылья, колумелла и настоящие ноздри
+  const skin = meshField(externalField, EXTERNAL_BOX, 0.6, { uvScale: 1 / 32, color: skinTint, smooth: 2 });
+  const parts = splitMesh(skin, externalPart);
+  skin.dispose();
+  // волоски преддверия: растут со стенок канала ноздри
   const hairs: BufferGeometry[] = [];
   let seed = 7;
   const rnd = () => {
@@ -149,25 +125,20 @@ function buildExternal(): Record<string, BufferGeometry> {
     return seed / 2147483647;
   };
   for (const s of [1, -1] as const) {
-    for (let i = 0; i < 26; i++) {
+    const f = nostrilFrame(s);
+    const ax = norm([f.b[0] - f.a[0], f.b[1] - f.a[1], f.b[2] - f.a[2]]);
+    for (let i = 0; i < 24; i++) {
+      const w = 2.5 + rnd() * 6;
       const th = rnd() * TAU;
-      const base: V3 = [s * (7.5 + 3.4 * Math.cos(th)), -17 + 2 * rnd(), 32 + 5.2 * Math.sin(th)];
-      const dir: V3 = norm([-(base[0] - s * 7.5) * 0.4 + (rnd() - 0.5), 3 + rnd() * 2, -(base[2] - 32) * 0.35 + (rnd() - 0.5)]);
-      const len = 3 + rnd() * 2.5;
-      hairs.push(tube([base, add(base, dir, len * 0.5), add(add(base, dir, len), [0, 0.6, 0], 1)], 0.16, { segs: 6, radial: 5 }));
+      const base = nostrilWallPoint(s, w, th);
+      const inward = norm([f.a[0] + ax[0] * (w + 3) - base[0], f.a[1] + ax[1] * (w + 3) - base[1], f.a[2] + ax[2] * (w + 3) - base[2]]);
+      const dir = norm([inward[0] + (rnd() - 0.5) * 0.5, inward[1] + 0.4 + rnd() * 0.3, inward[2] + (rnd() - 0.5) * 0.5]);
+      const len = 2.5 + rnd() * 2.5;
+      hairs.push(tube([base, add(base, dir, len * 0.5), add(add(base, dir, len), [0, 0.4, 0], 1)], 0.14, { segs: 6, radial: 5 }));
     }
   }
-  return {
-    'nasal-root': root,
-    'nasal-dorsum': dors,
-    'nasal-tip': tip,
-    'ala-left': alaL,
-    'ala-right': alaRt,
-    columella: col,
-    nostrils: merge([nostril(1), nostril(-1)]),
-    'nostril-opening': merge([opening(1), opening(-1)]),
-    vibrissae: merge(hairs),
-  };
+  parts.vibrissae = merge(hairs);
+  return parts;
 }
 
 /* ---------- Костно-хрящевой скелет ---------- */
@@ -186,26 +157,42 @@ function horizontal(outline: [number, number][], thickness: number, y0: number, 
 }
 
 function buildSkeleton(): Record<string, BufferGeometry> {
-  const nasalBones = shell(0.06, 0.42, 0.28 * Math.PI, 0.72 * Math.PI, 1.6, 1.8, 14, 20);
+  const nasalBones = merge([
+    shell(0.06, 0.42, 0.30 * Math.PI, 0.475 * Math.PI, 1.7, 1.7, 14, 12),
+    shell(0.06, 0.42, 0.525 * Math.PI, 0.70 * Math.PI, 1.7, 1.7, 14, 12),
+  ]);
   const frontalProcess = merge([
     shell(0.0, 0.4, 0.72 * Math.PI, 1.1 * Math.PI, 1.6, 1.8, 12, 12),
     shell(0.0, 0.4, -0.1 * Math.PI, 0.28 * Math.PI, 1.6, 1.8, 12, 12),
   ]);
   const ulc = shell(0.4, 0.6, 0.16 * Math.PI, 0.84 * Math.PI, 1.6, 1.2, 12, 24);
-  // крыльные хрящи: латеральные ножки (дуги под кожей кончика) и медиальные ножки вдоль колумеллы
-  const lateralCrus = shell(0.58, 0.76, 0.1 * Math.PI, 0.9 * Math.PI, 1.6, 1.1, 12, 28);
-  const medialCrus = (s: 1 | -1) =>
-    tube(
+  // большой крыльный хрящ: подковообразная пластинка — медиальная ножка, купол, латеральная ножка
+  const alarCrus = (s: 1 | -1) =>
+    sweep(
       [
-        [s * 1.2, -7, 41],
-        [s * 1.4, -12, 40],
-        [s * 1.5, -17, 36],
-        [s * 1.6, -20, 31],
+        [s * 1.5, -19.5, 30.5],
+        [s * 1.9, -14, 36.5],
+        [s * 2.3, -10, 40.2],
+        [s * 3.4, -7.2, 42.3],
+        [s * 6.5, -6.3, 40.8],
+        [s * 10.5, -6.8, 36.5],
+        [s * 13.5, -8.5, 31.5],
+        [s * 15.0, -11, 27.5],
       ],
-      0.8,
-      { segs: 14, radial: 8, flat: 2.2 },
+      [
+        [s, 0, 0.2],
+        [s, 0, 0.3],
+        [s * 0.7, 0.2, 0.8],
+        [s * 0.5, 0.3, 1],
+        [s * 0.7, 0.3, 0.7],
+        [s * 0.85, 0.2, 0.5],
+        [s * 0.9, 0.1, 0.4],
+        [s * 0.9, 0, 0.3],
+      ],
+      (t) => [lerp(1.1, 2.3, smoothstep(0.15, 0.6, t)) * (1 - 0.25 * smoothstep(0.8, 1, t)), 0.55],
+      { segs: 40, radial: 14, n: 2.8 },
     );
-  const alar = merge([lateralCrus, medialCrus(1), medialCrus(-1)]);
+  const alar = merge([alarCrus(1), alarCrus(-1)]);
   const septalCartilage = sagittal(
     [
       [22, -17],
@@ -327,9 +314,9 @@ function lateralWall(): BufferGeometry {
 }
 
 function buildCavity(): Record<string, BufferGeometry> {
-  const inferior = concha(10.5, -10, 14, -36, 4.6, 6.2, -0.35);
-  const middle = concha(9, 6, 4, -34, 4, 6.4, -0.3, 26);
-  const superior = concha(7, 18, -12, -32, 2.4, 3.4, -0.3, 16);
+  const inferior = concha(13, -8, 16, -34, 6.5, 1.8, 1.45);
+  const middle = concha(12.5, 4, 6, -32, 5.2, 1.6, 1.4);
+  const superior = concha(11, 17, -10, -30, 3.0, 1.3, 1.3);
   const air = (c: V3, r: V3) => ellipsoid(c, r, [0, 0, 0], 20);
   const infMeatus = air([12.5, -16.5, -10], [3.2, 4.8, 24]);
   const midMeatus = air([12.5, 0, -10], [3.4, 5, 20]);
@@ -342,7 +329,6 @@ function buildCavity(): Record<string, BufferGeometry> {
     }
     return tube(pts, 0.5, { segs: 40, radial: 8, caps: false, closedCurve: true });
   };
-  const vestibule = ellipsoid([8, -13, 30], [5, 7.5, 8.5], [0.25, 0, 0], 22);
   const uncinate = sagittal(
     [
       [4, 9],
@@ -385,7 +371,6 @@ function buildCavity(): Record<string, BufferGeometry> {
     4.2,
   );
   return {
-    vestibule: bothSides(vestibule),
     'nasal-valve': merge([valve(1), valve(-1)]),
     'septum-mucosa': septumMucosa,
     'inferior-concha': bothSides(inferior),
@@ -768,17 +753,10 @@ function buildMuscles(): Record<string, BufferGeometry> {
 /* ---------- Соседи ---------- */
 
 function faceMask(): BufferGeometry {
-  return grid(44, 48, (u, v) => {
+  return grid(48, 52, (u, v) => {
     const x = lerp(-52, 52, u);
     const y = lerp(-48, 66, v);
-    let z = 16 - 0.0095 * x * x - (y > 20 ? 0.0022 : 0.0032) * (y - 20) * (y - 20);
-    // надбровья, глазницы, скулы, губы
-    z += 3 * bump(y, 40, 10) * bump(Math.abs(x), 28, 30);
-    z -= 8 * bump(Math.abs(x), 32, 17) * bump(y, 30, 12);
-    z += 3.5 * bump(Math.abs(x), 42, 16) * bump(y, 8, 16);
-    z += 5.5 * bump(Math.abs(x), 0, 26) * bump(y, -34, 11);
-    z += 2.5 * bump(Math.abs(x), 0, 20) * bump(y, -46, 8);
-    return [x, y, z];
+    return [x, y, faceZ(x, y)];
   });
 }
 
@@ -964,8 +942,6 @@ export function buildNose(): Record<string, MeshDef[]> {
     const g = raw[id] ?? empty();
     out[id] = [{ g, m: MATERIAL[id] ?? 'mucosa' }];
   }
-  // тёмный просвет ноздрей живёт вместе с их краями
-  out.nostrils.push({ g: raw['nostril-opening'], m: 'dark', noPick: true });
   return out;
 }
 

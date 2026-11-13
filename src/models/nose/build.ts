@@ -281,25 +281,35 @@ function buildSkeleton(): Record<string, BufferGeometry> {
 /* ---------- Полость носа ---------- */
 
 /** Носовая раковина: свёрнутый валик вдоль оси z, прикреплённый к латеральной стенке. */
-function concha(x: number, y: number, z0: number, z1: number, rx: number, ry: number, tilt: number, stations = 30): BufferGeometry {
+function concha(xa: number, ya: number, z0: number, z1: number, r0: number, thick: number, curl: number, stations = 34): BufferGeometry {
+  // носовая раковина: свёрнутая в рулончик пластинка, прикреплённая к латеральной стенке;
+  // свободный край закручен медиально — так она выглядит на сагиттальном и фронтальном срезе
+  const J = 26;
+  const cx = xa - r0 * 0.9;
+  const cy = ya - r0 * 0.35;
+  const th0 = 0.3 * Math.PI;
+  const sweepAng = curl * Math.PI;
   const rings: V3[][] = [];
-  const segs = 26;
   for (let i = 0; i <= stations; i++) {
     const t = i / stations;
     const z = lerp(z0, z1, t);
-    const taper = Math.pow(Math.sin(Math.PI * Math.min(0.999, Math.max(0.001, t))), 0.45);
-    const pts: V3[] = [];
-    for (let j = 0; j < segs; j++) {
-      const th = (j / segs) * TAU;
-      // каплевидное сечение: толстый свободный край снизу-медиально, тонкое прикрепление сверху-латерально
-      const r = 1 + 0.25 * Math.cos(th - Math.PI * 0.5) + 0.08 * Math.cos(th * 3 + z * 0.3);
-      const lx = rx * r * Math.cos(th) * taper;
-      const ly = ry * r * Math.sin(th) * taper;
-      const cx = lx * Math.cos(tilt) - ly * Math.sin(tilt);
-      const cy = lx * Math.sin(tilt) + ly * Math.cos(tilt);
-      pts.push([x + cx, y + cy, z]);
+    const taper = Math.pow(Math.sin(Math.PI * Math.min(0.999, Math.max(0.001, t))), 0.5);
+    const outer: V3[] = [];
+    const inner: V3[] = [];
+    for (let j = 0; j <= J; j++) {
+      const f = j / J;
+      const phi = sweepAng * f;
+      const r = r0 * (1 - 0.45 * f) * taper;
+      const th = th0 + phi;
+      const px = cx + r * Math.cos(th);
+      const py = cy + r * Math.sin(th);
+      const nx = Math.cos(th);
+      const ny = Math.sin(th);
+      const ht = (thick / 2) * taper;
+      outer.push([px + nx * ht, py + ny * ht, z]);
+      inner.push([px - nx * ht, py - ny * ht, z]);
     }
-    rings.push(pts);
+    rings.push([...outer, ...inner.reverse()]);
   }
   return loft(rings, { closed: true, capStart: true, capEnd: true });
 }

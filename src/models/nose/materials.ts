@@ -8,6 +8,7 @@ export interface NoseTextures {
   skinBump: Texture | null;
   mucosa: Texture | null;
   mucosaBump: Texture | null;
+  boneBump: Texture | null;
 }
 
 function canvasTexture(size: number, paint: (ctx: CanvasRenderingContext2D, size: number) => void, srgb = true): Texture | null {
@@ -35,87 +36,80 @@ const rnd = () => {
 export function buildTextures(): NoseTextures {
   seed = 1234;
   const skin = canvasTexture(512, (ctx, s) => {
-    ctx.fillStyle = '#e6b59c';
+    ctx.fillStyle = '#e7b49b';
     ctx.fillRect(0, 0, s, s);
-    for (let i = 0; i < 1800; i++) {
-      const r = 6 + rnd() * 22;
-      ctx.fillStyle = `rgba(${200 + rnd() * 40}, ${120 + rnd() * 60}, ${100 + rnd() * 50}, ${0.05 + rnd() * 0.08})`;
-      ctx.beginPath();
-      ctx.arc(rnd() * s, rnd() * s, r, 0, Math.PI * 2);
-      ctx.fill();
+    for (let i = 0; i < 1500; i++) {
+      const r = 8 + rnd() * 26;
+      ctx.fillStyle = `rgba(${205 + rnd() * 40}, ${125 + rnd() * 60}, ${105 + rnd() * 50}, ${0.04 + rnd() * 0.07})`;
+      ctx.beginPath(); ctx.arc(rnd() * s, rnd() * s, r, 0, Math.PI * 2); ctx.fill();
     }
-    for (let i = 0; i < 2600; i++) {
-      ctx.fillStyle = `rgba(120, 60, 50, ${0.08 + rnd() * 0.14})`;
-      ctx.beginPath();
-      ctx.arc(rnd() * s, rnd() * s, 0.6 + rnd() * 1.4, 0, Math.PI * 2);
-      ctx.fill();
+    for (let i = 0; i < 3200; i++) {
+      const x = rnd() * s, y = rnd() * s, r = 0.7 + rnd() * 1.6;
+      ctx.fillStyle = `rgba(255, 226, 205, ${0.1 + rnd() * 0.12})`;
+      ctx.beginPath(); ctx.arc(x, y, r + 0.8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(120, 62, 52, ${0.1 + rnd() * 0.16})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(150, 88, 72, 0.10)';
+    ctx.lineWidth = 0.6;
+    for (let i = 0; i < 260; i++) {
+      const x = rnd() * s, y = rnd() * s;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.lineTo(x + (rnd() - 0.5) * 26, y + (rnd() - 0.5) * 26); ctx.stroke();
     }
   });
-  const skinBump = canvasTexture(
-    512,
-    (ctx, s) => {
-      ctx.fillStyle = '#808080';
-      ctx.fillRect(0, 0, s, s);
-      for (let i = 0; i < 5000; i++) {
-        const v = 90 + rnd() * 60;
-        ctx.fillStyle = `rgb(${v},${v},${v})`;
-        ctx.beginPath();
-        ctx.arc(rnd() * s, rnd() * s, 0.8 + rnd() * 2.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.strokeStyle = 'rgba(70,70,70,0.35)';
-      ctx.lineWidth = 0.8;
-      for (let i = 0; i < 220; i++) {
-        ctx.beginPath();
-        const x = rnd() * s;
-        const y = rnd() * s;
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + (rnd() - 0.5) * 60, y + (rnd() - 0.5) * 60);
-        ctx.stroke();
-      }
-    },
-    false,
-  );
+  const skinBump = canvasTexture(512, (ctx, s) => {
+    ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 5200; i++) {
+      const v = 92 + rnd() * 58;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.beginPath(); ctx.arc(rnd() * s, rnd() * s, 0.7 + rnd() * 2.0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(70,70,70,0.30)'; ctx.lineWidth = 0.7;
+    for (let i = 0; i < 240; i++) {
+      const x = rnd() * s, y = rnd() * s;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rnd() - 0.5) * 40, y + (rnd() - 0.5) * 40); ctx.stroke();
+    }
+  }, false);
   const mucosa = canvasTexture(512, (ctx, s) => {
-    ctx.fillStyle = '#e8899a';
-    ctx.fillRect(0, 0, s, s);
-    for (let i = 0; i < 900; i++) {
-      ctx.fillStyle = `rgba(${220 + rnd() * 35}, ${110 + rnd() * 60}, ${120 + rnd() * 50}, ${0.08 + rnd() * 0.1})`;
-      ctx.beginPath();
-      ctx.arc(rnd() * s, rnd() * s, 8 + rnd() * 30, 0, Math.PI * 2);
-      ctx.fill();
+    ctx.fillStyle = '#e8899a'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 800; i++) {
+      ctx.fillStyle = `rgba(${222 + rnd() * 33}, ${112 + rnd() * 58}, ${122 + rnd() * 50}, ${0.07 + rnd() * 0.1})`;
+      ctx.beginPath(); ctx.arc(rnd() * s, rnd() * s, 8 + rnd() * 28, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.lineWidth = 1.1;
-    for (let i = 0; i < 160; i++) {
-      ctx.strokeStyle = `rgba(190, 40, 60, ${0.18 + rnd() * 0.22})`;
-      ctx.beginPath();
-      let x = rnd() * s;
-      let y = rnd() * s;
-      ctx.moveTo(x, y);
-      for (let k = 0; k < 6; k++) {
-        x += (rnd() - 0.5) * 40;
-        y += (rnd() - 0.5) * 40;
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
+    const drawVessel = (x: number, y: number, ang: number, len: number, w: number, depth: number): void => {
+      if (depth <= 0 || len < 3) return;
+      const nx = x + Math.cos(ang) * len, ny = y + Math.sin(ang) * len;
+      ctx.strokeStyle = `rgba(185, 42, 62, ${0.16 + rnd() * 0.2})`;
+      ctx.lineWidth = w;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
+      drawVessel(nx, ny, ang + (rnd() - 0.5) * 0.9, len * 0.72, w * 0.7, depth - 1);
+      if (rnd() < 0.7) drawVessel(nx, ny, ang + (rnd() - 0.5) * 1.6, len * 0.6, w * 0.6, depth - 1);
+    };
+    for (let i = 0; i < 26; i++) drawVessel(rnd() * s, rnd() * s, rnd() * Math.PI * 2, 16 + rnd() * 20, 1.6, 5);
   });
-  const mucosaBump = canvasTexture(
-    256,
-    (ctx, s) => {
-      ctx.fillStyle = '#808080';
-      ctx.fillRect(0, 0, s, s);
-      for (let i = 0; i < 1400; i++) {
-        const v = 100 + rnd() * 56;
-        ctx.fillStyle = `rgb(${v},${v},${v})`;
-        ctx.beginPath();
-        ctx.arc(rnd() * s, rnd() * s, 1 + rnd() * 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    },
-    false,
-  );
-  return { skin, skinBump, mucosa, mucosaBump };
+  const mucosaBump = canvasTexture(256, (ctx, s) => {
+    ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 1500; i++) {
+      const v = 100 + rnd() * 56;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.beginPath(); ctx.arc(rnd() * s, rnd() * s, 1 + rnd() * 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }, false);
+  const boneBump = canvasTexture(256, (ctx, s) => {
+    ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 2600; i++) {
+      const v = 104 + rnd() * 48;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.beginPath(); ctx.arc(rnd() * s, rnd() * s, 0.5 + rnd() * 1.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(96,96,96,0.22)'; ctx.lineWidth = 0.6;
+    for (let i = 0; i < 120; i++) {
+      const x = rnd() * s, y = rnd() * s;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rnd() - 0.5) * 30, y + (rnd() - 0.5) * 8); ctx.stroke();
+    }
+  }, false);
+  return { skin, skinBump, mucosa, mucosaBump, boneBump };
 }
 
 /**
@@ -145,6 +139,7 @@ export function makeMaterial(kind: MatKey, t: NoseTextures): Material {
       return solid(
         {
           color: '#e2a98e',
+          vertexColors: true,
           map: t.skin,
           bumpMap: t.skinBump,
           bumpScale: 0.35,
@@ -159,13 +154,13 @@ export function makeMaterial(kind: MatKey, t: NoseTextures): Material {
         '#f3d9b6',
       );
     case 'skinInner':
-      return solid({ color: '#e3a48f', map: t.skin, bumpMap: t.skinBump, bumpScale: 0.3, roughness: 0.6 }, 'skinInner', '#f0d2b2');
+      return solid({ color: '#e3a48f', vertexColors: true, map: t.skin, bumpMap: t.skinBump, bumpScale: 0.3, roughness: 0.6 }, 'skinInner', '#f0d2b2');
     case 'dark':
       return P({ color: '#2a1216', roughness: 0.95, side: FrontSide });
     case 'hair':
       return P({ color: '#3b2a22', roughness: 0.5, side: DoubleSide });
     case 'bone':
-      return solid({ color: '#efe6cf', roughness: 0.62, sheen: 0.2, sheenColor: new Color('#fff6dd') }, 'bone', '#d9c9a4');
+      return solid({ color: '#efe6cf', bumpMap: t.boneBump, bumpScale: 0.3, roughness: 0.62, sheen: 0.2, sheenColor: new Color('#fff6dd') }, 'bone', '#d9c9a4');
     case 'boneGhost':
       return P({ color: '#efe6cf', roughness: 0.6, transparent: true, opacity: 0.18, depthWrite: false, side: DoubleSide });
     case 'cartilage':

@@ -189,7 +189,7 @@ export default function NoseModel({ state, names = {} }: ModelProps) {
     const b = Math.max(0, breath(state.time.current));
     if (Math.abs(b - lastB.current) > 0.004) {
       lastB.current = b;
-      const k = 1 + 0.035 * b * (1 - Math.min(1, c.explode * 3));
+      const k = 1 + 0.02 * b * (1 - Math.min(1, c.explode * 3));
       alaL.current?.scale.set(k, 1, 1);
       alaR.current?.scale.set(k, 1, 1);
       invalidate();

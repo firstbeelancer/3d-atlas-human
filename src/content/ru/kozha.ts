@@ -1,8 +1,11 @@
 import type { Part, SectionContent } from '../types';
 import { GROUP_OF } from '../../models/skin/parts';
+import { isSkinPartInteractive } from '../../models/skin/selectionMap';
 
 /** Часть раздела: группа берётся из модели, чтобы текст и 3D не расходились. */
-const p = (id: string, name: string, latin: string, text: string): Part => ({ id, name, latin, text, group: GROUP_OF[id] });
+const p = (id: string, name: string, latin: string, text: string): Part => ({
+  id, name, latin, text, group: GROUP_OF[id], interactive: isSkinPartInteractive(id) ? undefined : false,
+});
 
 const kozha: SectionContent = {
   slug: 'kozha',

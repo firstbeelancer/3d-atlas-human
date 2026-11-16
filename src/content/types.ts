@@ -71,6 +71,8 @@ export interface Part {
   latin?: string;
   text: string;
   adult?: boolean;
+  /** Часть описана в тексте, но недоступна для выбора на модели. */
+  interactive?: false;
   /** Группа частей (id из SectionContent.groups) — для больших моделей вроде скелета. */
   group?: string;
 }

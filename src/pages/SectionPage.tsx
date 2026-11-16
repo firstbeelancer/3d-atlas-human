@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { getSection } from '../content/sections';
 import { systemColor, SYSTEMS } from '../content/systems';
@@ -20,6 +20,8 @@ import {
 } from '../components/section/blocks';
 import { MODELS } from '../models/registry';
 import { Stage } from '../three/Stage';
+import { StageBoundary } from '../three/StageBoundary';
+import { StageLoading } from '../three/StageLoading';
 import { SelectionProvider } from '../three/selection';
 import { NotFoundPage } from './NotFoundPage';
 import { AdultOnly } from '../components/AdultOnly';
@@ -27,6 +29,38 @@ import { useAdult } from '../lib/adult';
 import { loadAdultContent } from '../content/adult/loadAdult';
 
 const loadAdultNote = () => import('../content/adult/AdultSectionNote');
+
+const viewerShell = 'relative min-h-[310px] rounded-plinth border border-line bg-plinth lg:h-full';
+
+function ViewerFallback({ description }: { description?: string }) {
+  return (
+    <div className={viewerShell}>
+      {description ? (
+        <div className="grid h-full place-content-center gap-2 p-6 text-center">
+          <p className="m-0 font-semibold">{description}</p>
+          <p className="m-0 text-ink-soft">{t('stage.failed')}</p>
+        </div>
+      ) : <StageLoading phase="loading" />}
+    </div>
+  );
+}
+
+function CustomViewer({ Viewer, label, description, names }: {
+  Viewer: NonNullable<(typeof MODELS)[string]['Viewer']>;
+  label: string;
+  description: string;
+  names?: Record<string, string>;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <ViewerFallback description={description} />;
+  return (
+    <StageBoundary onError={() => setFailed(true)}>
+      <Suspense fallback={<ViewerFallback />}>
+        <Viewer label={label} description={description} names={names} />
+      </Suspense>
+    </StageBoundary>
+  );
+}
 
 export function SectionPage() {
   const { slug = '' } = useParams();
@@ -83,6 +117,7 @@ export function SectionPage() {
   if (!section) return <NotFoundPage />;
   const systemTitle = SYSTEMS.find((s) => s.id === section.system)?.title ?? '';
   const model = MODELS[section.slug];
+  const ModelComponent = model?.Component;
 
   return (
     <SelectionProvider key={section.slug}>
@@ -93,7 +128,8 @@ export function SectionPage() {
         <div className={model ? 'grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14' : ''}>
           {model && (
             <div className="stage-host lg:sticky lg:top-[84px] lg:h-[calc(100dvh-108px)] lg:self-start">
-              <Stage
+              {model.Viewer && <CustomViewer Viewer={model.Viewer} label={section.title} description={model.description} names={names} />}
+              {ModelComponent && <Stage
                 label={section.title}
                 description={model.description}
                 hasCutaway={model.hasCutaway}
@@ -112,8 +148,8 @@ export function SectionPage() {
                 mobileModeRoom={model.mobileModeRoom}
                 className="aspect-square max-h-[78vh] w-full lg:aspect-auto lg:h-full lg:max-h-none"
               >
-                {(state) => <model.Component state={state} names={names} />}
-              </Stage>
+                {(state) => <ModelComponent state={state} names={names} />}
+              </Stage>}
             </div>
           )}
 

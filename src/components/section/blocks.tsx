@@ -97,6 +97,7 @@ export function PartsList({ parts, groups, canIsolate }: { parts: Part[]; groups
 
   const setRef = (id: string) => (el: HTMLButtonElement | null) => {
     if (el) refs.current.set(id, el);
+    else refs.current.delete(id);
   };
 
   return (
@@ -105,6 +106,14 @@ export function PartsList({ parts, groups, canIsolate }: { parts: Part[]; groups
         const isSel = selected === p.id;
         const isHover = hovered === p.id;
         const g = p.group && groupName.has(p.group) && parts[i - 1]?.group !== p.group ? p.group : null;
+        const title = (
+          <span className="flex flex-wrap items-baseline gap-x-2.5">
+            <span className="part-row__dot" aria-hidden />
+            <span className="font-display text-[18px] font-semibold tracking-[-0.01em]">{p.name}</span>
+            {p.latin && <span className="text-[14px] text-ink-soft">{p.latin}</span>}
+          </span>
+        );
+        const description = <span className="mt-1 block pl-[18px] text-[16px] leading-[1.55] text-ink-soft">{p.text}</span>;
         return (
           <li key={p.id} className="border-b border-line">
             {g && (
@@ -126,7 +135,9 @@ export function PartsList({ parts, groups, canIsolate }: { parts: Part[]; groups
               </button>
             )}
             {g && canIsolate && selected === g && <IsolateButton />}
-            <button
+            {p.interactive === false ? (
+              <div className="px-3 py-3.5">{title}{description}</div>
+            ) : <button
               type="button"
               ref={setRef(p.id)}
               aria-current={isSel ? 'true' : undefined}
@@ -138,13 +149,8 @@ export function PartsList({ parts, groups, canIsolate }: { parts: Part[]; groups
               className="part-row block w-full cursor-pointer px-3 py-3.5 text-left text-ink transition-colors"
               data-hover={isHover || undefined}
             >
-              <span className="flex flex-wrap items-baseline gap-x-2.5">
-                <span className="part-row__dot" aria-hidden />
-                <span className="font-display text-[18px] font-semibold tracking-[-0.01em]">{p.name}</span>
-                {p.latin && <span className="text-[14px] text-ink-soft">{p.latin}</span>}
-              </span>
-              <span className="mt-1 block pl-[18px] text-[16px] leading-[1.55] text-ink-soft">{p.text}</span>
-            </button>
+              {title}{description}
+            </button>}
             {canIsolate && isSel && <IsolateButton />}
           </li>
         );

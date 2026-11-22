@@ -1,4 +1,5 @@
 import { SECTIONS } from '../content/sections';
+import { HORMONES } from '../content/hormones';
 import type { Part } from '../content/types';
 
 export interface SearchResult {
@@ -25,6 +26,13 @@ export function search(query: string, parts: Record<string, Part[]> = {}): Searc
     if (normalize(s.title).includes(q)) {
       byTitle.push({ slug: s.slug, title: s.title, match: s.title });
       seen.add(s.slug);
+    }
+  }
+  for (const h of HORMONES) {
+    const key = `gormony/${h.slug}`;
+    if (normalize(h.title).includes(q) || normalize(h.latin).includes(q)) {
+      byTitle.push({ slug: key, title: h.title, match: h.sourceShort });
+      seen.add(key);
     }
   }
   for (const s of SECTIONS) {

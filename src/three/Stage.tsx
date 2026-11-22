@@ -49,7 +49,7 @@ interface Props {
   modes?: StageMode[];
   /** Резервирует место для многострочной панели режимов на телефоне. */
   mobileModeRoom?: boolean;
-  legend?: readonly StageLegendItem[];
+  legend?: readonly StageLegendItem[] | ((state: StageState, selected: string | null) => readonly StageLegendItem[]);
   /** Названия частей — для плашки «Отдельно: …». */
   names?: Record<string, string>;
   bounds?: Box;
@@ -188,6 +188,8 @@ export function Stage({
     ...(explorer ? { explode, isolate: ghost, hidden, cutKind, cutAt: cutT[cutKind] } : {}),
   };
 
+  const legendItems = typeof legend === 'function' ? legend(state, selected) : legend;
+
   return (
     <div
       ref={box}
@@ -307,11 +309,15 @@ export function Stage({
         </div>
       )}
 
-      {legend?.length ? (
+      {legendItems?.length ? (
         <ul className="pointer-events-none absolute bottom-[4.75rem] left-3 z-30 m-0 flex list-none flex-col gap-0.5 rounded-xl border border-line bg-plinth/95 px-2.5 py-1.5 text-[11px] leading-4 text-ink-soft">
-          {legend.map(({ label, color }) => (
+          {legendItems.map(({ label, color }) => (
             <li key={label} className="flex items-center gap-1.5">
-              <span aria-hidden className="size-2 rounded-full" style={{ background: color }} />
+              <span
+                aria-hidden
+                className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-ink/25"
+                style={{ background: color }}
+              />
               {t(label)}
             </li>
           ))}

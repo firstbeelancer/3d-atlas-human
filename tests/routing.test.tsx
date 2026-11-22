@@ -27,6 +27,10 @@ describe('routes', () => {
     ['/razdel/volosy', 'Волосы'],
     ['/razdel/nogti', 'Ногти'],
     ['/razdel/volosy-i-nogti', 'Волосы'],
+    ['/razdel/gormony', 'Гормоны'],
+    ['/razdel/gormony/adrenalin', 'Адреналин'],
+    ['/razdel/gormony/serotonin', 'Серотонин'],
+    ['/razdel/gormony/endorfin', 'Эндорфин'],
   ])('opens %s as %s', async (path, title) => {
     renderAt(path);
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument();

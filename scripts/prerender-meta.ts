@@ -2,6 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Plugin } from 'vite';
 import { SECTIONS } from '../src/content/sections';
+import { HORMONES } from '../src/content/hormones';
+import { ALL_HORMONE_CONTENT } from '../src/content/hormones/allHormones';
 import { ru } from '../src/i18n/ru';
 import { ALL_SECTION_CONTENT } from '../src/content/allContent';
 import { aboutLicense, aboutParagraphs } from '../src/content/ru/about';
@@ -65,6 +67,11 @@ function sectionBody(slug: string, title: string, latin: string, tagline: string
   html += `<h2>${escape(ru['section.parts'])}</h2><ul>${parts
     .map((pt) => `<li><strong>${escape(pt.name)}</strong>${pt.latin ? ` (${escape(pt.latin)})` : ''}. ${escape(pt.text)}</li>`)
     .join('')}</ul>`;
+  if (slug === 'gormony') {
+    html += `<h2>${escape(ru['hormones.catalogTitle'])}</h2><ul>${HORMONES.map(
+      (h) => `<li><a href="/razdel/gormony/${h.slug}">${escape(h.title)}</a> (${escape(h.formula)}) — ${escape(h.tagline)}</li>`,
+    ).join('')}</ul>`;
+  }
   if (c.facts.length) html += `<h2>${escape(ru['section.facts'])}</h2><ul>${c.facts.map((f) => `<li>${escape(f)}</li>`).join('')}</ul>`;
   const related = c.related
     .map((r) => SECTIONS.find((s) => s.slug === r))
@@ -72,6 +79,18 @@ function sectionBody(slug: string, title: string, latin: string, tagline: string
     .map((s) => `<li><a href="/razdel/${s.slug}">${escape(s.title)}</a></li>`)
     .join('');
   if (related) html += `<h2>${escape(ru['section.related'])}</h2><ul>${related}</ul>`;
+  return wrap(html);
+}
+
+function hormoneBody(slug: string, title: string, latin: string, tagline: string): string {
+  const c = ALL_HORMONE_CONTENT[slug];
+  let html = `<p><a href="/razdel/gormony">${escape(ru['hormones.parentTitle'])}</a></p><h1>${escape(title)}</h1><p>${escape(latin)}</p>${p(tagline)}`;
+  if (!c) return wrap(html);
+  html += `<ul>${c.stats.map((st) => `<li>${escape(st.value)} — ${escape(st.label)}</li>`).join('')}</ul>`;
+  html += `<h2>${escape(ru['section.does'])}</h2>${c.does.map(p).join('')}`;
+  html += `<h2>${escape(ru['hormones.production'])}</h2>${c.production.map(p).join('')}`;
+  html += `<h2>${escape(ru['hormones.neutralized'])}</h2>${c.neutralized.map(p).join('')}`;
+  if (c.facts.length) html += `<h2>${escape(ru['section.facts'])}</h2><ul>${c.facts.map((f) => `<li>${escape(f)}</li>`).join('')}</ul>`;
   return wrap(html);
 }
 
@@ -99,6 +118,12 @@ export function prerenderMeta(): Plugin {
           description: s.tagline,
           body: sectionBody(s.slug, s.title, s.latin, s.tagline),
           noindex: !s.ready,
+        })),
+        ...HORMONES.map((h) => ({
+          path: `/razdel/gormony/${h.slug}`,
+          title: `${h.title} — ${ru['hormones.parentTitle']}`,
+          description: h.tagline,
+          body: hormoneBody(h.slug, h.title, h.latin, h.tagline),
         })),
       ];
       for (const page of pages) {

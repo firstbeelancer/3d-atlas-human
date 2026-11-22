@@ -25,6 +25,7 @@ import { StageLoading } from '../three/StageLoading';
 import { SelectionProvider } from '../three/selection';
 import { NotFoundPage } from './NotFoundPage';
 import { AdultOnly } from '../components/AdultOnly';
+import { HormoneCatalog } from '../components/section/HormoneCatalog';
 import { useAdult } from '../lib/adult';
 import { loadAdultContent } from '../content/adult/loadAdult';
 
@@ -178,6 +179,7 @@ export function SectionPage() {
                 <Block title={t('section.parts')}>
                   <PartsList parts={fullContent.parts} groups={fullContent.groups} canIsolate={!!model?.isolate} />
                 </Block>
+                {section.slug === 'gormony' && <HormoneCatalog />}
                 <Block title={t('section.kid')}>
                   <KidSay lines={fullContent.kidSay} />
                 </Block>

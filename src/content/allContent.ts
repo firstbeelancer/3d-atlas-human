@@ -23,6 +23,7 @@ import c_zhenskaya_reproduktivnaya from './ru/zhenskaya-reproduktivnaya';
 import c_volosy from './ru/volosy';
 import c_nogti from './ru/nogti';
 import c_kozha from './ru/kozha';
+import c_gormony from './ru/gormony';
 
 /**
  * Весь контент разделов разом — только для пререндера HTML при сборке (scripts/prerender-meta.ts),
@@ -53,4 +54,5 @@ export const ALL_SECTION_CONTENT: Record<string, SectionContent> = {
   'kozha': c_kozha,
   volosy: c_volosy,
   nogti: c_nogti,
+  gormony: c_gormony,
 };

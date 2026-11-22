@@ -16,6 +16,8 @@ export interface StageMode {
   /** Режимы одной группы взаимоисключающие: включение одного выключает остальные. */
   group?: string;
   clearsSelection?: boolean;
+  /** Внешний ракурс, для которого убирается разрез. */
+  clearsCutaway?: boolean;
 }
 
 export interface StageLegendItem {
@@ -98,6 +100,19 @@ export function Stage({
   const [ghost, setGhost] = useState(true);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const [cutKind, setCutKind] = useState<CutKind>('side');
+  function clearExteriorViews() {
+    if (modes.some((mode) => mode.clearsCutaway && activeModes[mode.id])) {
+      setActiveModes((current) => {
+        const next = { ...current };
+        for (const mode of modes) if (mode.clearsCutaway) next[mode.id] = false;
+        return next;
+      });
+    }
+  }
+  function showCutaway(on: boolean) {
+    setCutaway(on);
+    if (on) clearExteriorViews();
+  }
   // положение среза: то, что выбрал пользователь, иначе значение по умолчанию модели (оно приходит вместе с текстами раздела)
   const [cutPicked, setCutPicked] = useState<Partial<Record<CutKind, number>>>({});
   const cutT = { side: 0.5, fundus: 0.5, coronal: 0.5, ...explorer?.cuts?.defaults, ...cutPicked } as Record<CutKind, number>;
@@ -215,7 +230,7 @@ export function Stage({
             cutaway={cutaway}
             cutKind={cutKind}
             onView={(on, kind) => {
-              setCutaway(on);
+              showCutaway(on);
               setCutKind(kind);
             }}
             explode={explode}
@@ -271,6 +286,10 @@ export function Stage({
                 aria-pressed={on}
                 onClick={() => {
                   if (m.clearsSelection) select(null);
+                  if (m.clearsCutaway && !on) {
+                    setCutaway(false);
+                    setExplode(0);
+                  }
                   setActiveModes((v) => {
                     const next = { ...v, [m.id]: !v[m.id] };
                     if (next[m.id] && m.group)
@@ -308,7 +327,7 @@ export function Stage({
           {paused ? <Play size={17} aria-hidden /> : <Pause size={17} aria-hidden />}
         </ToolButton>
         {hasCutaway && (
-          <ToolButton onClick={() => setCutaway((v) => !v)} pressed={cutaway} label={t('stage.cutaway')}>
+          <ToolButton onClick={() => showCutaway(!cutaway)} pressed={cutaway} label={t('stage.cutaway')}>
             <Scissors size={17} aria-hidden />
           </ToolButton>
         )}
@@ -322,6 +341,7 @@ export function Stage({
               setExplode(0);
               setHidden(new Set());
               setCutaway(initialCutaway);
+              clearExteriorViews();
               if (initialCutaway) setCutKind('side');
               setGhost(true);
             }

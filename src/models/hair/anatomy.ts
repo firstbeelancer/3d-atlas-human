@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 import { curveOf, fbm, lerp, smooth, type V3 } from './geometry';
 
 /*
-  Волосы и ногти — четыре сцены общей модели (единицы условные, масштаб подобран для обзора):
+  Сцены разделов «Волосы» и «Ногти» (масштаб подобран для обзора):
   - follicle: блок кожи (около 18 мм шириной в масштабе ×0,4) с косым волосяным фолликулом, железой и мышцей;
   - shaft:    волос под электронным микроскопом, ступенчатый срез: кутикула, кора, макрофибриллы, филаменты;
   - cycle:    три фолликула рядом: анаген, катаген, телоген;
@@ -39,12 +39,12 @@ export const axisDir = (u: number): V3 => {
 /** Стержень над кожей: уходит вверх и ложится дугой. */
 export const HAIR_UP_PTS: V3[] = [
   [4.0, 0, 0],
-  [4.4, 1.3, 0],
-  [5.3, 2.7, 0],
-  [6.9, 3.9, 0],
-  [9.0, 4.5, 0],
-  [11.3, 4.2, 0],
-  [13.2, 3.2, 0],
+  [4.46, 1.35, -0.12],
+  [5.15, 2.9, -0.48],
+  [6.7, 4.35, -0.92],
+  [8.65, 5.1, -1.3],
+  [10.9, 5.0, -1.66],
+  [13.2, 4.0, -2.0],
 ];
 export const HAIR_UP = curveOf(HAIR_UP_PTS);
 
@@ -162,6 +162,13 @@ export const nailPlate = {
   thick: 0.5,
 };
 
+/** Дистальные границы лунулы, ложа и пластинки выступают по центру. */
+export const plateX = (x: number, across: number): number => {
+  const curve = 1.7 * smooth(5.6, 9.6, x) * (1 - smooth(9.6, 15, x))
+    + 2.6 * smooth(16, 25, x);
+  return x - curve * across ** 2;
+};
+
 /** Полуширина ногтевой пластины с плавным анатомическим скруглением у корня и свободного края. */
 export const plateHW = (x: number): number => {
   const rootRound = 0.72 + 0.28 * smooth(0.8, 3.6, x);
@@ -171,7 +178,7 @@ export const plateHW = (x: number): number => {
 
 /** Верх пластины: выгнута поперек и слегка загнута книзу у свободного края. */
 export const plateTop = (x: number, z: number): number =>
-  nailPlate.top - 0.58 * (z / nailPlate.hw) ** 2 - 0.011 * Math.max(0, x - 22) ** 1.6 * 0.5;
+  nailPlate.top - 0.78 * (z / nailPlate.hw) ** 2 - 0.018 * Math.max(0, x - 21) ** 1.5;
 export const plateBottom = (x: number, z: number): number => plateTop(x, z) - nailPlate.thick;
 
 /** Верх кожи пальца: спинка с суставными складками, ступенька у проксимального валика, ложе ногтя. */
@@ -189,8 +196,6 @@ export const bedTop = (x: number, z: number): number => plateBottom(Math.min(x, 
 export const boneTop = (x: number): number => lerp(2.2, 1.45, smooth(0, 20, x)) - 0.26 * Math.sin(Math.PI * smooth(3, 16, x));
 export const boneBottom = (x: number): number => lerp(-2.0, 0.35, smooth(0, 19, x)) + 0.35 * Math.sin(Math.PI * smooth(2, 16, x));
 export const boneHW = (x: number): number => 5.1 - 2.6 * smooth(0, 9.5, x) + 2.1 * smooth(14, 20.5, x);
-
-export const NAIL_VIEW = { x: 11, dist: 52 };
 
 export const v3 = (x: number, y: number, z: number): V3 => [x, y, z];
 export const vec = (p: V3): Vector3 => new Vector3(...p);

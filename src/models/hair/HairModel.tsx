@@ -8,14 +8,8 @@ import { curveOf, type V3 } from './geometry';
 import { buildScene, type MatKey, type MeshDef, type SceneData } from './build';
 import type { SceneId } from './anatomy';
 import { buildHairTextures, makeMaterial, type HairTextures } from './materials';
-import { CUT_VIEWS, FOCUS, NAIL_ROT, OVERVIEW, SCENE_PARTS, SPREAD_VIEW, sceneOf, type Focus } from './parts';
+import { CUT_VIEWS, FOCUS, NAIL_ROT, OVERVIEW, SCENE_PARTS, SPREAD_VIEW, FINGERPRINT_VIEW, sceneOf, type Focus } from './parts';
 import { HairContext, HairPart, PartLabel, type HairControl } from './HairPart';
-
-/*
-  Волосы и ногти: четыре сцены в одной модели. По умолчанию — блок кожи с волосяным фолликулом; режимы переключают
-  на цикл роста, волос под микроскопом и ноготь на кончике пальца. Выбор части из другой сцены переключает сцену сам.
-  Анимация: кровь по сосудам, сало из желёз, «мурашки» — мышца поднимает волос.
-*/
 
 const cache = new Map<SceneId, Promise<SceneData>>();
 
@@ -47,7 +41,7 @@ interface Rig {
 }
 
 /** Плавно ведёт камеру к выбранной части, к виду на срез или к общему виду сцены; пользователь может перехватить управление. */
-function CameraRig({ ctrl, selected, explode, scene }: { ctrl: RefObject<HairControl>; selected: string | null; explode: number; scene: SceneId }) {
+function CameraRig({ ctrl, selected, explode, scene, fingerprint }: { ctrl: RefObject<HairControl>; selected: string | null; explode: number; scene: SceneId; fingerprint: boolean }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as Rig | null;
   const invalidate = useThree((s) => s.invalidate);
@@ -55,7 +49,6 @@ function CameraRig({ ctrl, selected, explode, scene }: { ctrl: RefObject<HairCon
   const overviewAspect = scene === 'shaft' || scene === 'cycle' ? 0.91 : 0.76;
   const widthFit = Math.max(1, overviewAspect * height / Math.max(1, width));
   const goal = useRef<{ at: Vector3; offset: Vector3 } | null>(null);
-  const first = useRef(true);
   const cut = ctrl.current!.cut;
   const kind = ctrl.current!.kind;
   const spread = explode > 0.02;
@@ -70,20 +63,18 @@ function CameraRig({ ctrl, selected, explode, scene }: { ctrl: RefObject<HairCon
   }, [controls]);
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      if (widthFit <= 1.02) return;
-    }
+    const part = selected ? FOCUS[selected] : undefined;
     let f: Focus;
-    if (selected && FOCUS[selected]) f = FOCUS[selected];
+    if (part) f = cut ? { ...part, dir: CUT_VIEWS[scene][kind].dir } : part;
     else if (spread) f = SPREAD_VIEW[scene];
     else if (cut) f = CUT_VIEWS[scene][kind];
+    else if (fingerprint) f = FINGERPRINT_VIEW;
     else f = OVERVIEW[scene];
-    const distance = selected && FOCUS[selected] ? f.dist : Math.min(148, f.dist * widthFit);
+    const distance = Math.min(148, f.dist * widthFit);
     goal.current = { at: new Vector3(...f.at), offset: new Vector3(...f.dir).normalize().multiplyScalar(distance) };
     invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cut, kind, spread, scene, widthFit, invalidate]);
+  }, [selected, cut, kind, spread, scene, fingerprint, widthFit, invalidate]);
 
   useFrame((_, dt) => {
     const g = goal.current;
@@ -164,11 +155,22 @@ function Streams({ id, state }: { id: string; state: ModelProps['state'] }) {
   }
 }
 
-export default function HairModel({ state, names = {} }: ModelProps) {
+export default function HairModel(props: ModelProps) {
+  const { selected } = useSelection();
+  const selectedScene = selected ? sceneOf(selected) : null;
+  const { modes } = props.state;
+  const modeScene = modes.shaft ? 'shaft' : modes.cycle ? 'cycle' : 'follicle';
+  const scene = selectedScene && selectedScene !== 'nail' ? selectedScene : modeScene;
+  return <AnatomyScene {...props} scene={scene} />;
+}
+
+export function NailModel(props: ModelProps) {
+  return <AnatomyScene {...props} scene="nail" />;
+}
+
+function AnatomyScene({ scene, state, names = {} }: ModelProps & { scene: SceneId }) {
   const { selected } = useSelection();
   const invalidate = useThree((s) => s.invalidate);
-  const modeScene: SceneId = state.modes.nail ? 'nail' : state.modes.shaft ? 'shaft' : state.modes.cycle ? 'cycle' : 'follicle';
-  const scene: SceneId = (selected ? sceneOf(selected) : null) ?? modeScene;
   const data = use(loadScene(scene));
   const tex = useMemo(buildHairTextures, []);
   useEffect(() => () => tex.dispose(), [tex]);
@@ -208,7 +210,7 @@ export default function HairModel({ state, names = {} }: ModelProps) {
   const hideLabels = explodeTarget > 0.02;
   return (
     <HairContext.Provider value={ctrl}>
-      <CameraRig ctrl={ctrl} selected={selected} explode={explodeTarget} scene={scene} />
+      <CameraRig ctrl={ctrl} selected={selected} explode={explodeTarget} scene={scene} fingerprint={scene === 'nail' && !!state.modes.fingerprint} />
       <group rotation={[0, 0, scene === 'nail' ? NAIL_ROT : 0]}>
         {data.context.length > 0 && (
           <HairPart id="ctx-skin">

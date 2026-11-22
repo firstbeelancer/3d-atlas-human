@@ -329,6 +329,8 @@ export interface SlabOpt {
   x0: number;
   x1: number;
   zh: number | ((x: number) => number);
+  /** Смещение сечений вдоль x в зависимости от ширины, от -1 до 1. */
+  xAt?: (x: number, across: number) => number;
   top: (x: number, z: number) => number;
   bot: (x: number, z: number) => number;
   nx?: number;
@@ -344,14 +346,17 @@ export function heightSlab(o: SlabOpt): BufferGeometry {
   const UV: number[] = [];
   const I: number[] = [];
   const spanX = Math.max(1e-4, o.x1 - o.x0);
+  const point = (x: number, across: number, height: SlabOpt['top']): V3 => {
+    const z = across * zhOf(x);
+    const px = o.xAt?.(x, across) ?? x;
+    return [px, height(px, z), z];
+  };
   const grid = (f: (x: number, z: number) => number, flip: boolean) => {
     const base = P.length / 3;
     for (let i = 0; i <= nx; i++) {
       const x = o.x0 + (spanX * i) / nx;
-      const zh = zhOf(x);
       for (let j = 0; j <= nz; j++) {
-        const z = ((2 * j) / nz - 1) * zh;
-        P.push(x, f(x, z), z);
+        P.push(...point(x, (2 * j) / nz - 1, f));
         UV.push((x - o.x0) / spanX, j / nz);
       }
     }
@@ -378,17 +383,17 @@ export function heightSlab(o: SlabOpt): BufferGeometry {
     if (nrm.dot(new Vector3(...out)) >= 0) I.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
     else I.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
   };
-  const pt = (x: number, z: number, top: boolean): V3 => [x, top ? o.top(x, z) : o.bot(x, z), z];
+  const pt = (x: number, across: number, top: boolean): V3 => point(x, across, top ? o.top : o.bot);
   for (let i = 0; i < nx; i++) {
     const xa = o.x0 + (spanX * i) / nx;
     const xb = o.x0 + (spanX * (i + 1)) / nx;
-    quad(pt(xa, -zhOf(xa), true), pt(xb, -zhOf(xb), true), pt(xa, -zhOf(xa), false), pt(xb, -zhOf(xb), false), [0, 0, -1]);
-    quad(pt(xa, zhOf(xa), true), pt(xb, zhOf(xb), true), pt(xa, zhOf(xa), false), pt(xb, zhOf(xb), false), [0, 0, 1]);
+    quad(pt(xa, -1, true), pt(xb, -1, true), pt(xa, -1, false), pt(xb, -1, false), [0, 0, -1]);
+    quad(pt(xa, 1, true), pt(xb, 1, true), pt(xa, 1, false), pt(xb, 1, false), [0, 0, 1]);
   }
   for (let j = 0; j < nz; j++) {
     for (const [x, sx] of [[o.x0, -1], [o.x1, 1]] as [number, number][]) {
-      const za = ((2 * j) / nz - 1) * zhOf(x);
-      const zb = ((2 * (j + 1)) / nz - 1) * zhOf(x);
+      const za = (2 * j) / nz - 1;
+      const zb = (2 * (j + 1)) / nz - 1;
       quad(pt(x, za, true), pt(x, zb, true), pt(x, za, false), pt(x, zb, false), [sx, 0, 0]);
     }
   }

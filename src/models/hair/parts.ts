@@ -150,12 +150,14 @@ export const nailWorld = (p: V3): V3 => [-p[1], p[0], p[2]];
 
 const FRONT: V3 = norm([0.14, 0.1, 1]);
 const dirOf = (scene: SceneId, d: V3 = FRONT): V3 => (scene === 'nail' ? norm(nailWorld(d)) : d);
+const NAIL_SURFACE = dirOf('nail', [0.08, 1, 0.38]);
+export const FINGERPRINT_VIEW: Focus = { at: nailWorld([14.0, -1.2, 0]), dir: dirOf('nail', [0.12, -1, 0.2]), dist: 43 };
 
 export const OVERVIEW: Record<SceneId, Focus> = {
-  follicle: { at: [2.2, -2.6, 0], dir: FRONT, dist: 60 },
+  follicle: { at: [2.1, -2.5, 0], dir: norm([0.23, 0.32, 1]), dist: 47 },
   shaft: { at: [3.0, -1.6, 0], dir: norm([0.1, 0.08, 1]), dist: 52 },
   cycle: { at: [0, -3.4, 0], dir: FRONT, dist: 52 },
-  nail: { at: nailWorld([6, 0.4, 0]), dir: dirOf('nail'), dist: 92 },
+  nail: { at: nailWorld([6.5, 0.8, 0]), dir: NAIL_SURFACE, dist: 81 },
 };
 
 const up: V3 = [0, 1, 0];
@@ -164,7 +166,7 @@ const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 /** Виды для трёх разрезов: камера со стороны убранной части. */
 export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Focus>> = {
   follicle: {
-    side: { at: [2.2, -2.6, 0], dir: FRONT, dist: 60 },
+    side: { at: [2.1, -2.5, 0], dir: norm([0.11, 0.14, 1]), dist: 45 },
     fundus: { at: [2.8, -3.4, 0], dir: norm([0.48, 0.86, 0.3]), dist: 25 },
     coronal: { at: [2.4, -4.4, 0], dir: norm([0.08, 1, 0.34]), dist: 27 },
   },
@@ -179,7 +181,7 @@ export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Fo
     coronal: { at: [0, -4.4, 0], dir: norm([0.06, 1, 0.34]), dist: 30 },
   },
   nail: {
-    side: { at: nailWorld([6, 0.4, 0]), dir: dirOf('nail'), dist: 92 },
+    side: { at: nailWorld([7.0, 0.4, 0]), dir: dirOf('nail'), dist: 80 },
     fundus: { at: nailWorld([5, 0, 0]), dir: norm(nailWorld([1, 0.18, 0.22])), dist: 30 },
     coronal: { at: nailWorld([9.6, 0, 0]), dir: norm(nailWorld([0.12, 1, 0.3])), dist: 52 },
   },
@@ -199,9 +201,9 @@ interface Info {
   main?: boolean;
 }
 
-const hu = (t: number, dx = 0, dy = 0, z = 0.25): V3 => {
+const hu = (t: number): V3 => {
   const p = HAIR_UP.getPoint(t);
-  return [p.x + dx, p.y + dy, z];
+  return [p.x, p.y, p.z];
 };
 const ax = (u: number, dx = 0, z = 0.25): V3 => {
   const p = axisAt(u);
@@ -285,11 +287,11 @@ const INFO: Record<string, Info> = {
 
 /** Ногтевая сцена: положения в мм пальца до поворота. */
 const nailInfo: Record<string, Info> = {
-  'nail-dorsal': f([15, 4.4, 0.2], 20, { main: true }),
+  'nail-dorsal': f([15.0, 4.0, 0], 22, { dir: NAIL_SURFACE }),
   'nail-root': f([3.4, 3.7, 0.2], 9),
-  lunula: f([7.6, 4.15, 0.2], 9, { main: true }),
-  'nail-body': f([14, 4.2, 0.2], 14),
-  'free-edge': f([24.6, 3.5, 0.2], 10),
+  lunula: f([7.8, 4.05, 0], 11, { dir: NAIL_SURFACE, main: true }),
+  'nail-body': f([15, 4.05, 0], 19, { dir: NAIL_SURFACE, main: true }),
+  'free-edge': f([25.6, 3.9, 0], 13, { dir: NAIL_SURFACE, main: true }),
   'nail-ventral': f([17, 3.45, 0.2], 10),
   'onychodermal-band': f([21.0, 4.05, 0.2], 10),
   'nail-ridges': f([11, 4.35, 2.4], 12),
@@ -313,7 +315,7 @@ const nailInfo: Record<string, Info> = {
   'finger-pulp': f([15, -2.7, 0.2], 18),
   'fat-septa': f([6, -2.4, 0.2], 11),
   'finger-skin': f([10, -4.1, 0.2], 14),
-  fingerprint: f([17, -4.6, 0.2], 11, { main: true }),
+  fingerprint: f([17, -4.2, 0], 20, { dir: FINGERPRINT_VIEW.dir }),
   'eccrine-glands': f([13, -3.4, -0.6], 9),
   pacinian: f([8, -3.2, -1.6], 8),
   meissner: f([20, -3.9, -0.3], 8),
@@ -355,12 +357,12 @@ for (const id of HAIR_PART_IDS) {
   const i = INFO[id];
   const scene = sceneOf(id) as SceneId;
   const at: V3 = scene === 'nail' ? nailWorld(i.at) : i.at;
-  FOCUS[id] = { at: [at[0], at[1], 0], dir: i.dir ?? dirOf(scene), dist: i.dist };
+  FOCUS[id] = { at, dir: i.dir ?? dirOf(scene), dist: i.dist };
 }
 for (const g of Object.keys(HAIR_GROUPS) as HairGroupId[]) {
   const scene = SCENE_OF_GROUP[g];
   const at = scene === 'nail' ? nailWorld(groupAt[g]) : groupAt[g];
-  FOCUS[g] = { at, dir: dirOf(scene), dist: groupDist[scene] };
+  FOCUS[g] = { at, dir: g === 'g-plate' || g === 'g-folds' ? NAIL_SURFACE : dirOf(scene), dist: groupDist[scene] };
 }
 
 /** Разнос на части: кожа расходится слоями по вертикали, остальное — от центра сцены. */

@@ -24,7 +24,8 @@ const LOADERS: Record<string, () => Promise<{ default: SectionContent }>> = {
   pochki: () => import('./ru/pochki'),
   'zhenskaya-reproduktivnaya': () => import('./ru/zhenskaya-reproduktivnaya'),
   kozha: () => import('./ru/kozha'),
-  'volosy-i-nogti': () => import('./ru/volosy-i-nogti'),
+  volosy: () => import('./ru/volosy'),
+  nogti: () => import('./ru/nogti'),
 };
 
 export async function loadSectionContent(slug: string): Promise<SectionContent | null> {

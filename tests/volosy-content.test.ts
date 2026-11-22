@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import content from '../src/content/ru/volosy-i-nogti';
+import hair from '../src/content/ru/volosy';
+import nails from '../src/content/ru/nogti';
 import { getSection } from '../src/content/sections';
 import { hasSectionContent, loadSectionContent } from '../src/content/loadSection';
 import { MODELS } from '../src/models/registry';
@@ -9,9 +10,14 @@ import { buildScene } from '../src/models/hair/build';
 // @ts-expect-error — plain ESM script without type declarations
 import { findEmoji } from '../scripts/check-no-emoji.mjs';
 
-describe('volosy-i-nogti content', () => {
+describe.each([
+  { slug: 'volosy', content: hair, modes: ['cycle', 'goose', 'shaft', 'xray'] },
+  { slug: 'nogti', content: nails, modes: ['fingerprint', 'xray'] },
+])('$slug content', ({ slug, content, modes }) => {
+  const isOnPage = (id: string) => (sceneOf(id) === 'nail') === (slug === 'nogti');
+
   it('has the agreed amount of text in every block', () => {
-    expect(content.slug).toBe('volosy-i-nogti');
+    expect(content.slug).toBe(slug);
     expect(content.stats.length).toBe(4);
     expect(content.does.length).toBeGreaterThanOrEqual(2);
     expect(content.does.length).toBeLessThanOrEqual(3);
@@ -24,8 +30,7 @@ describe('volosy-i-nogti content', () => {
   });
 
   it('describes exactly the parts the model has', () => {
-    expect(content.parts.map((p) => p.id).sort()).toEqual([...HAIR_PART_IDS].sort());
-    expect(content.parts.length).toBeGreaterThanOrEqual(100);
+    expect(content.parts.map((p) => p.id).sort()).toEqual(HAIR_PART_IDS.filter(isOnPage).sort());
     for (const p of content.parts) {
       expect(p.text.length, p.id).toBeGreaterThan(40);
       expect(p.latin, p.id).toBeTruthy();
@@ -33,7 +38,7 @@ describe('volosy-i-nogti content', () => {
   });
 
   it('puts every part into the same group in the content and in the model', () => {
-    expect(content.groups?.map((g) => g.id).sort()).toEqual(Object.keys(HAIR_GROUPS).sort());
+    expect(content.groups?.map((g) => g.id).sort()).toEqual(Object.keys(HAIR_GROUPS).filter(isOnPage).sort());
     for (const p of content.parts) expect(p.group, p.id).toBe(GROUP_OF[p.id]);
   });
 
@@ -50,22 +55,23 @@ describe('volosy-i-nogti content', () => {
   });
 
   it('gives every part and group a camera focus, a label and a spread vector', () => {
-    for (const id of [...HAIR_PART_IDS, ...Object.keys(HAIR_GROUPS)]) expect(FOCUS[id], id).toBeDefined();
-    for (const id of HAIR_PART_IDS) {
+    for (const { id } of [...content.parts, ...(content.groups ?? [])]) expect(FOCUS[id], id).toBeDefined();
+    for (const { id } of content.parts) {
       expect(LABEL_AT[id], id).toBeDefined();
       expect(SPREAD[id], id).toBeDefined();
     }
   });
 
   it('is ready, loadable and has an explorable model with three cuts and its modes', async () => {
-    expect(getSection('volosy-i-nogti')?.ready).toBe(true);
-    expect(hasSectionContent('volosy-i-nogti')).toBe(true);
-    expect((await loadSectionContent('volosy-i-nogti'))?.slug).toBe('volosy-i-nogti');
-    const m = MODELS['volosy-i-nogti'];
+    expect(getSection(slug)?.ready).toBe(true);
+    expect(hasSectionContent(slug)).toBe(true);
+    expect((await loadSectionContent(slug))?.slug).toBe(slug);
+    const m = MODELS[slug];
     expect(m.hasCutaway).toBe(true);
     expect(m.explorer).toBe(true);
     expect(m.explorerCuts?.defaults).toEqual(CUT_DEFAULT_T);
-    expect(m.modes?.map((x) => x.id).sort()).toEqual(['cycle', 'goose', 'nail', 'shaft', 'xray']);
+    expect(m.modes?.map((x) => x.id).sort()).toEqual(modes);
+    expect(m.initialCutaway ?? false).toBe(slug === 'volosy');
   });
 
   it('links to related sections that exist', () => {
@@ -77,7 +83,7 @@ describe('volosy-i-nogti content', () => {
   });
 });
 
-describe('volosy-i-nogti geometry', () => {
+describe('hair and nail geometry', () => {
   const scenes: SceneId[] = ['follicle', 'shaft', 'cycle', 'nail'];
 
   it('builds every part of every scene with finite, non-empty meshes', () => {

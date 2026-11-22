@@ -23,6 +23,15 @@ describe('routes', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Печень' })).toBeInTheDocument();
   });
 
+  it.each([
+    ['/razdel/volosy', 'Волосы'],
+    ['/razdel/nogti', 'Ногти'],
+    ['/razdel/volosy-i-nogti', 'Волосы'],
+  ])('opens %s as %s', async (path, title) => {
+    renderAt(path);
+    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument();
+  });
+
   it('shows a coming-soon state for sections that are not ready', async () => {
     renderAt('/razdel/vnutrennie-organy');
     expect(await screen.findByText('Раздел готовится')).toBeInTheDocument();

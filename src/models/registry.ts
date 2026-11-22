@@ -11,13 +11,18 @@ import { CUT_DEFAULT_T as FEMALE_CUT_T } from './female/anatomy';
 import { CUT_DEFAULT_T as MUSCLES_CUT_T } from './muscles/anatomy';
 import { CUT_DEFAULT_T as SPLEEN_CUT_T } from './spleen/anatomy';
 import { CUT_DEFAULT_T as HAIR_CUT_T } from './hair/anatomy';
-import { CUT_VIEWS as HAIR_CUT_VIEWS } from './hair/parts';
+import { CUT_VIEWS as HAIR_CUT_VIEWS, OVERVIEW as HAIR_OVERVIEW, type Focus as HairFocus } from './hair/parts';
 import { CUT_DEFAULT_T as TONGUE_CUT_T } from './tongue/anatomy';
 import { OVERVIEW as TONGUE_VIEW } from './tongue/parts';
 import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } from './ear/anatomy';
 import { CUT_DEFAULT_T as NOSE_CUT_T, OVERVIEW as NOSE_VIEW } from './nose/anatomy';
 import type { SkinViewerProps } from './skin/SkinViewer';
 import { BLOOD_COLORS, BODY_FLOOR, OVERVIEW_CAMERA, OVERVIEW_TARGET } from './circulation/appearance';
+
+const hairCamera = ({ at, dir, dist }: HairFocus): NonNullable<ModelOptions['camera']> => ({
+  position: [at[0] + dir[0] * dist, at[1] + dir[1] * dist, at[2] + dir[2] * dist],
+  fov: 32,
+});
 
 interface ModelOptions {
   hasCutaway?: boolean;
@@ -299,7 +304,7 @@ export const MODELS: Record<string, ModelEntry> = {
     isolate: true,
     description: modelDescriptions.kozha,
   },
-  'volosy-i-nogti': {
+  volosy: {
     Component: lazy(() => import('./hair/HairModel')),
     hasCutaway: true,
     initialCutaway: true,
@@ -307,26 +312,37 @@ export const MODELS: Record<string, ModelEntry> = {
     explorerFundusKey: 'explorer.fundusHair',
     explorerCuts: { sideKey: 'explorer.cutHairSide', coronalKey: 'explorer.cutHairCoronal', defaults: HAIR_CUT_T },
     isolate: true,
-    camera: {
-      position: [
-        HAIR_CUT_VIEWS.follicle.side.at[0] + HAIR_CUT_VIEWS.follicle.side.dir[0] * HAIR_CUT_VIEWS.follicle.side.dist,
-        HAIR_CUT_VIEWS.follicle.side.at[1] + HAIR_CUT_VIEWS.follicle.side.dir[1] * HAIR_CUT_VIEWS.follicle.side.dist,
-        HAIR_CUT_VIEWS.follicle.side.at[2] + HAIR_CUT_VIEWS.follicle.side.dir[2] * HAIR_CUT_VIEWS.follicle.side.dist,
-      ],
-      fov: 32,
-    },
+    camera: hairCamera(HAIR_CUT_VIEWS.follicle.side),
     target: HAIR_CUT_VIEWS.follicle.side.at,
     floorY: -40,
-    bounds: { min: [-14, -18, -12], max: [18, 30, 12] },
+    bounds: { min: [-14, -14, -8], max: [18, 8, 8] },
     orbit: { minDistance: 1.2, maxDistance: 150, free: true },
     modes: [
       { id: 'cycle', icon: 'sprout', group: 'view', clearsSelection: true },
       { id: 'shaft', icon: 'lobule', group: 'view', clearsSelection: true },
-      { id: 'nail', icon: 'fingerprint', group: 'view', clearsSelection: true },
       { id: 'goose', icon: 'activity' },
       { id: 'xray', icon: 'inside' },
     ],
-    description: modelDescriptions['volosy-i-nogti'],
+    mobileModeRoom: true,
+    description: modelDescriptions.volosy,
+  },
+  nogti: {
+    Component: lazy(() => import('./hair/HairModel').then(({ NailModel }) => ({ default: NailModel }))),
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.cutNailTransverse',
+    explorerCuts: { sideKey: 'explorer.cutNailSide', coronalKey: 'explorer.cutNailDorsal', defaults: HAIR_CUT_T },
+    isolate: true,
+    camera: hairCamera(HAIR_OVERVIEW.nail),
+    target: HAIR_OVERVIEW.nail.at,
+    floorY: -24,
+    bounds: { min: [-8, -15, -8], max: [8, 28, 8] },
+    orbit: { minDistance: 1.2, maxDistance: 150, free: true },
+    modes: [
+      { id: 'fingerprint', icon: 'fingerprint', clearsSelection: true, clearsCutaway: true },
+      { id: 'xray', icon: 'inside' },
+    ],
+    description: modelDescriptions.nogti,
   },
   selezenka: {
     Component: lazy(() => import('./spleen/SpleenModel')),

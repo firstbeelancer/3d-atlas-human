@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import './styles/index.css';
 import { ThemeProvider } from './lib/theme';
 import { AdultProvider } from './lib/adult';
@@ -14,6 +14,7 @@ export function AppRoutes() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
+        <Route path="razdel/volosy-i-nogti" element={<Navigate to="/razdel/volosy" replace />} />
         <Route path="razdel/:slug" element={<SectionPage />} />
         <Route path="kletki/:slug" element={<ComingSoon />} />
         <Route path="o-proekte" element={<AboutPage />} />

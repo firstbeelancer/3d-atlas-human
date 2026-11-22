@@ -126,10 +126,15 @@ export const sectionTexts: Record<string, SectionTexts> = {
     latin: 'Cutis',
     tagline: 'Самый большой орган тела: живой барьер, термостат и орган чувств в одном',
   },
-  'volosy-i-nogti': {
-    title: 'Волосы и ногти',
-    latin: 'Pili et ungues',
-    tagline: 'Живые корни в коже и прочные пластины из кератина',
+  volosy: {
+    title: 'Волосы',
+    latin: 'Pili',
+    tagline: 'Как волос растёт в коже, откуда берётся его цвет и почему появляются мурашки',
+  },
+  nogti: {
+    title: 'Ногти',
+    latin: 'Ungues',
+    tagline: 'От матрикса до свободного края: как растёт ноготь и что скрыто под пластинкой',
   },
   beremennost: {
     title: 'Беременность',

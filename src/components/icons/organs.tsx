@@ -173,6 +173,12 @@ const ICONS: Record<OrganIconName, ReactNode> = {
       <path d="M3 14h4.5M16.5 14H21" />
     </>
   ),
+  nail: (
+    <>
+      <path d="M5.5 21V9a6.5 6.5 0 0 1 13 0v12" />
+      <path d="M8 8.6a4 4 0 0 1 8 0v3.9a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2zM8.5 18.5h7" />
+    </>
+  ),
   skin: (
     <>
       <path d="M3 6.5c2-1.4 4-1.4 6 0s4 1.4 6 0 4-1.4 6 0" />

@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three';
-import { FING, boneBottom, boneHW, boneTop, fingerBottom, fingerHW, fingerTop, nailPlate, plateBottom, plateHW, plateTop } from './anatomy';
+import { FING, boneBottom, boneHW, boneTop, fingerBottom, fingerHW, fingerTop, nailPlate, plateBottom, plateHW, plateTop, plateX } from './anatomy';
 import { blob, fbm, heightSlab, lerp, loft, merge, rng, smooth, tube, type V3 } from './geometry';
 import type { MatKey, MeshDef, Parts } from './types';
 
@@ -38,7 +38,7 @@ export function buildNail(): Parts {
 
   // --- ногтевая пластинка: анатомическое скругление контура plateHW(x) и высокое разрешение
   const slabAt = (xa: number, xb: number, top: (x: number, z: number) => number, bot: (x: number, z: number) => number, zh: number | ((x: number) => number) = plateHW, nz = 40) =>
-    heightSlab({ x0: xa, x1: xb, zh, top, bot, nx: Math.max(6, Math.round((xb - xa) * 4.2)), nz });
+    heightSlab({ x0: xa, x1: xb, zh, xAt: plateX, top, bot, nx: Math.max(6, Math.round((xb - xa) * 4.2)), nz });
   const midTop = (x: number, z: number) => plateTop(x, z) - 0.095;
   const midBot = (x: number, z: number) => plateBottom(x, z) + 0.075;
 
@@ -51,12 +51,14 @@ export function buildNail(): Parts {
   add('onychodermal-band', d(slabAt(20.3, 21.8, (x, z) => midTop(x, z) + 0.012, (x, z) => midTop(x, z) - 0.02, (x) => plateHW(x) * 0.98, 28), 'nailBand'));
 
   const ridges: BufferGeometry[] = [];
-  for (let z = -4.2; z <= 4.21; z += 0.44) {
+  for (let across = -0.88; across <= 0.89; across += 0.11) {
     const pts: V3[] = Array.from({ length: 16 }, (_, i) => {
-      const x = lerp(6.6, 24.5, i / 15);
-      return [x, plateTop(x, z) + 0.011, z];
+      const u = lerp(7.0, 25.9, i / 15);
+      const z = across * plateHW(u);
+      const x = plateX(u, across);
+      return [x, plateTop(x, z) + 0.006, z];
     });
-    ridges.push(tube(pts, 0.022, { n: 48, m: 8 }));
+    ridges.push(tube(pts, (u) => 0.009 + 0.01 * Math.sin(Math.PI * u), { n: 48, m: 8 }));
   }
   add('nail-ridges', d(merge(ridges), 'nailRidge'));
 
@@ -94,9 +96,10 @@ export function buildNail(): Parts {
       1.2,
       21.8,
       (x) => {
-        const top = 4.05 - 0.7 * smooth(17, 22, x);
-        const bot = 1.3;
-        return { cy: (top + bot) / 2, ry: (top - bot) / 2, hw: 0.95, cz: s * 5.8, p: 2.6 };
+        const z = plateHW(x) + 0.47;
+        const top = plateTop(x, plateHW(x)) + 0.53 - 0.52 * smooth(17, 22, x);
+        const bot = skinTopY(x, z) - 0.72;
+        return { cy: (top + bot) / 2, ry: (top - bot) / 2, hw: 0.91, cz: s * z, p: 2.0 };
       },
       { cap0: 'round', cap1: 'round', roundLen0: 0.9, roundLen1: 0.9, n: 56, m: 24 },
     );

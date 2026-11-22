@@ -73,24 +73,25 @@ export function buildFollicle(): Parts {
   const r = rng(7);
 
   // --- волос: стержень с рельефом чешуек кутикулы, кончик, корень и внутренности
-  const scaleWob = (u: number, a: number) => 1 + 0.022 * Math.sin(u * 190 + Math.sin(a * 4) * 0.6);
-  const shaftR = (u: number) => R.cuticle() * (1 - 0.9 * smooth(0.88, 1, u));
-  add('hair-shaft', d(hairUp(shaftR, 0, 0.88, { cap0: null, cap1: null, uvLen: 20, wob: scaleWob }), 'cuticleHair'));
-  add('hair-tip', d(hairUp(shaftR, 0.88, 1, { cap0: null, cap1: 'round', roundLen1: 0.14, uvLen: 4, wob: scaleWob }), 'cuticleHair'));
-  add('hair-root', d(along(() => R.cuticle() + 0.004, 0, U.rootEnd, { cap0: null, cap1: 'round', roundLen1: 0.3, uvLen: 14, wob: scaleWob }), 'cuticleHair'));
+  const scaleWob = (u: number, a: number) => 1 + 0.055 * Math.cos(2 * a) + 0.008 * Math.sin(u * 190 + Math.sin(a * 4) * 0.6);
+  const taper = (u: number) => 1 - 0.17 * smooth(0.1, 0.85, u) - 0.76 * smooth(0.85, 1, u);
+  const shaftR = (u: number) => R.cuticle() * taper(u);
+  add('hair-shaft', d(hairUp(shaftR, 0, 0.85, { cap0: null, cap1: null, uvLen: 20, wob: scaleWob }), 'cuticleHair'));
+  add('hair-tip', d(hairUp(shaftR, 0.85, 1, { cap0: null, cap1: 'round', roundLen1: 0.05, uvLen: 4, wob: scaleWob }), 'cuticleHair'));
+  add('hair-root', d(along(R.cuticle, 0, U.rootEnd, { cap0: null, cap1: 'round', roundLen1: 0.3, uvLen: 14, wob: scaleWob }), 'cuticleHair'));
   add(
     'hair-cuticle',
-    d(hairUp(() => 0.262, 0, 0.86, { cap0: null, cap1: 'round', roundLen1: 0.2, wob: scaleWob }), 'cuticleHair'),
+    d(hairUp((u) => 0.262 * taper(u), 0, 1, { cap0: null, cap1: 'round', roundLen1: 0.035, wob: scaleWob }), 'cuticleHair'),
     d(along(() => 0.262, 0, U.rootEnd - 0.004, { cap0: null, cap1: 'round', roundLen1: 0.27, wob: scaleWob }), 'cuticleHair'),
   );
   add(
     'hair-cortex',
-    d(hairUp(() => R.cortex(), 0, 0.84, { cap0: null, cap1: 'round', roundLen1: 0.2 }), 'cortex'),
+    d(hairUp((u) => R.cortex() * taper(u), 0, 0.985, { cap0: null, cap1: 'round', roundLen1: 0.03, wob: scaleWob }), 'cortex'),
     d(along(() => R.cortex(), 0, U.rootEnd - 0.008, { cap0: null, cap1: 'round', roundLen1: 0.22 }), 'cortex'),
   );
   add(
     'hair-medulla',
-    d(hairUp(() => R.medulla(), 0, 0.8, { cap0: null, cap1: 'round', roundLen1: 0.1, m: 16 }), 'medulla'),
+    d(hairUp((u) => R.medulla() * taper(u), 0, 0.84, { cap0: null, cap1: 'round', roundLen1: 0.1, m: 16 }), 'medulla'),
     d(along(() => R.medulla(), 0, U.keratogenous, { cap0: null, cap1: 'round', roundLen1: 0.1, m: 16 }), 'medulla'),
   );
 
@@ -104,9 +105,11 @@ export function buildFollicle(): Parts {
     const p: V3 = inRoot ? around(u, rad, ang) : (() => {
       const q = HAIR_UP.getPoint(u);
       const t = HAIR_UP.getTangent(u);
-      const bx = -t.y;
-      const by = t.x;
-      return [q.x + rad * Math.cos(ang) * bx, q.y + rad * Math.cos(ang) * by, rad * Math.sin(ang)] as V3;
+      const b = t.clone().set(-t.y, t.x, 0).normalize();
+      const n = t.clone().cross(b);
+      q.addScaledVector(b, taper(u) * rad * Math.cos(ang));
+      q.addScaledVector(n, taper(u) * rad * Math.sin(ang));
+      return [q.x, q.y, q.z] as V3;
     })();
     grains.push(blob(p, [0.02, 0.055, 0.02], { seg: 7, seed: i, amp: 0.2, rot: [0, 0, r() * 3] }));
   }

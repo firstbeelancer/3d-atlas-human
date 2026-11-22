@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Focus, MessageCircleHeart, Stethoscope, Undo2 } from 'lucide-react';
 import type { Part, PartGroup, SectionMeta, Stat } from '../../content/types';
-import { getSection } from '../../content/sections';
+import { getSection, SECTIONS } from '../../content/sections';
 import { t } from '../../i18n';
 import { useSelection } from '../../three/selection';
 import { OrganIcon } from '../icons/organs';
@@ -33,6 +33,16 @@ export function SectionHero({ section, systemTitle }: { section: SectionMeta; sy
       <p className="m-0 mt-6 max-w-[28ch] font-display text-[clamp(21px,2.3vw,26px)] font-medium leading-[1.3] tracking-[-0.015em]">
         {section.tagline}
       </p>
+      {section.system === 'skin' && (
+        <nav className="mt-4 flex flex-wrap gap-2" aria-label={systemTitle}>
+          {SECTIONS.filter((item) => item.system === section.system && item.slug !== section.slug).map((item) => (
+            <Link key={item.slug} to={`/razdel/${item.slug}`} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm font-medium hover:bg-wash">
+              <OrganIcon name={item.icon} className="size-4" />
+              {item.title}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

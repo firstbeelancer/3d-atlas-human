@@ -342,6 +342,7 @@ export const MODELS: Record<string, ModelEntry> = {
       { id: 'fingerprint', icon: 'fingerprint', clearsSelection: true, clearsCutaway: true },
       { id: 'xray', icon: 'inside' },
     ],
+    mobileModeRoom: true,
     description: modelDescriptions.nogti,
   },
   selezenka: {

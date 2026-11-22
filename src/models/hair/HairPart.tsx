@@ -6,7 +6,7 @@ import { usePart } from '../../three/materials';
 import { Label } from '../../three/Label';
 import { useSelection } from '../../three/selection';
 import { ARRECTOR, cutPlane, type SceneId } from './anatomy';
-import { GROUP_OF, INNER_LABELS, LABEL_AT, MAIN_LABELS, ROCKING, SPREAD, XRAY_SHELL } from './parts';
+import { GROUP_OF, INNER_LABELS, LABEL_AT, MAIN_LABELS, NAIL_SURFACE_LABELS, ROCKING, SPREAD, XRAY_SHELL } from './parts';
 
 /** Состояние, которым управляет пользователь; части читают его каждый кадр, не перерисовывая React. */
 export interface HairControl {
@@ -226,7 +226,7 @@ export function HairPart({ id, children }: { id: string; children: ReactNode }) 
 }
 
 /** Подпись части: плашка с названием; прячется вместе с частью, в призрачном режиме и на срезанной стороне. */
-export function PartLabel({ id, names, hide }: { id: string; names: Record<string, string>; hide?: boolean }) {
+export function PartLabel({ id, names, hide, fingerprint }: { id: string; names: Record<string, string>; hide?: boolean; fingerprint: boolean }) {
   const ref = useContext(HairContext)!;
   const { selected, isolate } = useSelection();
   const at = LABEL_AT[id];
@@ -239,6 +239,8 @@ export function PartLabel({ id, names, hide }: { id: string; names: Record<strin
     const p = cutPlane(c.scene, c.kind, c.cutT);
     if (p.n[0] * at[0] + p.n[1] * at[1] + p.n[2] * at[2] + p.c < -0.2) return null;
   }
-  const main = MAIN_LABELS.has(id);
+  let main = MAIN_LABELS.has(id);
+  if (fingerprint) main = id === 'fingerprint';
+  else if (c.scene === 'nail' && !c.cut && !c.xray) main = NAIL_SURFACE_LABELS.has(id);
   return <Label at={at} partId={id} text={names[id]} labels={c.labels && (main || selected === grp || selected === id)} inner={INNER_LABELS.has(id)} />;
 }

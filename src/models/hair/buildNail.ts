@@ -48,17 +48,17 @@ export function buildNail(): Parts {
   add('nail-body', d(slabAt(lunulaEnd, bodyEnd, midTop, midBot), 'nailBody'));
   add('free-edge', d(slabAt(bodyEnd, nailPlate.x1, midTop, midBot), 'nailFree'));
   add('nail-ventral', d(slabAt(nailPlate.x0, nailPlate.x1, (x, z) => plateBottom(x, z) + 0.08, plateBottom), 'nailVentral'));
-  add('onychodermal-band', d(slabAt(20.3, 21.8, (x, z) => midTop(x, z) + 0.012, (x, z) => midTop(x, z) - 0.02, (x) => plateHW(x) * 0.98, 28), 'nailBand'));
+  add('onychodermal-band', d(slabAt(21.0, 21.8, (x, z) => midTop(x, z) + 0.012, (x, z) => midTop(x, z) - 0.02, (x) => plateHW(x) * 0.98, 28), 'nailBand'));
 
   const ridges: BufferGeometry[] = [];
   for (let across = -0.88; across <= 0.89; across += 0.11) {
     const pts: V3[] = Array.from({ length: 16 }, (_, i) => {
-      const u = lerp(7.0, 25.9, i / 15);
+      const u = lerp(7.8, 24.6, i / 15);
       const z = across * plateHW(u);
       const x = plateX(u, across);
-      return [x, plateTop(x, z) + 0.006, z];
+      return [x, plateTop(x, z) + 0.015, z];
     });
-    ridges.push(tube(pts, (u) => 0.009 + 0.01 * Math.sin(Math.PI * u), { n: 48, m: 8 }));
+    ridges.push(tube(pts, (u) => 0.004 + 0.008 * Math.sin(Math.PI * u), { n: 48, m: 8 }));
   }
   add('nail-ridges', d(merge(ridges), 'nailRidge'));
 
@@ -222,34 +222,25 @@ export function buildNail(): Parts {
   const septa: BufferGeometry[] = [];
   for (let x = -10; x <= 20.1; x += 2.3) {
     const yb = Math.min(boneBottom(Math.max(x, 0)) - 0.05, -1.0);
-    const y0 = skinBottomY(x, 0) + 0.7;
-    const hwx = fingerHW(x) - 1.0;
-    septa.push(heightSlab({ x0: x - 0.09, x1: x + 0.09, zh: hwx, top: () => yb, bot: () => y0, nx: 2, nz: 18 }));
+    const hwx = fingerHW(x) - 1.6;
+    septa.push(heightSlab({
+      x0: x - 0.09, x1: x + 0.09, zh: hwx,
+      top: () => yb, bot: (x, z) => skinBottomY(x, z) + 0.65, nx: 2, nz: 18,
+    }));
   }
   add('fat-septa', d(merge(septa), 'septa'));
 
-  add(
-    'fingerprint',
-    d(
-      heightSlab({
-        x0: -12.5,
-        x1: 22.8,
-        zh: (x) => fingerHW(x) - 0.1,
-        top: (x, z) => skinBottomY(x, z) + 0.012,
-        bot: (x, z) => {
-          const dx = x - 13.5;
-          const dz = z;
-          const rDist = Math.hypot(dx * 0.82, dz);
-          const ang = Math.atan2(dz, dx);
-          const whorl = Math.cos(rDist * 3.5 + ang * 0.5);
-          return skinBottomY(x, z) - 0.11 + 0.075 * whorl;
-        },
-        nx: 180,
-        nz: 130,
-      }),
-      'fingerprint',
-    ),
-  );
+  const whorl = Array.from({ length: 13 }, (_, ring) => {
+    const radius = (ring + 1) / 13;
+    const points: V3[] = Array.from({ length: 65 }, (_, i) => {
+      const angle = i * Math.PI / 32;
+      const x = 14.7 + 6.8 * radius * Math.cos(angle) - 0.8 * radius * Math.sin(angle) ** 2;
+      const z = 0.25 + 4.25 * radius * Math.sin(angle) + 0.55 * radius * Math.cos(angle);
+      return [x, skinBottomY(x, z) - 0.023, z];
+    });
+    return tube(points, 0.038, { n: 120, m: 8, cap0: null, cap1: null });
+  });
+  add('fingerprint', d(merge(whorl), 'fingerprint'));
 
   const coils: BufferGeometry[] = [];
   for (let i = 0; i < 12; i++) {

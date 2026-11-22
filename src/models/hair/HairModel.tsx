@@ -208,9 +208,10 @@ function AnatomyScene({ scene, state, names = {} }: ModelProps & { scene: SceneI
 
   const ids = SCENE_PARTS[scene];
   const hideLabels = explodeTarget > 0.02;
+  const fingerprint = scene === 'nail' && !!state.modes.fingerprint;
   return (
     <HairContext.Provider value={ctrl}>
-      <CameraRig ctrl={ctrl} selected={selected} explode={explodeTarget} scene={scene} fingerprint={scene === 'nail' && !!state.modes.fingerprint} />
+      <CameraRig ctrl={ctrl} selected={selected} explode={explodeTarget} scene={scene} fingerprint={fingerprint} />
       <group rotation={[0, 0, scene === 'nail' ? NAIL_ROT : 0]}>
         {data.context.length > 0 && (
           <HairPart id="ctx-skin">
@@ -224,7 +225,7 @@ function AnatomyScene({ scene, state, names = {} }: ModelProps & { scene: SceneI
             <HairPart key={id} id={id}>
               <PartMeshes defs={defs} tex={tex} />
               <Streams id={id} state={state} />
-              <PartLabel id={id} names={names} hide={hideLabels} />
+              <PartLabel id={id} names={names} hide={hideLabels} fingerprint={fingerprint} />
             </HairPart>
           );
         })}

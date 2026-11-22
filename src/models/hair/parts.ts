@@ -151,13 +151,14 @@ export const nailWorld = (p: V3): V3 => [-p[1], p[0], p[2]];
 const FRONT: V3 = norm([0.14, 0.1, 1]);
 const dirOf = (scene: SceneId, d: V3 = FRONT): V3 => (scene === 'nail' ? norm(nailWorld(d)) : d);
 const NAIL_SURFACE = dirOf('nail', [0.08, 1, 0.38]);
-export const FINGERPRINT_VIEW: Focus = { at: nailWorld([14.0, -1.2, 0]), dir: dirOf('nail', [0.12, -1, 0.2]), dist: 43 };
+export const FINGERPRINT_VIEW: Focus = { at: nailWorld([14.2, -2.0, 0]), dir: dirOf('nail', [0.08, -1, 0.2]), dist: 51 };
+export const NAIL_SURFACE_LABELS = new Set(['lunula', 'nail-body', 'free-edge', 'proximal-fold']);
 
 export const OVERVIEW: Record<SceneId, Focus> = {
-  follicle: { at: [2.1, -2.5, 0], dir: norm([0.23, 0.32, 1]), dist: 47 },
+  follicle: { at: [2.1, -2.5, 0], dir: norm([0.23, 0.32, 1]), dist: 55 },
   shaft: { at: [3.0, -1.6, 0], dir: norm([0.1, 0.08, 1]), dist: 52 },
   cycle: { at: [0, -3.4, 0], dir: FRONT, dist: 52 },
-  nail: { at: nailWorld([6.5, 0.8, 0]), dir: NAIL_SURFACE, dist: 81 },
+  nail: { at: nailWorld([6.5, 0.8, 0]), dir: NAIL_SURFACE, dist: 95 },
 };
 
 const up: V3 = [0, 1, 0];
@@ -166,7 +167,7 @@ const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 /** Виды для трёх разрезов: камера со стороны убранной части. */
 export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Focus>> = {
   follicle: {
-    side: { at: [2.1, -2.5, 0], dir: norm([0.11, 0.14, 1]), dist: 45 },
+    side: { at: [2.1, -2.5, 0], dir: norm([0.11, 0.14, 1]), dist: 55 },
     fundus: { at: [2.8, -3.4, 0], dir: norm([0.48, 0.86, 0.3]), dist: 25 },
     coronal: { at: [2.4, -4.4, 0], dir: norm([0.08, 1, 0.34]), dist: 27 },
   },
@@ -181,7 +182,7 @@ export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Fo
     coronal: { at: [0, -4.4, 0], dir: norm([0.06, 1, 0.34]), dist: 30 },
   },
   nail: {
-    side: { at: nailWorld([7.0, 0.4, 0]), dir: dirOf('nail'), dist: 80 },
+    side: { at: nailWorld([7.0, 0.4, 0]), dir: dirOf('nail'), dist: 93 },
     fundus: { at: nailWorld([5, 0, 0]), dir: norm(nailWorld([1, 0.18, 0.22])), dist: 30 },
     coronal: { at: nailWorld([9.6, 0, 0]), dir: norm(nailWorld([0.12, 1, 0.3])), dist: 52 },
   },
@@ -231,7 +232,7 @@ const INFO: Record<string, Info> = {
   infundibulum: f(ax(0.07, 0.72), 4.6, { main: true }),
   isthmus: f(ax(0.24, 0.7), 4.6),
   bulge: f(ax(0.395, -0.82), 4.6, { main: true }),
-  'hair-bulb': f(ax(0.93, 1.1), 5, { main: true }),
+  'hair-bulb': f(ax(0.93, 1.1, 0), 5, { main: true }),
   matrix: f(ax(0.945, -0.55), 3.4),
   papilla: f([PAPILLA.c[0], PAPILLA.c[1] - 0.2, 0.25], 3.6, { main: true }),
   'bulb-melanocytes': f(ax(0.9, 0.62), 3.2),
@@ -248,12 +249,12 @@ const INFO: Record<string, Info> = {
   'sebaceous-gland': f([1.15, -1.55, 0.3], 6, { main: true }),
   'sebaceous-duct': f([2.9, -1.1, 0.3], 4.5),
   sebum: f([1.5, -1.2, 0.3], 4.2),
-  'arrector-pili': f([-0.5, -2.05, 0.3], 7, { main: true }),
+  'arrector-pili': f([-0.5, -2.05, 0], 7, { main: true }),
   'arrector-attachment': f([-3.1, -1.05, 0.3], 4.5),
   'apocrine-gland': f([7.6, -6.1, 0.3], 7),
   'apocrine-duct': f([5.9, -3.3, 0.3], 6),
   // сосуды и нервы
-  'follicular-artery': f([-2.8, -8.05, -0.4], 8, { main: true }),
+  'follicular-artery': f([-2.8, -8.05, -0.4], 8),
   'follicular-vein': f([5.0, -8.1, -0.4], 8),
   'papilla-capillaries': f([PAPILLA.c[0], PAPILLA.c[1] + 0.1, 0.1], 3),
   'perifollicular-plexus': f(ax(0.58, 1.12), 5),
@@ -315,7 +316,7 @@ const nailInfo: Record<string, Info> = {
   'finger-pulp': f([15, -2.7, 0.2], 18),
   'fat-septa': f([6, -2.4, 0.2], 11),
   'finger-skin': f([10, -4.1, 0.2], 14),
-  fingerprint: f([17, -4.2, 0], 20, { dir: FINGERPRINT_VIEW.dir }),
+  fingerprint: f([14.7, -4.2, 0.25], 29, { dir: FINGERPRINT_VIEW.dir }),
   'eccrine-glands': f([13, -3.4, -0.6], 9),
   pacinian: f([8, -3.2, -1.6], 8),
   meissner: f([20, -3.9, -0.3], 8),

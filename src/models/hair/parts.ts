@@ -1,3 +1,4 @@
+import { dorsalSkinY, nailPlate, plateBottom, plateHW, plateTop, proximalEdge, sectionBottom } from './fingertip';
 import { AX, HAIR_UP, PAPILLA, axisAt, type SceneId } from './anatomy';
 import type { V3 } from './geometry';
 
@@ -156,15 +157,15 @@ export const nailWorld = ([x, y, z]: V3): V3 => [
 
 const FRONT: V3 = norm([0.14, 0.1, 1]);
 const dirOf = (scene: SceneId, d: V3 = FRONT): V3 => (scene === 'nail' ? norm(nailWorld(d)) : d);
-const NAIL_SURFACE = dirOf('nail', [0.08, 1, 0.38]);
-export const FINGERPRINT_VIEW: Focus = { at: nailWorld([14.2, -2.0, 0]), dir: dirOf('nail', [0.08, -1, 0.2]), dist: 51 };
+const NAIL_SURFACE = dirOf('nail', [0.1, 1, 0.3]);
+export const FINGERPRINT_VIEW: Focus = { at: nailWorld([15.5, -3.0, 0]), dir: dirOf('nail', [0.08, -1, 0.2]), dist: 56 };
 export const NAIL_SURFACE_LABELS = new Set(['lunula', 'nail-body', 'free-edge', 'proximal-fold']);
 
 export const OVERVIEW: Record<SceneId, Focus> = {
   follicle: { at: [1.5, -0.98, 0], dir: norm([0.19, 0.28, 1]), dist: 54 },
   shaft: { at: [3.0, -1.6, 0], dir: norm([0.1, 0.08, 1]), dist: 52 },
   cycle: { at: [0, -3.4, 0], dir: FRONT, dist: 52 },
-  nail: { at: nailWorld([6.5, 0.8, 0]), dir: NAIL_SURFACE, dist: 95 },
+  nail: { at: nailWorld([7.5, 0.5, 0]), dir: NAIL_SURFACE, dist: 100 },
 };
 
 const up: V3 = [0, 1, 0];
@@ -188,9 +189,9 @@ export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Fo
     coronal: { at: [0, -4.4, 0], dir: norm([0.06, 1, 0.34]), dist: 30 },
   },
   nail: {
-    side: { at: nailWorld([7.0, 0.4, 0]), dir: dirOf('nail'), dist: 88 },
-    fundus: { at: nailWorld([5, 0, 0]), dir: norm(nailWorld([1, 0.18, 0.22])), dist: 30 },
-    coronal: { at: nailWorld([9.6, 0, 0]), dir: norm(nailWorld([0.12, 1, 0.3])), dist: 52 },
+    side: { at: nailWorld([7.5, -0.5, 0]), dir: dirOf('nail'), dist: 92 },
+    fundus: { at: nailWorld([8, -0.5, 0]), dir: norm(nailWorld([1, 0.18, 0.22])), dist: 34 },
+    coronal: { at: nailWorld([11, 0, 0]), dir: norm(nailWorld([0.12, 1, 0.3])), dist: 56 },
   },
 };
 
@@ -198,7 +199,7 @@ export const SPREAD_VIEW: Record<SceneId, Focus> = {
   follicle: { at: [1.5, -3.2, 0], dir: norm([0.2, 0.18, 1]), dist: 52 },
   shaft: { at: [3.6, -1.6, 0], dir: norm([0.12, 0.1, 1]), dist: 56 },
   cycle: { at: [0, -3.4, 0], dir: norm([0.2, 0.18, 1]), dist: 50 },
-  nail: { at: nailWorld([9.6, 0.4, 0]), dir: dirOf('nail', norm([0.2, 0.2, 1])), dist: 86 },
+  nail: { at: nailWorld([10, 0, 0]), dir: dirOf('nail', norm([0.2, 0.2, 1])), dist: 92 },
 };
 
 interface Info {
@@ -292,26 +293,30 @@ const INFO: Record<string, Info> = {
   'shedding-hair': f([9.1, 0.5, 0.6], 8),
 };
 
-/** Ногтевая сцена: положения в мм пальца до поворота. */
+/** Ногтевая сцена: положения в мм пальца до поворота; высоты берутся из формы пальца. */
+const pt = (x: number, z = 0) => plateTop(x, z);
+const pb = (x: number, z = 0) => plateBottom(x, z);
+const lip = proximalEdge(0);
+const { x0: rootX, lunulaEnd, bodyEnd } = nailPlate;
 const nailInfo: Record<string, Info> = {
-  'nail-dorsal': f([15.0, 4.0, 0], 22, { dir: NAIL_SURFACE }),
-  'nail-root': f([3.4, 3.7, 0.2], 9),
-  lunula: f([7.8, 4.05, 0], 11, { dir: NAIL_SURFACE, main: true }),
-  'nail-body': f([15, 4.05, 0], 19, { dir: NAIL_SURFACE, main: true }),
-  'free-edge': f([24.8, 3.44, 0], 13, { dir: NAIL_SURFACE, main: true }),
-  'nail-ventral': f([17, 3.45, 0.2], 10),
-  'onychodermal-band': f([21.0, 4.05, 0.2], 10),
-  'nail-ridges': f([11, 4.35, 2.4], 12),
-  'proximal-fold': f([5.3, 4.7, 0.15], 10, { main: true }),
-  eponychium: f([6.2, 4.3, 0.2], 7),
-  'nail-cuticle': f([7.4, 4.1, 0.2], 7),
-  'lateral-folds': f([13, 4.4, 5.7], 14),
-  hyponychium: f([22.3, 3.0, 0.2], 8, { main: true }),
-  'germinal-matrix': f([3.8, 3.2, 0.2], 8, { main: true }),
-  'sterile-matrix': f([14, 3.25, 0.2], 10),
-  'bed-ridges': f([16, 3.05, 1.8], 12),
-  'matrix-melanocytes': f([3.0, 3.35, 0.2], 7),
-  'nail-bed-dermis': f([14, 2.4, 0.2], 12),
+  'nail-dorsal': f([17, pt(17), 0], 22, { dir: NAIL_SURFACE }),
+  'nail-root': f([rootX + 2, pt(rootX + 2) - 0.25, 0.2], 9),
+  lunula: f([lunulaEnd - 1.0, pt(lunulaEnd - 1.0), 0], 11, { dir: NAIL_SURFACE, main: true }),
+  'nail-body': f([17.5, pt(17.5), 0], 19, { dir: NAIL_SURFACE, main: true }),
+  'free-edge': f([24.2, pt(24.2), 0], 13, { dir: NAIL_SURFACE, main: true }),
+  'nail-ventral': f([19, pb(19), 0.2], 10),
+  'onychodermal-band': f([bodyEnd - 0.4, pt(bodyEnd - 0.4), 0.2], 10),
+  'nail-ridges': f([15, pt(15, 2.4) + 0.02, 2.4], 12),
+  'proximal-fold': f([lip - 0.9, dorsalSkinY(lip - 0.9, 0.15), 0.15], 10, { main: true }),
+  eponychium: f([lip - 0.2, pt(lip - 0.2) + 0.12, 0.2], 7),
+  'nail-cuticle': f([lip + 0.4, pt(lip + 0.4), 0.2], 7),
+  'lateral-folds': f([17, dorsalSkinY(17, plateHW(17) + 0.35), plateHW(17) + 0.35], 14),
+  hyponychium: f([bodyEnd + 0.4, pb(bodyEnd + 0.4) - 0.3, 0.2], 8, { main: true }),
+  'germinal-matrix': f([rootX + 1.5, pb(rootX + 1.5) - 0.4, 0.2], 8, { main: true }),
+  'sterile-matrix': f([17, pb(17) - 0.1, 0.2], 10),
+  'bed-ridges': f([19, pb(19, 1.8) - 0.25, 1.8], 12),
+  'matrix-melanocytes': f([rootX + 1, pb(rootX + 1) - 0.5, 0.2], 7),
+  'nail-bed-dermis': f([17, pb(17) - 0.9, 0.2], 12),
   'distal-phalanx': f([10, 0.7, 0.2], 18, { main: true }),
   'phalanx-tuft': f([19.5, 0.9, 0.2], 11),
   'middle-phalanx-head': f([-7, 0, 0.2], 14),
@@ -319,19 +324,19 @@ const nailInfo: Record<string, Info> = {
   'collateral-ligament': f([-1.0, 0.2, -4.7], 12),
   'extensor-tendon': f([-7, 2.95, 0.2], 11),
   'flexor-tendon': f([-7, -2.35, 0.2], 11),
-  'finger-pulp': f([15, -2.7, 0.2], 18),
-  'fat-septa': f([6, -2.4, 0.2], 11),
-  'finger-skin': f([10, -4.1, 0.2], 14),
-  fingerprint: f([14.7, -4.2, 0.25], 29, { dir: FINGERPRINT_VIEW.dir }),
-  'eccrine-glands': f([13, -3.4, -0.6], 9),
-  pacinian: f([8, -3.2, -1.6], 8),
-  meissner: f([20, -3.9, -0.3], 8),
+  'finger-pulp': f([15, -3.6, 0.2], 18),
+  'fat-septa': f([6, -3.4, 0.2], 11),
+  'finger-skin': f([8, sectionBottom(8, 0.2), 0.2], 14),
+  fingerprint: f([16.2, sectionBottom(16.2, 0.25), 0.25], 29, { dir: FINGERPRINT_VIEW.dir }),
+  'eccrine-glands': f([13, sectionBottom(13, -0.6) + 1.0, -0.6], 9),
+  pacinian: f([8, -2.9, -1.7], 8),
+  meissner: f([16, sectionBottom(16, -0.3) + 0.42, -0.3], 8),
   'digital-artery': f([-8, -1.4, -3.5], 14, { main: true }),
-  'digital-vein': f([-8, 2.9, -2.4], 13),
+  'digital-vein': f([-8, 3.2, -2.4], 13),
   'digital-nerve': f([-8, -2.3, -3.4], 12),
-  'nail-arcade': f([4.6, 2.7, 0.1], 8),
-  'nail-capillaries': f([12, 3.0, 0.1], 8),
-  glomus: f([18.5, 2.35, 0.1], 8),
+  'nail-arcade': f([6.2, 2.6, 0.1], 8),
+  'nail-capillaries': f([16, pb(16) - 0.17, 0.1], 8),
+  glomus: f([19.2, pb(19.2) - 1.0, 0.1], 8),
 };
 for (const [id, info] of Object.entries(nailInfo)) INFO[id] = { ...info, at: info.at };
 
@@ -351,9 +356,9 @@ const groupAt: Record<HairGroupId, V3> = {
   'g-fibre': [3.6, 0, 0],
   'g-types': [0.5, -5.6, 0],
   'g-cycle': [0, -3.4, 0],
-  'g-plate': [14, 4, 0],
-  'g-folds': [10, 4, 0],
-  'g-matrix': [9, 3, 0],
+  'g-plate': [17, 4, 0],
+  'g-folds': [12, 4, 0],
+  'g-matrix': [11, 3, 0],
   'g-finger': [8, 0, 0],
   'g-nailvessels': [4, 0, 0],
 };
@@ -373,7 +378,7 @@ for (const g of Object.keys(HAIR_GROUPS) as HairGroupId[]) {
 }
 
 /** Разнос на части: кожа расходится слоями по вертикали, остальное — от центра сцены. */
-const CENTER: Record<SceneId, V3> = { follicle: [2.2, -4, 0], shaft: [3.6, -0.5, 0], cycle: [0, -3.4, 0], nail: [9, 0, 0] };
+const CENTER: Record<SceneId, V3> = { follicle: [2.2, -4, 0], shaft: [3.6, -0.5, 0], cycle: [0, -3.4, 0], nail: [10, -1, 0] };
 const SKIN_STACK: Record<string, number> = {
   'stratum-corneum': 5.5,
   epidermis: 4.4,

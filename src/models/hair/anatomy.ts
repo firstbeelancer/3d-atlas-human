@@ -140,74 +140,13 @@ export function cutPlane(scene: SceneId, kind: CutKind, t: number): { n: V3; c: 
       if (kind === 'fundus') return { n: [-1, 0, 0], c: lerp(9, -8, t) };
       return { n: [0, -1, 0], c: lerp(2.6, -2.6, t) };
     case 'nail':
-      if (kind === 'side') return { n: [0, 0, -1], c: 7.4 * (1 - 2 * t) };
+      if (kind === 'side') return { n: [0, 0, -1], c: 8.2 * (1 - 2 * t) };
       if (kind === 'fundus') return { n: [-1, 0, 0], c: lerp(26, -14, t) };
-      return { n: [0, -1, 0], c: lerp(6.2, -6, t) };
+      return { n: [0, -1, 0], c: lerp(5.4, -7.8, t) };
   }
 }
 
-/* --------------------------------- Ноготь и палец --------------------------------- */
-
-export const FING = { x0: -14, x1: 22, cap: 3.1, tipX: 25.1 };
-
-/**
-  Скругление кончика пальца в плане (если смотреть на ноготь): палец шириной около 14 мм
-  сходится к кончику дугой длиной около 6 мм, а не обрубается торцом. Профиль сбоку задаёт FING.cap.
-*/
-const TIP_ROUND = 6.2;
-export const tipWidth = (x: number): number => {
-  const t = Math.min(1, Math.max(0, (x - (FING.tipX - TIP_ROUND)) / TIP_ROUND));
-  return Math.pow(1 - t ** 2.2, 1 / 2.2);
-};
-
-export const nailPlate = {
-  x0: 2.6,
-  x1: 25.9,
-  hw: 5.35,
-  rootEnd: 6.5,
-  lunulaEnd: 9.8,
-  bodyEnd: 23.25,
-  top: 3.95,
-  thick: 0.5,
-};
-
-/** Дистальные границы лунулы, ложа и пластинки выступают по центру. */
-export const plateX = (x: number, across: number): number => {
-  const root = 1.15 * (1 - smooth(2.6, 6.5, x));
-  const crescent = 1.05 * smooth(6.5, 9.8, x) * (1 - smooth(9.8, 15.5, x));
-  const tip = 1.5 * smooth(17, 25, x);
-  return x + (root - crescent) * across ** 2 - tip * Math.abs(across) ** 4;
-};
-
-/** Полуширина ногтевой пластины с плавным анатомическим скруглением у корня и свободного края. */
-export const plateHW = (x: number): number => {
-  const rootRound = 0.74 + 0.23 * smooth(2.6, 8.3, x);
-  const tipRound = 1 + 0.03 * smooth(8, 18, x) - 0.17 * smooth(21.8, 25.9, x);
-  return nailPlate.hw * rootRound * tipRound;
-};
-
-/** Верх пластины: выгнута поперек и слегка загнута книзу у свободного края. */
-export const plateTop = (x: number, z: number): number => {
-  const across = z / nailPlate.hw;
-  return nailPlate.top + 0.39 * Math.sin(smooth(2.6, 25.9, x) * Math.PI)
-    - 0.79 * across ** 2 - 0.44 * across ** 4 - 0.53 * smooth(20.8, 26, x)
-    + 0.09 * across;
-};
-export const plateBottom = (x: number, z: number): number =>
-  plateTop(x, z) - nailPlate.thick * (1 - 0.12 * (z / nailPlate.hw) ** 2);
-
-/** Рельеф над суставом, сужение диафиза и округлая ладонная подушечка. */
-export const fingerTop = (x: number): number =>
-  4.25 + 0.7 * Math.exp(-(((x + 3.3) / 3.7) ** 2)) - 0.37 * smooth(1, 18.5, x);
-export const fingerBottom = (x: number): number =>
-  -4.2 + 0.27 * Math.sin((x + 14) * 0.12) - 1.35 * smooth(1, 17, x);
-export const fingerHW = (x: number): number =>
-  6.78 + 0.85 * Math.exp(-(((x + 3.8) / 5) ** 2)) - 0.54 * smooth(0, 11, x) + 0.49 * smooth(11, 20, x);
-
-/** Кость: дистальная фаланга с выраженной талией диафиза и расширенным основанием. */
-export const boneTop = (x: number): number => lerp(2.2, 1.45, smooth(0, 20, x)) - 0.26 * Math.sin(Math.PI * smooth(3, 16, x));
-export const boneBottom = (x: number): number => lerp(-2.0, 0.35, smooth(0, 19, x)) + 0.35 * Math.sin(Math.PI * smooth(2, 16, x));
-export const boneHW = (x: number): number => 5.1 - 2.6 * smooth(0, 9.5, x) + 2.1 * smooth(14, 20.5, x);
+/* Форма кончика пальца и ногтевого аппарата описана в fingertip.ts. */
 
 export const v3 = (x: number, y: number, z: number): V3 => [x, y, z];
 export const vec = (p: V3): Vector3 => new Vector3(...p);

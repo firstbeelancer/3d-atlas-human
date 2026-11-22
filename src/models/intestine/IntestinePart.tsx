@@ -187,14 +187,14 @@ export function IntestinePart({ id, children }: { id: string; children: ReactNod
       if (data.hideOnExplode) m.visible = m.visible && c.explode <= 0.02;
     }
     for (const m of mats.current) {
-      const base = (m.userData as { base?: BaseProps }).base;
+      const { base, inspectionOpacity } = m.userData as { base?: BaseProps; inspectionOpacity?: number };
       if (!base) continue;
       const transparent = base.transparent || a < 0.995;
       if (m.transparent !== transparent) {
         m.transparent = transparent;
         m.needsUpdate = true;
       }
-      const solidify = focus && c.isolate && base.transparent ? Math.min(0.9, base.opacity * 2.4 + 0.06) : base.opacity;
+      const solidify = focus && c.isolate && base.transparent ? inspectionOpacity ?? Math.min(0.9, base.opacity * 2.4 + 0.06) : base.opacity;
       m.opacity = solidify * a;
       m.depthWrite = base.depthWrite && a > 0.9;
       m.clippingPlanes = cutOn && !noClip ? planes : null;

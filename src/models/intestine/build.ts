@@ -26,6 +26,7 @@ import {
   plicaDepth,
   ringPoint,
   smallBaseR,
+  smallOuterR,
   smallPath,
   smoothstep,
   type GutPath,
@@ -72,12 +73,56 @@ interface SegSpec {
   /** Дополнительный выступ слизистой внутрь (складки, столбы). */
   inward?: (i: number, theta: number) => number;
   skin: MatKey;
+  shade?: SweepShade;
   mucosa: MatKey;
   sBase?: number;
   uvLen: number;
   uvAround: number;
   /** Шаги по точкам пути для разных поверхностей. */
   strides: { skin: number; sero: number; mid: number; muc: number };
+}
+
+type SweepShade = (i: number, theta: number) => number;
+
+/** Мягкая тень там, где стенка обращена к соседней петле. Запекается один раз при сборке сетки. */
+function bowelShading(path: GutPath, radius: (i: number) => number, adjacent: GutPath, adjacentRadius: (i: number) => number): SweepShade {
+  const contacts = Array.from({ length: path.n }, (_, i) => {
+    const [x, y, z] = pathPoint(path, i);
+    const off = i * 3;
+    const ownRadius = radius(i);
+    const directions: { n: number; b: number; strength: number }[] = [];
+    const scan = (other: GutPath, otherRadius: (j: number) => number) => {
+      for (let j = 0; j < other.n; j += 4) {
+        if (path === other && Math.abs(path.S[i] - path.S[j]) < 1.35) continue;
+        const k = j * 3;
+        const dx = other.P[k] - x;
+        const dy = other.P[k + 1] - y;
+        const dz = other.P[k + 2] - z;
+        const limit = ownRadius + otherRadius(j);
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+        if (distanceSq >= (limit + 0.35) ** 2) continue;
+        const distance = Math.sqrt(distanceSq) || 1;
+        const strength = 0.43 * (1 - smoothstep(-0.08, 0.35, distance - limit));
+        directions.push({
+          n: (dx * path.N[off] + dy * path.N[off + 1] + dz * path.N[off + 2]) / distance,
+          b: (dx * path.B[off] + dy * path.B[off + 1] + dz * path.B[off + 2]) / distance,
+          strength,
+        });
+      }
+    };
+    scan(path, radius);
+    scan(adjacent, adjacentRadius);
+    return directions;
+  });
+  return (i, theta) => {
+    let contact = 0;
+    const c = Math.cos(theta);
+    const b = Math.sin(theta);
+    for (const d of contacts[i]) contact = Math.max(contact, d.strength * smoothstep(0.14, 0.98, d.n * c + d.b * b));
+    const s = path.S[i];
+    const mottling = 0.045 * Math.sin(s * 2.3 - theta * 2) + 0.055 * Math.sin(s * 0.67 + theta + 0.8);
+    return 0.89 + mottling - contact;
+  };
 }
 
 function addWall(out: IntestineGeometry, sp: SegSpec) {
@@ -90,11 +135,10 @@ function addWall(out: IntestineGeometry, sp: SegSpec) {
     return Math.max(0.012, o - cum(sp.wall, l) * k);
   };
   const common = { path: sp.path, i0: sp.i0, i1: sp.i1, radial: sp.radial, attrs: small, sBase: sp.sBase ?? 0, uvLen: sp.uvLen, uvAround: sp.uvAround };
-  const proxyFor = (l: number) =>
-    sweep({ path: sp.path, i0: sp.i0, i1: sp.i1, stride: 5, radial: 8, radius: (i) => Math.max(0.012, layerR(l)(i, 0)) });
+  const proxyFor = (l: number) => sweep({ path: sp.path, i0: sp.i0, i1: sp.i1, stride: 5, radial: 8, radius: layerR(l) });
 
   // наружная поверхность — то, что видно снаружи
-  push(sp.id, { g: sweep({ ...common, stride: sp.strides.skin, radius: layerR(0) }), m: sp.skin, seg: sp.id, proxy: proxyFor(0) });
+  push(sp.id, { g: sweep({ ...common, stride: sp.strides.skin, radius: layerR(0), shade: sp.shade }), m: sp.skin, seg: sp.id, proxy: proxyFor(0) });
   // брюшина — тончайшая глянцевая плёнка поверх
   push('serosa', {
     g: sweep({ ...common, stride: sp.strides.sero, radius: (i, th) => layerR(0)(i, th) + 0.014 }),
@@ -151,7 +195,7 @@ const add3 = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 const mid3 = (a: V3, b: V3, k = 0.5): V3 => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
 
 /** Точка на кольце толстой кишки у внешней стенки (с отступом). */
-const colonOut = (i: number, theta: number, off = 0): V3 => ringPoint(colonPath, i, theta, colonBaseR(i) + off);
+const colonOut = (i: number, theta: number, off = 0): V3 => ringPoint(colonPath, i, theta, colonOuterR(i, theta) + off);
 
 /** Ориентиры толстой кишки как индексы. */
 const M = COLON_MARKS;
@@ -168,6 +212,7 @@ export function buildIntestine(): IntestineGeometry {
 
   /* ----- Стенка по отделам ----- */
 
+  const colonShade = bowelShading(colonPath, colonBaseR, smallPath, smallBaseR);
   const colonSeg = (id: SegmentId, i0: number, i1: number, extra?: Partial<SegSpec>) =>
     addWall(out, {
       id,
@@ -181,6 +226,7 @@ export function buildIntestine(): IntestineGeometry {
       nominal: colonBaseR,
       inward: (i, th) => colonBaseR(i) * colonFoldInward(i, th) * 0.5,
       skin: 'colonSkin',
+      shade: colonShade,
       mucosa: 'colonMucosa',
       uvLen: 0.4,
       uvAround: 2,
@@ -203,6 +249,7 @@ export function buildIntestine(): IntestineGeometry {
     strides: { skin: 1, sero: 1, mid: 1, muc: 1 },
   });
 
+  const smallShade = bowelShading(smallPath, smallBaseR, colonPath, colonBaseR);
   const smallSeg = (id: SegmentId, i0: number, i1: number) =>
     addWall(out, {
       id,
@@ -211,15 +258,16 @@ export function buildIntestine(): IntestineGeometry {
       i1,
       region: 'small',
       wall: WALL_SMALL,
-      radial: 14,
-      outer: (i) => smallBaseR(i),
+      radial: 20,
+      outer: smallOuterR,
       nominal: smallBaseR,
       inward: (i, th) => plicaDepth(i, th),
       skin: 'smallSkin',
+      shade: smallShade,
       mucosa: 'smallMucosa',
       uvLen: 0.45,
       uvAround: 1,
-      strides: { skin: 2, sero: 3, mid: 3, muc: 1 },
+      strides: { skin: 1, sero: 2, mid: 4, muc: 1 },
     });
   smallSeg('duodenum', 0, SMALL_MARKS.dj);
   smallSeg('jejunum', SMALL_MARKS.dj, SMALL_MARKS.jejEnd);
@@ -236,6 +284,7 @@ export function buildIntestine(): IntestineGeometry {
     outer: (i) => appendixR(i),
     nominal: () => 0.19,
     skin: 'colonSkin',
+    shade: (i, theta) => 0.87 + 0.07 * Math.sin(theta - i * 0.16),
     mucosa: 'colonMucosa',
     uvLen: 0.8,
     uvAround: 1,
@@ -255,20 +304,22 @@ export function buildIntestine(): IntestineGeometry {
   ];
   for (const [seg, i0, i1] of colonSegs) {
     const start = Math.max(i0, 26);
+    if (i1 - start <= 3) continue;
     const ribbons = TAENIA_THETA.map((th) =>
       gridSurface(
         Math.max(2, Math.round((i1 - start) / 2)),
         4,
         (u, v) => {
           const i = Math.round(start + u * (i1 - start));
-          const t = th + (v - 0.5) * 0.3;
-          const lift = 0.006 + 0.016 * (1 - Math.pow(2 * v - 1, 2));
+          const width = 0.09 + 0.045 * Math.sin(colonPath.S[i] * 0.7 + th);
+          const t = th + (v - 0.5) * (0.22 + width);
+          const lift = 0.004 + 0.022 * Math.sin(Math.PI * v);
           return ringPoint(colonPath, i, t, colonOuterR(i, t) + lift);
         },
         [(i1 - start) * 0.2, 1],
       ),
     );
-    if (i1 - start > 3) push('taeniae', { g: merge(ribbons), m: 'taenia', seg });
+    push('taeniae', { g: merge(ribbons), m: 'taenia', seg });
   }
 
   /* ----- Полулунные складки гаустр и содержимое ----- */
@@ -277,9 +328,9 @@ export function buildIntestine(): IntestineGeometry {
   for (const [seg, i0, i1] of colonSegs) {
     {
       const folds: BufferGeometry[] = [];
-      for (const i of haustraPositions(Math.max(i0, 30), i1 - 1)) {
-        for (const a of TAENIA_THETA) {
-          const mid = a + Math.PI / 3;
+      for (const a of TAENIA_THETA) {
+        const mid = a + Math.PI / 3;
+        for (const i of haustraPositions(Math.max(i0, 30), i1 - 1, mid)) {
           const th0 = mid - 0.78;
           const th1 = mid + 0.78;
           const R = Math.max(0.1, colonOuterR(i, mid) - cum(WALL_COLON, 4) - colonBaseR(i) * colonFoldInward(i, mid) * 0.5 - 0.004);
@@ -342,14 +393,24 @@ export function buildIntestine(): IntestineGeometry {
       const th = TAENIA_THETA[rand() > 0.5 ? 0 : 2] + (rand() - 0.5) * 0.3;
       const base = ringPoint(colonPath, i, th, colonOuterR(i, th) - 0.02);
       const dir = new Vector3(base[0] - colonPath.P[i * 3], base[1] - colonPath.P[i * 3 + 1], base[2] - colonPath.P[i * 3 + 2]).normalize();
-      dir.x += (rand() - 0.5) * 0.4;
-      dir.y += (rand() - 0.5) * 0.4;
-      dir.z += (rand() - 0.5) * 0.4;
-      dir.normalize();
-      const len = 0.16 + rand() * 0.2;
-      const tip: V3 = [base[0] + dir.x * len, base[1] + dir.y * len, base[2] + dir.z * len];
-      list.push(blob(mid3(base, tip, 0.35), [dir.x, dir.y, dir.z], [0.035, 0.035, len * 0.5], [6, 5]));
-      list.push(blob(add3(tip, [dir.x * 0.05, dir.y * 0.05, dir.z * 0.05]), [dir.x, dir.y, dir.z], [0.075 + rand() * 0.03, 0.065, 0.13 + rand() * 0.06], [8, 6]));
+      const len = 0.19 + Math.pow(rand(), 1.3) * 0.37;
+      const width = 0.064 + len * 0.13;
+      const tangent = new Vector3().fromArray(colonPath.T, i * 3).multiplyScalar((rand() - 0.55) * len * 1.4);
+      const tip = new Vector3(...base).addScaledVector(dir, len).add(tangent);
+      tip.y -= len * 0.42;
+      const stalk = new Vector3(...base).addScaledVector(dir, len * 0.34);
+      const lobe = buildPath([base, stalk.toArray(), stalk.lerp(tip, 0.48).toArray(), tip.toArray()], 0.034);
+      const phase = rand() * 6.28;
+      list.push(sweep({
+        path: lobe, i0: 0, i1: lobe.n - 1, radial: 11, squash: 0.72 + rand() * 0.24,
+        uvLen: 4.5, uvAround: 1,
+        radius: (k, theta) => {
+          const t = k / (lobe.n - 1);
+          const belly = Math.pow(Math.sin(Math.PI * Math.pow(t, 1.45)), 0.66);
+          const lobules = 1 + 0.16 * Math.sin(theta * 3 + phase + t * 7) + 0.08 * Math.cos(theta * 5 - t * 8);
+          return width * belly * lobules + 0.027 * (1 - t) + 0.001;
+        },
+      }));
     }
     appendages[seg] = list;
   }
@@ -475,24 +536,27 @@ export function buildIntestine(): IntestineGeometry {
   /* ----- Брыжейка и сосуды ----- */
 
   const sm = SMALL_MARKS;
-  const fan = (i: number) => {
-    const G = pathPoint(smallPath, i);
-    const u = (i - sm.dj) / (sm.end - sm.dj);
-    const root = rootAt(u);
-    return { G, u, root };
-  };
   const rootPath = buildPath(MESENTERY_ROOT, 0.05);
-  const rootAt = (u: number): V3 => {
-    const k = Math.min(rootPath.n - 1, Math.max(0, Math.round(u * (rootPath.n - 1))));
-    return pathPoint(rootPath, k);
-  };
-  const wpZ = (u: number, i: number) => -1.02 - 0.1 * u + 0.05 * Math.sin(i * 0.37);
+  const fan = Array.from({ length: sm.end - sm.dj + 1 }, (_, k) => {
+    const i = k + sm.dj;
+    const u = k / (sm.end - sm.dj);
+    const center = new Vector3(...pathPoint(smallPath, i));
+    const root = pathPoint(rootPath, Math.round(u * (rootPath.n - 1)));
+    const anchor = new Vector3(...root).sub(center);
+    anchor.z = Math.min(-0.4, anchor.z - 0.5);
+    const offset = i * 3;
+    const theta = Math.atan2(anchor.dot(new Vector3().fromArray(smallPath.B, offset)), anchor.dot(new Vector3().fromArray(smallPath.N, offset)));
+    const rim = ringPoint(smallPath, i, theta, smallOuterR(i, theta) * 0.8);
+    return { rim, root };
+  });
   /** Точка веера брыжейки: v = 0 — у кишки, 1 — у корня. */
   const mesPoint = (i: number, v: number): V3 => {
-    const { G, u, root } = fan(i);
-    const b: V3 = [G[0], G[1], G[2] - 0.2];
-    const w: V3 = [G[0], G[1] + 0.02, wpZ(u, i)];
-    return v < 0.4 ? mid3(b, w, v / 0.4) : mid3(w, root, (v - 0.4) / 0.6);
+    const { rim, root } = fan[i - sm.dj];
+    const s = smallPath.S[i];
+    const pleat = Math.sin(Math.PI * v) * (0.13 + 0.1 * Math.sin(s * 3.35) + 0.055 * Math.sin(s * 7.12 + v * 3));
+    const point = mid3(rim, root, v);
+    point[2] -= pleat;
+    return point;
   };
   const mesStep = 5;
   const mesCols = Math.round((sm.end - sm.dj) / mesStep);
@@ -502,8 +566,8 @@ export function buildIntestine(): IntestineGeometry {
     seg: undefined,
   });
 
-  const arcadeV = 0.62;
-  const rectaStep = 10;
+  const arcadeV = 0.51;
+  const rectaStep = 14;
   const sma: BufferGeometry[] = [];
   const smv: BufferGeometry[] = [];
   const smvOff: V3 = [-0.06, 0.035, -0.03];
@@ -658,7 +722,7 @@ export function buildIntestine(): IntestineGeometry {
           const yB = lerp(yTop - 0.4, bottom, edge);
           const y = lerp(yTop, yB, v);
           const zTop = 0.82 - 0.3 * smoothstep(2.0, 3.5, Math.abs(x));
-          const z = zTop + 0.22 * Math.sin(v * Math.PI * 0.6) + 0.045 * Math.sin(x * 5.5 + v * 9);
+          const z = lerp(zTop, 1.93, smoothstep(0, 0.58, v)) + 0.09 * Math.sin(x * 5.5 + v * 9) * v;
           return [x + 0.04 * Math.sin(v * 12 + x * 3), y, z];
         },
         [8, 3],

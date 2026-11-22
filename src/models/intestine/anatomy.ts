@@ -145,7 +145,7 @@ export const angDiff = (a: number, b: number): number => {
  * Имя у точки — ориентир для границ отделов и для радиуса.
  */
 export const COLON_CTRL: { p: V3; name?: string; r: number }[] = [
-  { p: [-3.55, -4.0, -0.2], name: 'cecumTip', r: 0.2 },
+  { p: [-3.55, -4.0, -0.2], name: 'cecumTip', r: 0.76 },
   { p: [-3.55, -3.2, -0.22], r: 0.93 },
   { p: [-3.58, -2.45, -0.24], name: 'icLevel', r: 0.92 },
   { p: [-3.66, -1.2, -0.3], r: 0.84 },
@@ -219,8 +219,7 @@ export const colonBaseR = (i: number): number => colonRadii[i];
 
 /** Углы трёх тений вокруг оси (0 — спереди, свободная тения). */
 export const TAENIA_THETA = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3];
-/** Длина гаустры вдоль кишки. */
-export const HAUSTRA_LEN = 0.74;
+const HAUSTRA_LEN = 0.8;
 
 /** Насколько выражены гаустры в точке: нет у начала слепой, анального канала и прямой кишки. */
 export function haustraAmount(i: number): number {
@@ -228,32 +227,25 @@ export function haustraAmount(i: number): number {
   return smoothstep(m.start + 14, m.start + 30, i) * (1 - smoothstep(m.rectoSigmoid - 36, m.rectoSigmoid + 22, i));
 }
 
-function taeniaPull(theta: number): number {
-  let tae = 0;
-  for (const a of TAENIA_THETA) tae = Math.max(tae, Math.exp(-Math.pow(angDiff(theta, a) / 0.3, 2)));
-  return tae;
+function haustraPhase(s: number, theta: number): number {
+  return s / HAUSTRA_LEN + 0.42 * Math.sin(s * 0.62) + 0.24 * Math.sin(s * 1.47 + 0.6)
+    + 0.16 * Math.sin(s * 0.53 + theta * 2) + 0.10 * Math.sin(theta * 3);
 }
 
-/** Положение между гаустрами: 0 — середина мешочка, 1 — перетяжка (где внутри лежит полулунная складка). */
-export function haustraFold(s: number): number {
-  const u = s / HAUSTRA_LEN + 0.12 * Math.sin(s * 0.8);
-  const f = u - Math.floor(u);
-  return Math.exp(-Math.pow((f - 0.5) / 0.13, 2));
+/** Перетяжки между гаустрами идут дугами между тениями. */
+export function haustraFold(s: number, theta = 0): number {
+  const phase = haustraPhase(s, theta);
+  const width = 0.16 + 0.045 * Math.sin(s * 0.83 + theta);
+  return Math.exp(-Math.pow((phase - Math.floor(phase) - 0.5) / width, 2));
 }
 
 /** Номер гаустры, чтобы ставить складки по перетяжкам. */
-export function haustraPositions(i0: number, i1: number): number[] {
+export function haustraPositions(i0: number, i1: number, theta: number): number[] {
   const res: number[] = [];
-  let lastK = -1;
-  for (let i = i0; i <= i1; i++) {
-    const s = colonPath.S[i];
-    const u = s / HAUSTRA_LEN + 0.12 * Math.sin(s * 0.8);
-    const k = Math.floor(u);
-    const f = u - k;
-    if (f >= 0.5 && k !== lastK) {
-      lastK = k;
-      res.push(i);
-    }
+  for (let i = Math.max(1, i0); i <= i1; i++) {
+    const before = haustraPhase(colonPath.S[i - 1], theta) + 0.5;
+    const after = haustraPhase(colonPath.S[i], theta) + 0.5;
+    if (Math.floor(after) > Math.floor(before)) res.push(after % 1 < 1 - (before % 1) ? i : Math.max(i0, i - 1));
   }
   return res;
 }
@@ -263,9 +255,11 @@ export function colonOuterR(i: number, theta: number): number {
   const r0 = colonBaseR(i);
   const A = haustraAmount(i);
   const s = colonPath.S[i];
-  const fold = haustraFold(s);
-  const tae = taeniaPull(theta);
-  let r = r0 * (1 - A * (0.15 * fold + 0.055 * tae * (1 - 0.5 * fold)) + A * 0.03 * (1 - tae));
+  const fold = haustraFold(s, theta);
+  const pouch = (0.5 - 0.5 * Math.cos(theta * 3));
+  const fullness = 0.108 + 0.035 * Math.sin(s * 1.24 - theta * 2);
+  const asymmetry = 0.032 * Math.cos(theta * 2 + 0.22 * s) + 0.016 * Math.sin(theta + s * 1.45);
+  let r = r0 * (1 + asymmetry + A * (pouch * fullness - fold * (0.065 + 0.17 * pouch)));
   // слепая кишка закрыта снизу полусферой
   const cap = 0.95;
   if (s < cap) r = Math.min(r, r0 * Math.sqrt(Math.max(0, 1 - Math.pow(1 - s / cap, 2))) + 0.0001);
@@ -274,10 +268,8 @@ export function colonOuterR(i: number, theta: number): number {
 
 /** Выступ полулунных складок внутрь просвета (для слизистой), в долях радиуса. */
 export function colonFoldInward(i: number, theta: number): number {
-  const A = haustraAmount(i);
-  const fold = haustraFold(colonPath.S[i]);
-  const tae = taeniaPull(theta);
-  return A * (0.2 * fold * (0.6 + 0.4 * tae));
+  const pouch = 0.5 - 0.5 * Math.cos(theta * 3);
+  return haustraAmount(i) * haustraFold(colonPath.S[i], theta) * (0.08 + 0.15 * pouch);
 }
 
 /** Анальные столбы: продольные складки слизистой верхней половины анального канала. */
@@ -293,62 +285,33 @@ export const PYLORUS: V3 = [-0.85, 3.35, -0.8];
 export const DJ_FLEXURE: V3 = [0.9, 0.95, -1.1];
 /** Устье подвздошной кишки на медиальной стенке слепой. */
 export const ILEOCECAL: V3 = [-2.62, -2.76, -0.1];
+const JEJUNOILEAL_TRANSITION: V3 = [1.08, -0.74, 0.52];
 
-interface SmallCtrl {
-  pts: V3[];
-  marks: { djIdx: number };
-}
+const SMALL_CTRL: V3[] = [
+  PYLORUS,
+  [-1.3, 3.4, -0.95], [-1.75, 2.85, -1.05], [-1.95, 1.8, -1.1], [-1.95, 0.7, -1.15],
+  [-1.75, -0.15, -1.2], [-1.1, -0.5, -1.25], [-0.2, -0.5, -1.3], [0.6, -0.3, -1.25],
+  [0.95, 0.35, -1.2], DJ_FLEXURE,
+  // Тощая кишка: петли начинаются в верхней левой половине живота пациента.
+  [1.28, 1.42, -1.01], [2.38, 1.45, -0.69], [3.1, 0.94, -0.29], [3.12, 0.02, -0.31],
+  [2.55, -0.72, -0.62], [1.86, -1.22, -0.72], [1.11, -0.96, -0.61], [0.73, -0.34, -0.38],
+  [0.39, 0.21, 0.02], [-0.25, 0.51, 0.54], [-0.93, 0.79, 0.98], [-1.59, 1.08, 1.08],
+  [-1.38, 1.04, 1.63], [-0.66, 0.81, 1.76], [0.25, 0.57, 1.54], [0.86, 0.71, 1.27],
+  [1.57, 0.86, 1.41], [2.28, 0.37, 1.45], [2.35, -0.45, 1.33], [1.98, -1.38, 1.22],
+  [2.08, -2.17, 0.83], [2.66, -2.42, 0.49], [3.19, -1.87, 0.43], [3.04, -1.12, 0.46],
+  [2.71, -0.54, 0.34], [2.26, -0.15, 0.39], [1.61, -0.23, 0.42], JEJUNOILEAL_TRANSITION,
+  // Подвздошная кишка: петли идут вправо и опускаются в малый таз.
+  [0.77, -1.48, 0.83], [0.53, -2.12, 1.17], [-0.01, -2.5, 1.34], [-0.66, -2.22, 1.37],
+  [-0.87, -1.51, 1.25], [-0.96, -0.57, 1.22], [-1.46, 0.04, 1.15], [-2.26, -0.04, 1.03],
+  [-2.69, -0.72, 0.72], [-2.4, -1.44, 0.23], [-1.81, -1.54, -0.17], [-1.18, -1.24, -0.19],
+  [-0.56, -1.1, -0.25], [0.1, -1.56, -0.28], [-0.05, -2.38, -0.47], [-0.68, -3.05, -0.55],
+  [-0.72, -3.83, -0.88], [-0.1, -4.48, -1.05], [0.65, -4.41, -1.18], [1.25, -3.82, -1.05],
+  [1.33, -3.08, -0.8], [1.12, -2.53, -0.52], [0.7, -2.47, 0.16], [0.37, -3.02, 0.67],
+  [0.49, -3.68, 1.13], [0.17, -4.37, 1.26], [-0.52, -4.74, 1.03], [-1.28, -4.45, 0.82],
+  [-1.62, -3.72, 0.85], [-1.53, -3.02, 0.52], [-1.81, -2.66, 0.12], [-2.18, -2.58, -0.08], ILEOCECAL,
+];
 
-function smallBowelCtrl(): SmallCtrl {
-  const pts: V3[] = [
-    PYLORUS,
-    [-1.3, 3.4, -0.95],
-    [-1.75, 2.85, -1.05],
-    [-1.95, 1.8, -1.1],
-    [-1.95, 0.7, -1.15],
-    [-1.75, -0.15, -1.2],
-    [-1.1, -0.5, -1.25],
-    [-0.2, -0.5, -1.3],
-    [0.6, -0.3, -1.25],
-    [0.95, 0.35, -1.2],
-    DJ_FLEXURE,
-  ];
-  const djIdx = pts.length - 1;
-  const rand = mulberry32(2026);
-  const ROWS = 8;
-  const XL = -2.3;
-  for (let k = 0; k < ROWS; k++) {
-    const y = 0.45 - 0.5 * k;
-    const z = k % 2 === 0 ? -0.55 : 0.15;
-    const dir = k % 2 === 0 ? 1 : -1;
-    const XR = y > -2.3 ? 2.85 : 2.1;
-    const xs = k === 0 ? 0.75 : dir > 0 ? XL : XR;
-    const xe = k === ROWS - 1 ? -1.9 : dir > 0 ? XR : XL;
-    const phase = rand() * 6;
-    const nSeg = Math.max(3, Math.round(Math.abs(xe - xs) / 0.85));
-    for (let j = 0; j <= nSeg; j++) {
-      const x = xs + ((xe - xs) * j) / nSeg;
-      const edge = Math.min(j, nSeg - j) === 0 ? 0.4 : 1;
-      pts.push([
-        x,
-        y + edge * (0.1 * Math.sin(1.25 * x + phase) + (rand() - 0.5) * 0.04),
-        z + edge * (0.05 * Math.sin(0.9 * x + phase * 1.3) + (rand() - 0.5) * 0.03),
-      ]);
-    }
-    if (k < ROWS - 1) {
-      const yn = 0.45 - 0.5 * (k + 1);
-      const zn = (k + 1) % 2 === 0 ? -0.55 : 0.15;
-      pts.push([xe + dir * 0.34, y - 0.13, z + (zn - z) * 0.3]);
-      pts.push([xe + dir * 0.5, (y + yn) / 2, (z + zn) / 2]);
-      pts.push([xe + dir * 0.34, yn + 0.13, z + (zn - z) * 0.7]);
-    }
-  }
-  pts.push([-2.22, -2.96, 0.04], [-2.5, -2.82, -0.07], ILEOCECAL);
-  return { pts, marks: { djIdx } };
-}
-
-const SB = smallBowelCtrl();
-export const smallPath = buildPath(SB.pts, 0.06);
+export const smallPath = buildPath(SMALL_CTRL, 0.055);
 
 export const SMALL_MARKS = (() => {
   const dj = nearestIndex(smallPath, DJ_FLEXURE);
@@ -356,16 +319,27 @@ export const SMALL_MARKS = (() => {
   // верхняя часть нисходящего отдела: здесь сосочек
   const papilla = nearestIndex(smallPath, [-1.95, 1.85, -1.1]);
   const bulb = nearestIndex(smallPath, [-1.3, 3.4, -0.95]);
-  const jejEnd = Math.round(dj + (end - dj) * 0.4);
+  const jejEnd = nearestIndex(smallPath, JEJUNOILEAL_TRANSITION);
   return { dj, end, papilla, bulb, jejEnd, start: 0 };
 })();
 
 /** Радиус тонкой кишки по длине: луковица, тощая — самая широкая, подвздошная сужается. */
 export function smallBaseR(i: number): number {
   const m = SMALL_MARKS;
-  if (i <= m.dj) return lerp(0.43, 0.4, smoothstep(m.bulb, m.dj, i));
+  if (i <= m.dj) return lerp(0.43, 0.385, smoothstep(m.bulb, m.dj, i));
   const t = (i - m.dj) / (m.end - m.dj);
   return lerp(0.385, 0.31, smoothstep(0, 1, t));
+}
+
+/** Тонус и наполненность меняются вдоль кишки, а сечение слегка сплющено и скручено. */
+export function smallOuterR(i: number, theta: number): number {
+  const s = smallPath.S[i];
+  const free = smoothstep(SMALL_MARKS.bulb, SMALL_MARKS.dj + 12, i)
+    * (1 - smoothstep(SMALL_MARKS.end - 16, SMALL_MARKS.end, i));
+  const pinch = Math.pow(0.5 + 0.5 * Math.sin(s * 2.8 + 0.8 * Math.sin(s * 0.46)), 5);
+  const fullness = 0.075 * Math.sin(s * 1.06) + 0.038 * Math.sin(s * 0.51 + 0.3);
+  const profile = 0.075 * Math.cos(2 * theta + 0.48 * s + Math.sin(s * 0.7)) + 0.027 * Math.sin(3 * theta - s * 1.4);
+  return smallBaseR(i) * (1 + free * (fullness - 0.11 * pinch + profile));
 }
 
 /** Глубина круговых складок (Керкринга): густые в тощей кишке, редкие и низкие в подвздошной. */

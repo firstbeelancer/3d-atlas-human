@@ -11,6 +11,7 @@ export interface SweepOpts {
   radial: number;
   /** Радиус кольца в точке пути i под углом theta. */
   radius: (i: number, theta: number) => number;
+  shade?: (i: number, theta: number) => number;
   /** Нормали смотрят к оси (внутренние слои стенки). */
   inward?: boolean;
   /** Сдвиг длины вдоль кишки для атрибута перистальтики. */
@@ -35,6 +36,7 @@ export function sweep(o: SweepOpts): BufferGeometry {
   const rows = rowsIdx.length;
   const cols = radial + 1;
   const pos = new Float32Array(rows * cols * 3);
+  const color = o.shade ? new Float32Array(pos.length) : null;
   const uv = new Float32Array(rows * cols * 2);
   const aC = o.attrs ? new Float32Array(rows * cols * 3) : null;
   const aS = o.attrs ? new Float32Array(rows * cols) : null;
@@ -63,6 +65,12 @@ export function sweep(o: SweepOpts): BufferGeometry {
       pos[v * 3] = px + c * path.N[k] + s * path.B[k];
       pos[v * 3 + 1] = py + c * path.N[k + 1] + s * path.B[k + 1];
       pos[v * 3 + 2] = pz + c * path.N[k + 2] + s * path.B[k + 2];
+      if (color && o.shade) {
+        const light = o.shade(i, j === radial ? 0 : theta);
+        color[v * 3] = 0.24 + 0.76 * light;
+        color[v * 3 + 1] = light;
+        color[v * 3 + 2] = 0.13 + 0.87 * light;
+      }
       uv[v * 2] = path.S[i] * uvLen;
       uv[v * 2 + 1] = (j / radial) * uvAround;
       if (aC && aS) {
@@ -84,6 +92,7 @@ export function sweep(o: SweepOpts): BufferGeometry {
   }
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(pos, 3));
+  if (color) g.setAttribute('color', new Float32BufferAttribute(color, 3));
   g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
   if (aC && aS) {
     g.setAttribute('aC', new Float32BufferAttribute(aC, 3));

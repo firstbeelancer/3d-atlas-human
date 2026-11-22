@@ -61,8 +61,14 @@ const CUT = {
 /** Все материалы модели кишечника. */
 export function makeMaterials(tex: IntestineTextures, uni: GutUniforms): Record<MatKey, Material> {
   const P = (p: ConstructorParameters<typeof MeshPhysicalMaterial>[0]) => new MeshPhysicalMaterial(p);
-  const skinCommon = { roughness: 0.38, clearcoat: 0.55, clearcoatRoughness: 0.28, sheen: 0.5, sheenColor: new Color('#ffd5c6') };
-  const serosa = { color: '#ffffff', transparent: true, opacity: 0.26, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.08, depthWrite: false } as const;
+  const skinCommon = {
+    vertexColors: true, roughness: 0.53, roughnessMap: tex.serosaGrain, bumpMap: tex.serosaGrain, bumpScale: 0.024,
+    clearcoat: 0.37, clearcoatRoughness: 0.3, sheen: 0.25, sheenRoughness: 0.64, sheenColor: new Color('#eaa497'),
+  };
+  const serosa = {
+    color: '#ffdad1', transparent: true, opacity: 0.08, roughness: 0.32, clearcoat: 0.34, depthWrite: false,
+    userData: { inspectionOpacity: 0.55 },
+  } as const;
 
   return {
     smallSkin: gut({ map: tex.smallSkin, ...skinCommon }, uni, 'smallSkin', { back: CUT.longitudinal, peristalsis: true }),
@@ -77,7 +83,7 @@ export function makeMaterials(tex: IntestineTextures, uni: GutUniforms): Record<
       { back: CUT.mucosa, peristalsis: true },
     ),
 
-    colonSkin: gut({ map: tex.colonSkin, ...skinCommon, roughness: 0.42 }, uni, 'colonSkin', { back: CUT.longitudinal }),
+    colonSkin: gut({ map: tex.colonSkin, ...skinCommon, roughness: 0.59 }, uni, 'colonSkin', { back: CUT.longitudinal }),
     colonSerosa: gut(serosa, uni, 'colonSerosa'),
     colonMuscleA: gut({ map: tex.muscle, roughness: 0.6 }, uni, 'colonMuscleA', { back: CUT.longitudinal }),
     colonMuscleB: gut({ map: tex.muscle, roughness: 0.6 }, uni, 'colonMuscleB', { back: CUT.circular }),
@@ -91,9 +97,9 @@ export function makeMaterials(tex: IntestineTextures, uni: GutUniforms): Record<
     analSkin: gut({ map: tex.colonSkin, color: '#f2c6b6', ...skinCommon, roughness: 0.5 }, uni, 'analSkin', { back: CUT.longitudinal }),
     analMucosa: gut({ map: tex.mucosaAnal, roughness: 0.35, clearcoat: 0.7, clearcoatRoughness: 0.25 }, uni, 'analMucosa', { back: CUT.mucosa }),
 
-    taenia: P({ color: '#f2e5c9', roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, side: DoubleSide }),
+    taenia: P({ color: '#ce9a84', bumpMap: tex.serosaGrain, bumpScale: 0.015, roughness: 0.54, clearcoat: 0.3, side: DoubleSide }),
     fold: P({ map: tex.mucosaColon, color: '#f1a898', roughness: 0.34, clearcoat: 0.7, clearcoatRoughness: 0.22 }),
-    appendage: P({ map: tex.fat, color: '#f3d284', roughness: 0.5, clearcoat: 0.35 }),
+    appendage: P({ map: tex.fat, color: '#edcb95', bumpMap: tex.serosaGrain, bumpScale: 0.022, roughness: 0.56, clearcoat: 0.24 }),
     feces: gut({ map: tex.feces, bumpMap: tex.feces, bumpScale: 2, roughness: 0.62, color: '#ffffff' }, uni, 'feces', { back: '#4a2e1a' }),
     valve: P({ map: tex.mucosaColon, color: '#f0a79a', roughness: 0.32, clearcoat: 0.8, clearcoatRoughness: 0.2, side: DoubleSide }),
     valveDark: P({ color: '#40181a', roughness: 0.7, side: DoubleSide }),
@@ -101,10 +107,10 @@ export function makeMaterials(tex: IntestineTextures, uni: GutUniforms): Record<
     sphincterIn: P({ map: tex.muscle, color: '#e6b09c', roughness: 0.5, clearcoat: 0.2, side: DoubleSide }),
     striated: P({ map: tex.striated, bumpMap: tex.striated, bumpScale: 0.8, roughness: 0.55, side: DoubleSide }),
 
-    mesentery: P({ map: tex.fat, color: '#fbe9ae', transparent: true, opacity: 0.4, roughness: 0.45, side: DoubleSide, depthWrite: false }),
-    omentum: P({ map: tex.fat, color: '#fff0c0', transparent: true, opacity: 0.22, roughness: 0.4, side: DoubleSide, depthWrite: false }),
-    artery: P({ color: '#c3362e', roughness: 0.36, clearcoat: 0.5, emissive: new Color('#300000'), emissiveIntensity: 0.08 }),
-    vein: P({ color: '#46589e', roughness: 0.4, clearcoat: 0.5 }),
+    mesentery: P({ map: tex.fat, color: '#f8dfb2', transparent: true, opacity: 0.44, roughness: 0.54, side: DoubleSide, depthWrite: false }),
+    omentum: P({ map: tex.fat, color: '#f5dda9', transparent: true, opacity: 0.15, roughness: 0.52, side: DoubleSide, depthWrite: false }),
+    artery: P({ color: '#a34b49', roughness: 0.46, clearcoat: 0.3, emissive: new Color('#300000'), emissiveIntensity: 0.08 }),
+    vein: P({ color: '#636786', roughness: 0.49, clearcoat: 0.3 }),
     nerve: P({ color: '#e5c24a', roughness: 0.5 }),
     lymph: P({ color: '#a7bd62', roughness: 0.5, clearcoat: 0.4 }),
     ligament: P({ color: '#ebdfc7', roughness: 0.6, clearcoat: 0.15 }),
@@ -112,7 +118,7 @@ export function makeMaterials(tex: IntestineTextures, uni: GutUniforms): Record<
     pancreas: P({ map: tex.pancreas, bumpMap: tex.pancreas, bumpScale: 1.4, roughness: 0.6, side: DoubleSide }),
     bile: P({ color: '#52b05e', roughness: 0.35, clearcoat: 0.6 }),
     pancDuct: P({ color: '#f1e5b4', roughness: 0.4, clearcoat: 0.5 }),
-    aorta: P({ color: '#c93d34', roughness: 0.34, clearcoat: 0.55, clearcoatRoughness: 0.25 }),
-    ivc: P({ color: '#4d5eac', roughness: 0.38, clearcoat: 0.55, clearcoatRoughness: 0.25 }),
+    aorta: P({ color: '#b24e4a', roughness: 0.43, clearcoat: 0.4, clearcoatRoughness: 0.3 }),
+    ivc: P({ color: '#626d97', roughness: 0.47, clearcoat: 0.4, clearcoatRoughness: 0.3 }),
   };
 }

@@ -8,6 +8,7 @@ import {
   colonPath,
   plicaDepth,
   smallBaseR,
+  smallOuterR,
   smallPath,
   WALL_COLON,
   WALL_SMALL,
@@ -30,13 +31,19 @@ describe('intestine anatomy', () => {
     expect(m.dj).toBeLessThan(m.jejEnd);
     expect(m.jejEnd).toBeLessThan(m.end);
     expect(smallPath.len).toBeGreaterThan(colonPath.len);
+    expect(smallPath.S[m.jejEnd] - smallPath.S[m.dj]).toBeLessThan(smallPath.len - smallPath.S[m.jejEnd]);
   });
 
   it('never lets the wall layers swallow the lumen', () => {
     const sSum = WALL_SMALL.reduce((a, b) => a + b, 0);
     const cSum = WALL_COLON.reduce((a, b) => a + b, 0);
     for (let i = 0; i < smallPath.n; i += 7) {
-      for (let k = 0; k < 8; k++) expect(smallBaseR(i) - sSum - plicaDepth(i, (k / 8) * Math.PI * 2)).toBeGreaterThan(0.04);
+      for (let k = 0; k < 20; k++) {
+        const theta = (k / 20) * Math.PI * 2;
+        const outer = smallOuterR(i, theta);
+        const wallThickness = sSum * Math.min(1, outer / smallBaseR(i));
+        expect(outer - wallThickness - plicaDepth(i, theta)).toBeGreaterThan(0.04);
+      }
     }
     for (let i = 40; i < colonPath.n; i += 5) {
       for (let k = 0; k < 8; k++) {

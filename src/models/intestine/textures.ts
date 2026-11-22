@@ -1,4 +1,4 @@
-import { CanvasTexture, LinearMipmapLinearFilter, RepeatWrapping, SRGBColorSpace } from 'three';
+import { CanvasTexture, LinearMipmapLinearFilter, NoColorSpace, RepeatWrapping, SRGBColorSpace } from 'three';
 import { mulberry32 } from './anatomy';
 
 /* Процедурные текстуры кишечника: рисуются в canvas, никаких внешних файлов. */
@@ -11,9 +11,9 @@ function makeCanvas(w: number, h: number) {
 }
 type Cv = ReturnType<typeof makeCanvas>;
 
-function toTexture(c: Cv, repeat: [number, number] = [1, 1]): CanvasTexture {
+function toTexture(c: Cv, repeat: [number, number] = [1, 1], colorSpace: CanvasTexture['colorSpace'] = SRGBColorSpace): CanvasTexture {
   const tex = new CanvasTexture(c.canvas);
-  tex.colorSpace = SRGBColorSpace;
+  tex.colorSpace = colorSpace;
   tex.anisotropy = 8;
   tex.minFilter = LinearMipmapLinearFilter;
   tex.wrapS = RepeatWrapping;
@@ -115,26 +115,69 @@ function capillaries(c: Cv, seed: number, n: number, color: string, alpha: numbe
   ctx.globalAlpha = 1;
 }
 
+/** Небольшие ветвящиеся сосуды просвечивают через серозу. Линии продолжаются за краем развёртки. */
+function serosalVessels({ ctx, w, h }: Cv, seed: number, count: number, length: number) {
+  const rand = mulberry32(seed);
+  const trace = (x: number, y: number, angle: number, size: number, width: number, color: string) => {
+    const cx = x + Math.cos(angle) * size * 0.52;
+    const cy = y + Math.sin(angle) * size * 0.52;
+    const endAngle = angle + (rand() - 0.5) * 1.12;
+    const ex = cx + Math.cos(endAngle) * size * 0.48;
+    const ey = cy + Math.sin(endAngle) * size * 0.48;
+    ctx.lineWidth = width;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    for (const dx of [-w, 0, w]) {
+      for (const dy of [-h, 0, h]) {
+        if (x + dx + size < 0 || x + dx - size > w || y + dy + size < 0 || y + dy - size > h) continue;
+        ctx.moveTo(x + dx, y + dy);
+        ctx.quadraticCurveTo(cx + dx, cy + dy, ex + dx, ey + dy);
+      }
+    }
+    ctx.stroke();
+    return { x: ex, y: ey, angle: endAngle };
+  };
+  ctx.lineCap = 'round';
+  for (let i = 0; i < count; i++) {
+    const x = rand() * w;
+    const y = rand() * h;
+    const angle = (rand() - 0.5) * 2.1 + (rand() < 0.5 ? Math.PI : 0);
+    const size = length * (0.45 + rand() * 0.75);
+    const width = 1.3 + rand() * 2.2;
+    const color = rand() < 0.45 ? 'rgba(110,59,92,0.43)' : 'rgba(139,47,52,0.46)';
+    const node = trace(x, y, angle, size * 0.5, width, color);
+    const tip = trace(node.x, node.y, node.angle - 0.32, size * 0.45, width * 0.7, color);
+    trace(node.x, node.y, node.angle + 0.62, size * 0.45, width * 0.48, color);
+    trace(tip.x, tip.y, tip.angle + 0.48, size * 0.24, width * 0.37, color);
+  }
+}
+
 /** Тонкая кишка снаружи: розовая, влажная, с сеточкой сосудов брыжеечного края. Ось u (x) — вдоль кишки. */
 export function smallSkinTexture(): CanvasTexture {
   const c = makeCanvas(512, 512);
-  fill(c, '#d99683');
-  blotches(c, 101, ['#e5a893', '#c9806c', '#efb9a3'], 80, 30, 110, 0.28);
-  fibres(c, 102, ['#e8b09b', '#bf7863'], 420, 60, 0, 0.5, 2.2, 0.16);
-  capillaries(c, 103, 90, 'rgba(176,70,60,0.5)', 0.45, 20);
-  blotches(c, 104, ['#f5cdbb'], 40, 8, 26, 0.2);
+  fill(c, '#cb8276');
+  blotches(c, 101, ['#e5a995', '#a85155', '#edb6a4'], 74, 27, 105, 0.4);
+  serosalVessels(c, 103, 32, 122);
+  blotches(c, 104, ['#f6c6b7', '#954852'], 72, 7, 29, 0.18);
   return toTexture(c);
 }
 
 /** Толстая кишка снаружи: бледнее и желтее, с мраморными пятнами жира. */
 export function colonSkinTexture(): CanvasTexture {
   const c = makeCanvas(512, 512);
-  fill(c, '#d4a08c');
-  blotches(c, 111, ['#e0b39f', '#c48e79', '#ecc3ae'], 90, 28, 120, 0.3);
-  blotches(c, 112, ['#efd49a', '#e8c688'], 26, 12, 40, 0.18);
-  fibres(c, 113, ['#e5bba6', '#b98771'], 360, 70, 0, 0.35, 2.6, 0.18);
-  capillaries(c, 114, 60, 'rgba(170,76,66,0.45)', 0.4, 22);
+  fill(c, '#c99380');
+  blotches(c, 111, ['#e7ac92', '#ad6761', '#e9c0a7'], 76, 28, 120, 0.39);
+  blotches(c, 112, ['#e9c89d', '#deaa85'], 33, 12, 43, 0.26);
+  serosalVessels(c, 113, 25, 132);
   return toTexture(c);
+}
+
+function serosaGrainTexture() {
+  const c = makeCanvas(256, 256);
+  fill(c, '#adadad');
+  blotches(c, 118, ['#757575', '#d2d2d2'], 84, 7, 38, 0.6);
+  blotches(c, 119, ['#838383', '#cccccc'], 240, 1.6, 6.4, 0.35);
+  return toTexture(c, [1, 1], NoColorSpace);
 }
 
 /** Мышечная оболочка: пучки гладкой мышцы. */
@@ -329,6 +372,7 @@ export function buildTextures() {
   return {
     smallSkin: smallSkinTexture(),
     colonSkin: colonSkinTexture(),
+    serosaGrain: serosaGrainTexture(),
     muscle: muscleTexture(),
     submucosa: submucosaTexture(),
     mucosaSmall: mucosaSmallTexture(),

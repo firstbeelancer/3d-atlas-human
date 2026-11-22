@@ -18,6 +18,11 @@ import { CUT_DEFAULT_T as EAR_CUT_T, OVERVIEW as EAR_VIEW, SCALE as EAR_SCALE } 
 import { CUT_DEFAULT_T as NOSE_CUT_T, OVERVIEW as NOSE_VIEW } from './nose/anatomy';
 import type { SkinViewerProps } from './skin/SkinViewer';
 import { BLOOD_COLORS, BODY_FLOOR, OVERVIEW_CAMERA, OVERVIEW_TARGET } from './circulation/appearance';
+import {
+  CUT_DEFAULT_T as ENDOCRINE_CUT_T,
+  ENDOCRINE_CAMERA,
+  ENDOCRINE_TARGET,
+} from './endocrine/anatomy';
 
 const hairCamera = ({ at, dir, dist }: HairFocus): NonNullable<ModelOptions['camera']> => ({
   position: [at[0] + dir[0] * dist, at[1] + dir[1] * dist, at[2] + dir[2] * dist],
@@ -465,5 +470,34 @@ export const MODELS: Record<string, ModelEntry> = {
     orbit: { minDistance: 2.2, maxDistance: 70, free: true },
     modes: [{ id: 'wall', icon: 'lobule' }],
     description: modelDescriptions.kishechnik,
+  },
+  gormony: {
+    Component: lazy(() => import('./endocrine/EndocrineModel')),
+    mobileModeRoom: true,
+    hasCutaway: true,
+    explorer: true,
+    explorerFundusKey: 'explorer.fundusEndocrine',
+    explorerCuts: {
+      sideKey: 'explorer.cutEndocrineSagittal',
+      coronalKey: 'explorer.cutEndocrineFrontal',
+      defaults: ENDOCRINE_CUT_T,
+    },
+    isolate: true,
+    camera: { position: ENDOCRINE_CAMERA, fov: 32 },
+    target: ENDOCRINE_TARGET,
+    floorY: BODY_FLOOR,
+    bounds: { min: [-5.5, -2.8, -3.5], max: [5.5, 3.3, 3.0] },
+    orbit: { minDistance: 0.45, maxDistance: 46, free: true },
+    modes: [
+      { id: 'pituitary-axis', icon: 'brain', group: 'view', clearsSelection: true },
+      { id: 'feedback', icon: 'activity', group: 'view', clearsSelection: true },
+      { id: 'receptor', icon: 'lobule', group: 'view', clearsSelection: true },
+      { id: 'xray', icon: 'inside' },
+    ],
+    legend: [
+      { label: 'endocrine.command', color: '#f5b938' },
+      { label: 'endocrine.feedback', color: '#2dc4b6' },
+    ],
+    description: modelDescriptions.gormony,
   },
 };

@@ -90,7 +90,18 @@ export function StageCanvas({
   const [visible, setVisible] = useState(true);
   const [interacted, setInteracted] = useState(false);
   const [created, setCreated] = useState(false);
+  const alive = useRef(true);
+  const detachLoss = useRef<(() => void) | null>(null);
   const { select } = useSelection();
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      detachLoss.current?.();
+      detachLoss.current = null;
+    };
+  }, []);
   // на телефоне отодвигаем камеру, чтобы модель целиком помещалась в узкий кадр
   const [cameraPosition] = useState<[number, number, number]>(() => {
     const p = camera?.position ?? [0, 0.6, 9];
@@ -120,10 +131,12 @@ export function StageCanvas({
           setCreated(true);
           // локальные плоскости разреза у моделей, которые умеют «резаться»
           gl.localClippingEnabled = true;
-          gl.domElement.addEventListener('webglcontextlost', (e) => {
+          const onLost = (e: Event) => {
             e.preventDefault();
-            onContextLost?.();
-          });
+            if (alive.current) onContextLost?.();
+          };
+          gl.domElement.addEventListener('webglcontextlost', onLost);
+          detachLoss.current = () => gl.domElement.removeEventListener('webglcontextlost', onLost);
         }}
       >
         <Clock paused={paused} time={time} />

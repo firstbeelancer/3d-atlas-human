@@ -41,8 +41,14 @@ describe.skipIf(!built)('build output', () => {
     expect(home).toContain('базового изучения анатомии человека');
     const about = readFileSync(join(DIST, 'o-proekte', 'index.html'), 'utf8');
     expect(about).toContain('бесплатный открытый проект');
-    const soon = readFileSync(join(DIST, 'razdel', 'gormony', 'index.html'), 'utf8');
-    expect(soon).toContain('<meta name="robots" content="noindex" />');
+    const soonSlug = SECTIONS.find((s) => !s.ready)?.slug;
+    if (soonSlug) {
+      const soon = readFileSync(join(DIST, 'razdel', soonSlug, 'index.html'), 'utf8');
+      expect(soon).toContain('<meta name="robots" content="noindex" />');
+    }
+    const hormones = readFileSync(join(DIST, 'razdel', 'gormony', 'index.html'), 'utf8');
+    expect(hormones).toContain('<title>Гормоны — 3D-атлас человека</title>');
+    expect(hormones).not.toContain('noindex');
     expect(heart).not.toContain('noindex');
   });
 
@@ -54,7 +60,9 @@ describe.skipIf(!built)('build output', () => {
   it('lists home, about and all sections in the sitemap', () => {
     const xml = readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
     expect(xml.match(/<loc>/g)).toHaveLength(SECTIONS.filter((s) => s.ready).length + 2);
-    expect(xml).not.toContain('/razdel/gormony');
+    const soonSlug = SECTIONS.find((s) => !s.ready)?.slug;
+    if (soonSlug) expect(xml).not.toContain(`/razdel/${soonSlug}`);
+    expect(xml).toContain('/razdel/gormony');
     expect(xml).toContain('/razdel/selezenka');
     expect(readFileSync(join(DIST, 'robots.txt'), 'utf8')).toContain('Sitemap:');
   });

@@ -31,7 +31,7 @@ const BASE: SectionBase[] = [
   { slug: 'volosy', system: 'skin', icon: 'hair', ready: true },
   { slug: 'nogti', system: 'skin', icon: 'nail', ready: true },
   { slug: 'beremennost', system: 'reproductive', icon: 'pregnancy', ready: false, adultParts: true },
-  { slug: 'gormony', system: 'endocrine', icon: 'hormones', ready: false },
+  { slug: 'gormony', system: 'endocrine', icon: 'hormones', ready: true },
 ];
 
 export const SECTIONS: SectionMeta[] = BASE.map((base) => {

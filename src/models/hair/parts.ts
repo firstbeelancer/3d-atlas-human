@@ -124,6 +124,8 @@ export const XRAY_SHELL = new Set<string>([
   'hypodermis',
   'finger-skin',
   'finger-pulp',
+  'fingerprint',
+  'nail-dorsal',
   'proximal-fold',
   'lateral-folds',
   'nail-bed-dermis',
@@ -144,9 +146,13 @@ const norm = (v: V3): V3 => {
   const l = Math.hypot(...v) || 1;
   return [v[0] / l, v[1] / l, v[2] / l];
 };
-/** Поворот сцены «ноготь» на 90° вокруг z: палец смотрит вверх. */
-export const NAIL_ROT = Math.PI / 2;
-export const nailWorld = (p: V3): V3 => [-p[1], p[0], p[2]];
+/** Палец направлен вверх с небольшим наклоном, чтобы лучше был заметен контур подушечки. */
+export const NAIL_ROT = Math.PI * 0.43;
+export const nailWorld = ([x, y, z]: V3): V3 => [
+  x * Math.cos(NAIL_ROT) - y * Math.sin(NAIL_ROT),
+  x * Math.sin(NAIL_ROT) + y * Math.cos(NAIL_ROT),
+  z,
+];
 
 const FRONT: V3 = norm([0.14, 0.1, 1]);
 const dirOf = (scene: SceneId, d: V3 = FRONT): V3 => (scene === 'nail' ? norm(nailWorld(d)) : d);
@@ -155,7 +161,7 @@ export const FINGERPRINT_VIEW: Focus = { at: nailWorld([14.2, -2.0, 0]), dir: di
 export const NAIL_SURFACE_LABELS = new Set(['lunula', 'nail-body', 'free-edge', 'proximal-fold']);
 
 export const OVERVIEW: Record<SceneId, Focus> = {
-  follicle: { at: [2.1, -2.5, 0], dir: norm([0.23, 0.32, 1]), dist: 55 },
+  follicle: { at: [1.5, -0.98, 0], dir: norm([0.19, 0.28, 1]), dist: 54 },
   shaft: { at: [3.0, -1.6, 0], dir: norm([0.1, 0.08, 1]), dist: 52 },
   cycle: { at: [0, -3.4, 0], dir: FRONT, dist: 52 },
   nail: { at: nailWorld([6.5, 0.8, 0]), dir: NAIL_SURFACE, dist: 95 },
@@ -167,7 +173,7 @@ const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 /** Виды для трёх разрезов: камера со стороны убранной части. */
 export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Focus>> = {
   follicle: {
-    side: { at: [2.1, -2.5, 0], dir: norm([0.11, 0.14, 1]), dist: 55 },
+    side: { at: [1.46, -0.94, 0], dir: norm([0.10, 0.09, 1]), dist: 53 },
     fundus: { at: [2.8, -3.4, 0], dir: norm([0.48, 0.86, 0.3]), dist: 25 },
     coronal: { at: [2.4, -4.4, 0], dir: norm([0.08, 1, 0.34]), dist: 27 },
   },
@@ -182,7 +188,7 @@ export const CUT_VIEWS: Record<SceneId, Record<'side' | 'fundus' | 'coronal', Fo
     coronal: { at: [0, -4.4, 0], dir: norm([0.06, 1, 0.34]), dist: 30 },
   },
   nail: {
-    side: { at: nailWorld([7.0, 0.4, 0]), dir: dirOf('nail'), dist: 93 },
+    side: { at: nailWorld([7.0, 0.4, 0]), dir: dirOf('nail'), dist: 88 },
     fundus: { at: nailWorld([5, 0, 0]), dir: norm(nailWorld([1, 0.18, 0.22])), dist: 30 },
     coronal: { at: nailWorld([9.6, 0, 0]), dir: norm(nailWorld([0.12, 1, 0.3])), dist: 52 },
   },
@@ -217,7 +223,7 @@ const INFO: Record<string, Info> = {
   'hair-shaft': f(hu(0.3), 6, { main: true }),
   'hair-tip': f(hu(0.97), 5),
   'hair-root': f(ax(0.52, 0.0), 6, { main: true }),
-  'hair-cuticle': f(ax(0.6, 0.265), 3.2),
+  'hair-cuticle': f(hu(0.058), 3.2),
   'hair-cortex': f(ax(0.68, -0.15), 3.2),
   'hair-medulla': f(ax(0.8, 0.0), 2.6),
   melanin: f(ax(0.72, 0.12), 2.6),
@@ -292,11 +298,11 @@ const nailInfo: Record<string, Info> = {
   'nail-root': f([3.4, 3.7, 0.2], 9),
   lunula: f([7.8, 4.05, 0], 11, { dir: NAIL_SURFACE, main: true }),
   'nail-body': f([15, 4.05, 0], 19, { dir: NAIL_SURFACE, main: true }),
-  'free-edge': f([25.6, 3.9, 0], 13, { dir: NAIL_SURFACE, main: true }),
+  'free-edge': f([24.8, 3.44, 0], 13, { dir: NAIL_SURFACE, main: true }),
   'nail-ventral': f([17, 3.45, 0.2], 10),
   'onychodermal-band': f([21.0, 4.05, 0.2], 10),
   'nail-ridges': f([11, 4.35, 2.4], 12),
-  'proximal-fold': f([2.9, 4.7, 0.2], 10, { main: true }),
+  'proximal-fold': f([5.3, 4.7, 0.15], 10, { main: true }),
   eponychium: f([6.2, 4.3, 0.2], 7),
   'nail-cuticle': f([7.4, 4.1, 0.2], 7),
   'lateral-folds': f([13, 4.4, 5.7], 14),

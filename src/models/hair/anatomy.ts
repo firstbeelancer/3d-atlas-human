@@ -39,12 +39,12 @@ export const axisDir = (u: number): V3 => {
 /** Стержень над кожей: уходит вверх и ложится дугой. */
 export const HAIR_UP_PTS: V3[] = [
   [4.0, 0, 0],
-  [4.46, 1.35, -0.12],
-  [5.15, 2.9, -0.48],
-  [6.7, 4.35, -0.92],
-  [8.65, 5.1, -1.3],
-  [10.9, 5.0, -1.66],
-  [13.2, 4.0, -2.0],
+  [4.49, 1.33, -0.18],
+  [5.26, 3.01, -0.50],
+  [6.35, 4.65, -0.92],
+  [7.88, 6.13, -1.35],
+  [9.70, 7.16, -1.73],
+  [11.62, 7.78, -2.18],
 ];
 export const HAIR_UP = curveOf(HAIR_UP_PTS);
 
@@ -74,24 +74,22 @@ export const poreDepression = (x: number, z: number, cx = 4.0): number => {
 /** Нижняя граница эпидермиса с эпидермальными гребнями. */
 export const epiBottom = (x: number, z: number): number => SK.epi - 0.26 * ridge(x, z) + poreDepression(x, z) * 0.45;
 
-const bulbK = (u: number) => smooth(0.76, 0.95, u);
+const bulbK = (u: number) => smooth(0.77, 0.99, u);
 const funnel = (u: number) => (u < 0.16 ? (1 - u / 0.16) ** 2 : 0);
 
 /** Наружные радиусы слоёв фолликула как функции положения вдоль оси (0 — устье, 1 — дно). */
 export const R = {
-  ct: (u: number) => 0.98 + 0.76 * bulbK(u) + 0.92 * funnel(u),
-  glassy: (u: number) => R.ct(u) - 0.1,
-  ors: (u: number) => R.ct(u) - 0.12,
-  infundibulum: (u: number) => R.ct(u) - 0.1,
-  companion: (u: number) => 0.52 + 0.5 * bulbK(u),
-  henle: (u: number) => 0.47 + 0.45 * bulbK(u),
-  huxley: (u: number) => 0.39 + 0.32 * bulbK(u),
-  irsCuticle: (u: number) => 0.32 + 0.18 * bulbK(u),
-  cuticle: () => 0.27,
-  cortex: () => 0.22,
-  medulla: () => 0.075,
-  bulb: (u: number) => 0.5 + 0.74 * bulbK(u),
-  matrix: (u: number) => 0.36 + 0.6 * bulbK(u),
+  ct: (u: number) => 0.67 + 0.56 * bulbK(u) + 0.12 * funnel(u),
+  glassy: (u: number) => R.ct(u) - 0.069,
+  ors: (u: number) => R.glassy(u) - 0.028,
+  infundibulum: (u: number) => R.ct(u) - 0.064,
+  companion: (u: number) => 0.397 + 0.26 * bulbK(u),
+  henle: (u: number) => 0.346 + 0.22 * bulbK(u),
+  huxley: (u: number) => 0.277 + 0.19 * bulbK(u),
+  irsCuticle: (u: number) => 0.204 + 0.13 * bulbK(u),
+  cuticle: () => 0.173,
+  cortex: () => 0.148,
+  medulla: () => 0.038,
   bulge: (u: number) => R.ors(u) + 0.12 * Math.sin(Math.PI * smooth(0.3, 0.46, u)) ** 2 * (u > 0.3 && u < 0.46 ? 1 : 0),
 };
 
@@ -108,6 +106,7 @@ export const U = {
 
 /** Папилла: грушевидный сосочек у дна луковицы. */
 export const PAPILLA: { c: V3; r: V3 } = { c: [1.7, -7.45, 0], r: [0.56, 0.88, 0.56] };
+export const SEBACEOUS_DUCT: V3[] = [[1.0, -1.52, -0.13], [1.72, -1.39, -0.10], [2.47, -1.16, -0.055], [3.06, -1.08, 0], [3.45, -1.04, 0]];
 
 /** Мышца, поднимающая волос: от выпуклости фолликула к сосочковому слою. */
 export const ARRECTOR = {
@@ -149,48 +148,51 @@ export function cutPlane(scene: SceneId, kind: CutKind, t: number): { n: V3; c: 
 
 /* --------------------------------- Ноготь и палец --------------------------------- */
 
-export const FING = { x0: -14, x1: 22, cap: 3.3, tipX: 25.3 };
+export const FING = { x0: -14, x1: 22, cap: 3.1, tipX: 25.1 };
 
 export const nailPlate = {
-  x0: 0.8,
-  x1: 26.4,
-  hw: 5.0,
-  rootEnd: 5.6,
-  lunulaEnd: 9.6,
-  bodyEnd: 22.0,
+  x0: 2.6,
+  x1: 25.9,
+  hw: 5.35,
+  rootEnd: 6.5,
+  lunulaEnd: 9.8,
+  bodyEnd: 23.25,
   top: 3.95,
   thick: 0.5,
 };
 
 /** Дистальные границы лунулы, ложа и пластинки выступают по центру. */
 export const plateX = (x: number, across: number): number => {
-  const curve = 1.7 * smooth(5.6, 9.6, x) * (1 - smooth(9.6, 15, x))
-    + 2.6 * smooth(16, 25, x);
-  return x - curve * across ** 2;
+  const root = 1.15 * (1 - smooth(2.6, 6.5, x));
+  const crescent = 1.05 * smooth(6.5, 9.8, x) * (1 - smooth(9.8, 15.5, x));
+  const tip = 1.5 * smooth(17, 25, x);
+  return x + (root - crescent) * across ** 2 - tip * Math.abs(across) ** 4;
 };
 
 /** Полуширина ногтевой пластины с плавным анатомическим скруглением у корня и свободного края. */
 export const plateHW = (x: number): number => {
-  const rootRound = 0.72 + 0.28 * smooth(0.8, 3.6, x);
-  const tipRound = 1 - 0.16 * smooth(23.2, 26.4, x) ** 1.6;
+  const rootRound = 0.74 + 0.23 * smooth(2.6, 8.3, x);
+  const tipRound = 1 + 0.03 * smooth(8, 18, x) - 0.17 * smooth(21.8, 25.9, x);
   return nailPlate.hw * rootRound * tipRound;
 };
 
 /** Верх пластины: выгнута поперек и слегка загнута книзу у свободного края. */
-export const plateTop = (x: number, z: number): number =>
-  nailPlate.top - 0.78 * (z / nailPlate.hw) ** 2 - 0.018 * Math.max(0, x - 21) ** 1.5;
-export const plateBottom = (x: number, z: number): number => plateTop(x, z) - nailPlate.thick;
-
-/** Верх кожи пальца: спинка с суставными складками, ступенька у проксимального валика, ложе ногтя. */
-export const fingerTop = (x: number): number => {
-  const step = smooth(5.1, 5.9, x);
-  const bed = 3.3 - 0.01 * Math.max(0, x - 7.6);
-  const knuckle = x > -6.5 && x < 0.5 ? 0.14 * Math.sin(((x + 6.5) / 7) * Math.PI) : 0;
-  return lerp(4.6 + knuckle, bed, step);
+export const plateTop = (x: number, z: number): number => {
+  const across = z / nailPlate.hw;
+  return nailPlate.top + 0.39 * Math.sin(smooth(2.6, 25.9, x) * Math.PI)
+    - 0.79 * across ** 2 - 0.44 * across ** 4 - 0.53 * smooth(20.8, 26, x)
+    + 0.09 * across;
 };
-export const fingerBottom = (x: number): number => -4.4 + 0.5 * smooth(6, 22, x) - 0.15 * smooth(-14, -6, x);
-export const fingerHW = (x: number): number => 7.4 - 1.0 * smooth(-4, 21, x);
-export const bedTop = (x: number, z: number): number => plateBottom(Math.min(x, 22), z) - 0.02;
+export const plateBottom = (x: number, z: number): number =>
+  plateTop(x, z) - nailPlate.thick * (1 - 0.12 * (z / nailPlate.hw) ** 2);
+
+/** Рельеф над суставом, сужение диафиза и округлая ладонная подушечка. */
+export const fingerTop = (x: number): number =>
+  4.25 + 0.7 * Math.exp(-(((x + 3.3) / 3.7) ** 2)) - 0.37 * smooth(1, 18.5, x);
+export const fingerBottom = (x: number): number =>
+  -4.2 + 0.27 * Math.sin((x + 14) * 0.12) - 1.35 * smooth(1, 17, x);
+export const fingerHW = (x: number): number =>
+  6.78 + 0.85 * Math.exp(-(((x + 3.8) / 5) ** 2)) - 0.54 * smooth(0, 11, x) + 0.49 * smooth(11, 20, x);
 
 /** Кость: дистальная фаланга с выраженной талией диафиза и расширенным основанием. */
 export const boneTop = (x: number): number => lerp(2.2, 1.45, smooth(0, 20, x)) - 0.26 * Math.sin(Math.PI * smooth(3, 16, x));

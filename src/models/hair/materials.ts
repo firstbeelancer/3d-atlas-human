@@ -42,15 +42,15 @@ interface Spec {
 }
 
 const SPECS: Record<MatKey, Spec> = {
-  corneum: { color: '#ecd9c6', cut: '#e6cdb4', rough: 0.72, bump: 'skin', bumpScale: 1.15, sheen: 0.45, sheenColor: '#fff5ea' },
-  epidermis: { color: '#e9b9a3', cut: '#e2a58f', rough: 0.5, cc: 0.25, pattern: 2, sheen: 0.3, sheenColor: '#ffd9c9' },
-  basal: { color: '#c58875', cut: '#b87763', rough: 0.52, pattern: 2 },
-  dermisP: { color: '#f1cbbb', cut: '#ecbeaa', rough: 0.56, pattern: 1, sheen: 0.35, sheenColor: '#ffe0d4' },
-  dermisR: { color: '#f3d8c8', cut: '#eecbb7', rough: 0.58, pattern: 1, sheen: 0.3 },
-  hypodermis: { color: '#f2d98c', cut: '#ecc877', rough: 0.46, cc: 0.3, pattern: 2 },
-  fat: { color: '#f7e394', cut: '#f2d778', rough: 0.22, cc: 0.85, ccr: 0.16, pattern: 2, sheen: 0.3, sheenColor: '#fff8d6' },
-  collagen: { color: '#fff1dc', rough: 0.44, sheen: 0.7, sheenColor: '#ffffff', cc: 0.25 },
-  cuticleHair: { color: '#ffffff', cut: '#6e4b2f', rough: 0.36, cc: 0.58, ccr: 0.26, map: 'cuticle', bump: 'cuticle', bumpScale: 0.22, sheen: 0.48, sheenColor: '#f5cfa0' },
+  corneum: { color: '#c79383', cut: '#d8ac96', rough: 0.63, bump: 'skin', bumpScale: 0.17, sheen: 0.19 },
+  epidermis: { color: '#ba8376', cut: '#c28d7e', rough: 0.64, pattern: 2, sheen: 0.18 },
+  basal: { color: '#8c594d', cut: '#9f6859', rough: 0.61, pattern: 2 },
+  dermisP: { color: '#cc9d8e', cut: '#c29083', rough: 0.61, pattern: 1, sheen: 0.18 },
+  dermisR: { color: '#cd9f91', cut: '#b98376', rough: 0.62, pattern: 1, sheen: 0.18 },
+  hypodermis: { color: '#d0b184', cut: '#b99a6d', rough: 0.62, cc: 0.14, pattern: 2 },
+  fat: { color: '#d6b778', cut: '#d0ad74', rough: 0.48, cc: 0.22, ccr: 0.43, pattern: 2, sheen: 0.18, sheenColor: '#ffedce' },
+  collagen: { color: '#e0b9a4', rough: 0.63, sheen: 0.26, sheenColor: '#ffeadf' },
+  cuticleHair: { color: '#6e513d', cut: '#674534', rough: 0.32, cc: 0.38, ccr: 0.23, map: 'cuticle', bump: 'cuticle', bumpScale: 0.055, sheen: 0.26, sheenColor: '#b19a86' },
   cortex: { color: '#7e5535', cut: '#8a5f3a', rough: 0.44, cc: 0.35, pattern: 1, bump: 'cells', bumpScale: 0.35 },
   medulla: { color: '#e3d3b2', cut: '#efe2c6', rough: 0.68, pattern: 2 },
   melaninG: { color: '#2b160b', rough: 0.35, cc: 0.65 },
@@ -59,7 +59,7 @@ const SPECS: Record<MatKey, Spec> = {
   henle: { color: '#e2cb92', cut: '#d6bb7c', rough: 0.45, cc: 0.4, pattern: 2 },
   companion: { color: '#d9b8a0', cut: '#cda78d', rough: 0.48, cc: 0.35 },
   ors: { color: '#e79b99', cut: '#df8c8a', rough: 0.42, cc: 0.45, pattern: 2, sheen: 0.3, sheenColor: '#ffc2c0' },
-  glassy: { color: '#9cc0d6', cut: '#8fb4cc', rough: 0.22, cc: 0.9, ccr: 0.12 },
+  glassy: { color: '#c7b9b6', cut: '#b5a4ab', rough: 0.38, cc: 0.26 },
   ctSheath: { color: '#d9a78f', cut: '#d09a82', rough: 0.5, pattern: 1, sheen: 0.35, sheenColor: '#ffdcc8' },
   infund: { color: '#f0cbb0', cut: '#e8bb9c', rough: 0.5, pattern: 2 },
   isthmus: { color: '#e9a98d', cut: '#e19b7e', rough: 0.46, pattern: 2 },
@@ -73,11 +73,11 @@ const SPECS: Record<MatKey, Spec> = {
   sebum: { color: '#ffd35a', rough: 0.1, cc: 1, ccr: 0.06, emissive: '#ffb020', emissiveIntensity: 0.15 },
   muscle: { color: '#b9444c', cut: '#a8383f', rough: 0.4, cc: 0.45, sheen: 0.75, sheenColor: '#ff9a9a', pattern: 1, bump: 'cells', bumpScale: 0.45 },
   tendon: { color: '#efe3cb', rough: 0.42, sheen: 0.7, sheenColor: '#ffffff', cc: 0.25 },
-  apocrine: { color: '#a9b6e2', cut: '#98a6d4', rough: 0.34, cc: 0.6 },
-  artery: { color: '#d03a34', rough: 0.28, cc: 0.8, ccr: 0.15 },
-  vein: { color: '#3f62b2', rough: 0.28, cc: 0.8, ccr: 0.15 },
-  capillary: { color: '#e4544e', rough: 0.3, cc: 0.7 },
-  nerve: { color: '#e8cb4a', rough: 0.35, cc: 0.6, sheen: 0.4, sheenColor: '#fff2a0' },
+  apocrine: { color: '#ab8490', cut: '#946877', rough: 0.5, cc: 0.22 },
+  artery: { color: '#a6473f', cut: '#983c33', rough: 0.41, cc: 0.26 },
+  vein: { color: '#695a86', cut: '#665575', rough: 0.45, cc: 0.22 },
+  capillary: { color: '#b7534d', rough: 0.48, cc: 0.23 },
+  nerve: { color: '#cbb17a', rough: 0.52, cc: 0.18, sheen: 0.22, sheenColor: '#f3dbad' },
   ending: { color: '#f2a73a', rough: 0.34, cc: 0.6 },
   merkel: { color: '#82c2a4', rough: 0.36, cc: 0.5 },
   club: { color: '#e9e0cb', cut: '#e3d8be', rough: 0.4, cc: 0.45, pattern: 2 },
@@ -96,7 +96,7 @@ const SPECS: Record<MatKey, Spec> = {
   medullaFoam: { color: '#efe4cb', cut: '#f2e8d0', rough: 0.7, pattern: 2 },
   air: { color: '#ffffff', opacity: 0.52, rough: 0.04, cc: 1, plain: true },
   melanosome: { color: '#2b1a10', rough: 0.3, cc: 0.75 },
-  nailDorsal: { color: '#fff3eb', opacity: 0.17, rough: 0.29, cc: 0.58, ccr: 0.26, bump: 'nail', bumpScale: 0.065, plain: true },
+  nailDorsal: { color: '#ffffff', vertexColors: true, cut: '#c49b90', rough: 0.28, cc: 0.62, ccr: 0.24, bump: 'nail', bumpScale: 0.045 },
   nailRoot: { color: '#f2d9d2', cut: '#ecc9c0', rough: 0.36, cc: 0.55 },
   lunula: { color: '#f7f1e8', cut: '#f2e8dc', rough: 0.32, cc: 0.65 },
   nailBody: { color: '#ecb3ac', cut: '#eebdb5', rough: 0.35, cc: 0.62, bump: 'nail', bumpScale: 0.07 },
@@ -104,23 +104,20 @@ const SPECS: Record<MatKey, Spec> = {
   nailVentral: { color: '#f0d3c8', opacity: 0.72, rough: 0.28, cc: 0.55, plain: true },
   nailBand: { color: '#d99287', opacity: 0.64, rough: 0.46, plain: true },
   nailRidge: { color: '#f6cec3', opacity: 0.22, rough: 0.38, cc: 0.4, plain: true },
-  fold: { color: '#eab9a4', cut: '#e2aa94', rough: 0.5, bump: 'skin', bumpScale: 0.55, pattern: 2 },
   epony: { color: '#f3d1c3', rough: 0.42, cc: 0.45, plain: true },
-  nailCuticle: { color: '#fff4ec', opacity: 0.62, rough: 0.18, cc: 0.85, plain: true },
-  latFold: { color: '#e7af9a', cut: '#df9f88', rough: 0.5, bump: 'skin', bumpScale: 0.55, pattern: 2 },
+  nailCuticle: { color: '#d0a593', opacity: 0.54, rough: 0.39, cc: 0.37, plain: true },
   hypo: { color: '#f0b9a2', cut: '#e8a98f', rough: 0.48, pattern: 2 },
   matrixNail: { color: '#d98d99', cut: '#cf7e8b', rough: 0.36, cc: 0.55, pattern: 2 },
   sterile: { color: '#e99ba1', cut: '#e08c93', rough: 0.36, cc: 0.45, pattern: 2 },
   bedRidge: { color: '#d66f7d', cut: '#cb6270', rough: 0.42, pattern: 1 },
   bedDermis: { color: '#e4898f', cut: '#da7a81', rough: 0.46, pattern: 1 },
   bone: { color: '#efe5cc', cut: '#f3ead3', rough: 0.5, cc: 0.2, bump: 'bone', bumpScale: 0.6, pattern: 2 },
-  cartilage: { color: '#c3e2ec', cut: '#b6d8e4', rough: 0.18, cc: 0.9, ccr: 0.1 },
+  cartilage: { color: '#b9c6bd', cut: '#aebcb5', rough: 0.44, cc: 0.34 },
   ligament: { color: '#f2e9d7', cut: '#ebe0c8', rough: 0.38, sheen: 0.75, sheenColor: '#ffffff', pattern: 1 },
-  pulp: { color: '#f4d37e', cut: '#eec764', rough: 0.36, cc: 0.45, pattern: 2 },
-  septa: { color: '#fff3df', cut: '#fff3df', rough: 0.46, sheen: 0.5, sheenColor: '#ffffff' },
-  fingerSkin: { color: '#eab79e', cut: '#df9f86', rough: 0.52, cc: 0.18, bump: 'skin', bumpScale: 0.65, sheen: 0.55, sheenColor: '#ffd2c2', pattern: 1 },
-  fingerprint: { color: '#dba48d', cut: '#df9f86', rough: 0.58, cc: 0.16, sheen: 0.4, sheenColor: '#ffd2c2' },
-  eccrine: { color: '#a8c6ea', rough: 0.34, cc: 0.6 },
+  pulp: { color: '#dfbc88', cut: '#cb9e66', rough: 0.52, cc: 0.26, pattern: 2 },
+  septa: { color: '#e1c4a7', cut: '#d0b297', rough: 0.58, sheen: 0.32, sheenColor: '#f3decb' },
+  fingerSkin: { color: '#ffffff', vertexColors: true, cut: '#bd886f', rough: 0.61, cc: 0.12, bump: 'skin', bumpScale: 0.17, sheen: 0.21, sheenColor: '#edc1ae', pattern: 1 },
+  eccrine: { color: '#bd938a', rough: 0.45, cc: 0.25 },
   pacShell: { color: '#dcc6e6', opacity: 0.36, rough: 0.2, cc: 0.75, plain: true },
   pacCore: { color: '#9b6dc2', rough: 0.34, cc: 0.5 },
   meissner: { color: '#6db794', rough: 0.36, cc: 0.5 },
@@ -228,22 +225,32 @@ export function buildHairTextures(): HairTextures {
     }
   }
 
-  // 3. Микрорельеф кожи 256x256: ромбическая сетка линий Лангера + поры
-  const [sc, sx] = canvas(256, 256);
-  const img = sx.createImageData(256, 256);
-  for (let y = 0; y < 256; y++) {
-    for (let x = 0; x < 256; x++) {
-      const idx = (y * 256 + x) * 4;
-      const u = (x / 256) * Math.PI * 2;
-      const v = (y / 256) * Math.PI * 2;
-      const grid = Math.abs(Math.sin(u * 5 + v * 3)) * Math.abs(Math.sin(u * 3 - v * 5));
-      const grain = 135 + 75 * grid + (rnd() - 0.5) * 35;
-      const val = Math.max(0, Math.min(255, grain));
-      img.data[idx] = img.data[idx + 1] = img.data[idx + 2] = val;
-      img.data[idx + 3] = 255;
-    }
+  // 3. Короткие складки и поры с разным размером и направлением.
+  const [sc, sx] = canvas(384, 384);
+  sx.fillStyle = '#818181';
+  sx.fillRect(0, 0, 384, 384);
+  for (let i = 0; i < 2500; i++) {
+    const x = rnd() * 384;
+    const y = rnd() * 384;
+    const radius = 0.45 + 2.7 * rnd() ** 2;
+    sx.fillStyle = i % 4 ? 'rgba(34,34,34,0.21)' : 'rgba(229,229,229,0.18)';
+    sx.beginPath();
+    sx.ellipse(x, y, radius * 1.26, radius, rnd() * Math.PI, 0, Math.PI * 2);
+    sx.fill();
   }
-  sx.putImageData(img, 0, 0);
+  for (let i = 0; i < 210; i++) {
+    const x = rnd() * 384;
+    const y = rnd() * 384;
+    const a = rnd() * Math.PI;
+    const dx = Math.cos(a) * (5 + rnd() * 22);
+    const dy = Math.sin(a) * (5 + rnd() * 22);
+    sx.strokeStyle = 'rgba(53,53,53,0.18)';
+    sx.lineWidth = 0.6 + 1.5 * rnd();
+    sx.beginPath();
+    sx.moveTo(x, y);
+    sx.quadraticCurveTo(x + dx * 0.52 - dy * 0.14, y + dy * 0.48 + dx * 0.13, x + dx, y + dy);
+    sx.stroke();
+  }
 
   // 4. Пористость и гаверсовы каналы кости 256x256
   const [bc, bx] = canvas(256, 256);
@@ -275,7 +282,7 @@ export function buildHairTextures(): HairTextures {
   const textures = {
     cuticle: wrap(cc, 1, 1, true),
     cells: wrap(kc, 8, 1, true),
-    skin: wrap(sc, 6, 6, false),
+    skin: wrap(sc, 3, 4, false),
     bone: wrap(bc, 4, 4, false),
     nail: wrap(nc, 2, 4, false),
   };
@@ -290,7 +297,7 @@ float vn(vec3 x){
              mix(mix(hh(i+vec3(0,0,1)),hh(i+vec3(1,0,1)),f.x), mix(hh(i+vec3(0,1,1)),hh(i+vec3(1,1,1)),f.x), f.y), f.z);
 }`;
 
-function patchCut(shader: WebGLProgramParametersWithUniforms, cut: Color, pattern: number): void {
+function patchCut(shader: WebGLProgramParametersWithUniforms, cut: Color, pattern: number, section: boolean): void {
   shader.uniforms.cutColor = { value: cut };
   shader.vertexShader = shader.vertexShader
     .replace('#include <common>', '#include <common>\nvarying vec3 vWP;')
@@ -305,11 +312,11 @@ function patchCut(shader: WebGLProgramParametersWithUniforms, cut: Color, patter
       : 'float n = vn(vWP*13.0)*0.65 + vn(vWP*31.0)*0.35; float k = 0.90 + 0.20*n;';
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <common>', `#include <common>\nvarying vec3 vWP;\nuniform vec3 cutColor;\n${NOISE}`)
-    .replace('#include <color_fragment>', `#include <color_fragment>\nif (!gl_FrontFacing) { ${pat} diffuseColor.rgb = cutColor * k; }`)
-    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nif (!gl_FrontFacing) roughnessFactor = 0.86;');
+    .replace('#include <color_fragment>', `#include <color_fragment>\nif (${section ? 'true' : '!gl_FrontFacing'}) { ${pat} diffuseColor.rgb = cutColor * k; }`)
+    .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\nif (${section ? 'true' : '!gl_FrontFacing'}) roughnessFactor = 0.86;`);
 }
 
-export function makeMaterial(key: MatKey, tex: HairTextures): MeshPhysicalMaterial {
+export function makeMaterial(key: MatKey, tex: HairTextures, section = false): MeshPhysicalMaterial {
   const s = SPECS[key];
   const transparent = s.opacity !== undefined && s.opacity < 1;
   const m = new MeshPhysicalMaterial({
@@ -325,20 +332,20 @@ export function makeMaterial(key: MatKey, tex: HairTextures): MeshPhysicalMateri
     transparent,
     opacity: s.opacity ?? 1,
     depthWrite: !transparent,
-    vertexColors: !!s.vertexColors,
+    vertexColors: !!s.vertexColors && !section,
     emissive: new Color(s.emissive ?? '#000000'),
     emissiveIntensity: s.emissiveIntensity ?? 0,
   });
-  if (s.map) m.map = s.map === 'cuticle' ? tex.cuticle : tex.cells;
-  if (s.bump) {
+  if (s.map && !section) m.map = s.map === 'cuticle' ? tex.cuticle : tex.cells;
+  if (s.bump && !section) {
     m.bumpMap = tex[s.bump];
     m.bumpScale = s.bumpScale ?? 0.6;
   }
-  if (!s.plain) {
+  if (!s.plain || section) {
     const cut = new Color(s.cut ?? s.color).multiplyScalar(s.cut ? 1 : 0.9);
     const pat = s.pattern ?? 0;
-    m.customProgramCacheKey = () => `hair-cut-${pat}`;
-    m.onBeforeCompile = (shader) => patchCut(shader, cut, pat);
+    m.customProgramCacheKey = () => `hair-cut-${pat}-${section}`;
+    m.onBeforeCompile = (shader) => patchCut(shader, cut, pat, section);
   }
   return m;
 }

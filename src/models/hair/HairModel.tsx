@@ -5,8 +5,8 @@ import type { ModelProps } from '../../three/types';
 import { useSelection } from '../../three/selection';
 import { Flow } from '../../three/Flow';
 import { curveOf, type V3 } from './geometry';
-import { buildScene, type MatKey, type MeshDef, type SceneData } from './build';
-import type { SceneId } from './anatomy';
+import { buildScene, type MeshDef, type SceneData } from './build';
+import { SEBACEOUS_DUCT, type SceneId } from './anatomy';
 import { buildHairTextures, makeMaterial, type HairTextures } from './materials';
 import { CUT_VIEWS, FOCUS, NAIL_ROT, OVERVIEW, SCENE_PARTS, SPREAD_VIEW, FINGERPRINT_VIEW, sceneOf, type Focus } from './parts';
 import { HairContext, HairPart, PartLabel, type HairControl } from './HairPart';
@@ -92,10 +92,13 @@ function CameraRig({ ctrl, selected, explode, scene, fingerprint }: { ctrl: RefO
 }
 
 /** Меши одной части. Материалы у каждой части свои — подсветка и призрачный режим не задевают соседей. */
-function PartMeshes({ defs, tex }: { defs: MeshDef[]; tex: HairTextures }) {
+function PartMeshes({ defs, tex, longitudinal = false }: { defs: MeshDef[]; tex: HairTextures; longitudinal?: boolean }) {
   const mats = useMemo(() => {
-    const map = new Map<MatKey, Material>();
-    for (const d of defs) if (!map.has(d.m)) map.set(d.m, makeMaterial(d.m, tex));
+    const map = new Map<string, Material>();
+    for (const d of defs) {
+      const key = materialId(d);
+      if (!map.has(key)) map.set(key, makeMaterial(d.m, tex, d.longitudinalFace));
+    }
     return map;
   }, [defs, tex]);
   useEffect(
@@ -107,11 +110,14 @@ function PartMeshes({ defs, tex }: { defs: MeshDef[]; tex: HairTextures }) {
   return (
     <>
       {defs.map((d, i) => (
-        <mesh key={i} geometry={d.g} material={mats.get(d.m)} userData={{ noPick: d.noPick }} />
+        <mesh key={i} geometry={d.g} material={mats.get(materialId(d))}
+          visible={!d.longitudinalFace || longitudinal} userData={{ noPick: d.noPick }} />
       ))}
     </>
   );
 }
+
+const materialId = ({ m, longitudinalFace }: MeshDef) => longitudinalFace ? `${m}-face` : m;
 
 const pulse = (t: number) => 1 + 0.5 * Math.sin(t * 7);
 const red = '#ff6b5a';
@@ -121,8 +127,7 @@ const FLOW = {
   hairArtery: path([[-8.4, -9.1, -1.1], [-5.2, -8.8, -0.9], [-2.4, -8.3, -0.6], [0.2, -8.15, -0.4], [1.2, -8.1, -0.2], [1.6, -7.9, 0]]),
   hairVein: path([[2.35, -7.95, -0.1], [3.4, -8.15, -0.3], [5.2, -8.45, -0.5], [7.0, -9.0, -0.8], [8.8, -9.3, -1.0]]),
   papilla: path([[1.5, -7.95, -0.3], [1.55, -7.2, -0.3], [1.65, -6.8, -0.3], [1.8, -7.2, -0.3], [1.9, -7.95, -0.3]]),
-  sebum: path([[0.9, -1.5, 0], [1.7, -1.3, 0.05], [2.45, -1.12, 0.03], [3.05, -1.06, 0]]),
-  sebumR: path([[6.3, -1.55, 0], [5.4, -1.3, 0.03], [4.7, -1.12, 0.02], [4.15, -1.05, 0]]),
+  sebum: path(SEBACEOUS_DUCT),
   arteryN: path([[-13.8, -1.55, -3.5], [-6, -1.6, -3.5], [2, -1.5, -3.55], [10, -1.2, -3.5], [16.5, -1.05, -3.2], [19.6, -0.7, -2.5], [21.4, -0.3, -1.2]]),
   arcade: path([[2.5, -1.5, -3.5], [2.6, 0.5, -4.7], [2.9, 2.3, -3.9], [3.2, 2.75, -2.0], [3.3, 2.8, 0]]),
   veinN: path([[0.4, 3.35, -1.3], [-3, 3.5, -1.9], [-8, 3.55, -2.3], [-13.8, 3.45, -2.1]]),
@@ -138,12 +143,7 @@ function Streams({ id, state }: { id: string; state: ModelProps['state'] }) {
     case 'papilla-capillaries':
       return <Flow path={FLOW.papilla} count={4} speed={0.12} color={red} size={0.08} state={state} pulse={pulse} />;
     case 'sebum':
-      return (
-        <>
-          <Flow path={FLOW.sebum} count={4} speed={0.05} color="#ffe27a" size={0.1} state={state} />
-          <Flow path={FLOW.sebumR} count={3} speed={0.04} color="#ffe27a" size={0.08} state={state} />
-        </>
-      );
+      return <Flow path={FLOW.sebum} count={4} speed={0.05} color="#e8c775" size={0.075} state={state} />;
     case 'digital-artery':
       return <Flow path={FLOW.arteryN} count={18} speed={0.05} color={red} size={0.34} state={state} pulse={pulse} />;
     case 'nail-arcade':
@@ -209,6 +209,7 @@ function AnatomyScene({ scene, state, names = {} }: ModelProps & { scene: SceneI
   const ids = SCENE_PARTS[scene];
   const hideLabels = explodeTarget > 0.02;
   const fingerprint = scene === 'nail' && !!state.modes.fingerprint;
+  const longitudinal = state.cutaway && c.kind === 'side' && Math.abs(c.cutT - 0.5) < 0.0005;
   return (
     <HairContext.Provider value={ctrl}>
       <CameraRig ctrl={ctrl} selected={selected} explode={explodeTarget} scene={scene} fingerprint={fingerprint} />
@@ -223,7 +224,7 @@ function AnatomyScene({ scene, state, names = {} }: ModelProps & { scene: SceneI
           if (!defs) return null;
           return (
             <HairPart key={id} id={id}>
-              <PartMeshes defs={defs} tex={tex} />
+              <PartMeshes defs={defs} tex={tex} longitudinal={longitudinal} />
               <Streams id={id} state={state} />
               <PartLabel id={id} names={names} hide={hideLabels} fingerprint={fingerprint} />
             </HairPart>

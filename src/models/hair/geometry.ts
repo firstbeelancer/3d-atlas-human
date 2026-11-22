@@ -156,6 +156,8 @@ export interface SweepOpt {
   squash?: number | ((u: number) => number);
   /** Радиальный множитель по углу (неровность, ребристость). */
   wob?: (u: number, a: number) => number;
+  /** Внутренняя поверхность трубчатого слоя. При её наличии торцы соединяют наружную и внутреннюю стенки. */
+  innerRadius?: (u: number) => number;
   color?: (u: number, a: number) => RGB;
   /** Сколько раз текстура повторяется вдоль трубки. */
   uvLen?: number;
@@ -203,17 +205,20 @@ export function sweep(curve: Curve<Vector3>, radius: (u: number) => number, o: S
   const list: Ring[] = [];
   const first = samples[0];
   const last = samples[samples.length - 1];
-  if (o.cap0 === 'round') {
+  if (!o.innerRadius && o.cap0 === 'round') {
     const len = o.roundLen0 ?? first.r;
     for (let k = 8; k >= 1; k--) {
       const phi = (k / 8) * (Math.PI / 2);
       list.push({ ...first, c: first.c.clone().addScaledVector(first.T, -len * Math.sin(phi)), r: first.r * Math.cos(phi) });
     }
-  } else if (o.cap0 === 'flat') {
+  } else if (!o.innerRadius && o.cap0 === 'flat') {
     list.push({ ...first, r: 0 }, { ...first });
   }
   list.push(...samples);
-  if (o.cap1 === 'round') {
+  if (o.innerRadius) {
+    const innerRadius = o.innerRadius;
+    list.push(...samples.map((sample) => ({ ...sample, r: Math.min(sample.r - 0.001, innerRadius(sample.u)) })).reverse(), first);
+  } else if (o.cap1 === 'round') {
     const len = o.roundLen1 ?? last.r;
     for (let k = 1; k <= 8; k++) {
       const phi = (k / 8) * (Math.PI / 2);

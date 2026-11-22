@@ -1,29 +1,15 @@
 import type { BufferGeometry } from 'three';
-import { FING, boneBottom, boneHW, boneTop, fingerBottom, fingerHW, fingerTop, nailPlate, plateBottom, plateHW, plateTop, plateX } from './anatomy';
+import { FING, boneBottom, boneHW, boneTop, fingerBottom, fingerHW, nailPlate, plateBottom, plateHW, plateTop, plateX } from './anatomy';
 import { blob, fbm, heightSlab, lerp, loft, merge, rng, smooth, tube, type V3 } from './geometry';
+import { buildFingerSurface, colorPlate, proximalEdge, skinBottomY, skinTopY } from './nailSurface';
 import type { MatKey, MeshDef, Parts } from './types';
 
 const d = (g: BufferGeometry, m: MatKey, o: Partial<MeshDef> = {}): MeshDef => ({ g, m, ...o });
 
-const P_EXP = 2.4;
-/** Поверхность кожи пальца: верх и низ суперэллипса в сечении. */
-export const skinTopY = (x: number, z: number): number => {
-  const top = fingerTop(x);
-  const bot = fingerBottom(x);
-  const k = Math.max(0, 1 - (Math.abs(z) / fingerHW(x)) ** P_EXP) ** (1 / P_EXP);
-  return (top + bot) / 2 + ((top - bot) / 2) * k;
-};
-export const skinBottomY = (x: number, z: number): number => {
-  const top = fingerTop(x);
-  const bot = fingerBottom(x);
-  const k = Math.max(0, 1 - (Math.abs(z) / fingerHW(x)) ** P_EXP) ** (1 / P_EXP);
-  return (top + bot) / 2 - ((top - bot) / 2) * k;
-};
-
-const fingerSec = (inset: number, from = 0) => (x: number) => {
-  const top = fingerTop(x) - inset * 1.1;
-  const bot = fingerBottom(x) + inset;
-  return { cy: (top + bot) / 2 + from, ry: (top - bot) / 2, hw: fingerHW(x) - inset };
+const pulpSection = (x: number) => {
+  const top = 0.9 + 0.3 * smooth(8.0, 20.5, x);
+  const bottom = fingerBottom(x) + 0.61;
+  return { cy: (top + bottom) / 2, ry: (top - bottom) / 2, hw: fingerHW(x) - 0.84 };
 };
 
 /** Кончик пальца: ногтевой аппарат, кость с мыщелками и бугристостью, сухожилия, сосуды и нервы. */
@@ -42,13 +28,14 @@ export function buildNail(): Parts {
   const midTop = (x: number, z: number) => plateTop(x, z) - 0.095;
   const midBot = (x: number, z: number) => plateBottom(x, z) + 0.075;
 
-  add('nail-dorsal', d(slabAt(nailPlate.x0, nailPlate.x1, plateTop, (x, z) => plateTop(x, z) - 0.09, plateHW, 44), 'nailDorsal'));
+  const plate = slabAt(nailPlate.x0, nailPlate.x1, plateTop, (x, z) => plateTop(x, z) - 0.09, plateHW, 60);
+  add('nail-dorsal', d(colorPlate(plate), 'nailDorsal', { noPick: true }));
   add('nail-root', d(slabAt(nailPlate.x0, rootEnd, midTop, midBot), 'nailRoot'));
   add('lunula', d(slabAt(rootEnd, lunulaEnd, midTop, midBot), 'lunula'));
   add('nail-body', d(slabAt(lunulaEnd, bodyEnd, midTop, midBot), 'nailBody'));
   add('free-edge', d(slabAt(bodyEnd, nailPlate.x1, midTop, midBot), 'nailFree'));
   add('nail-ventral', d(slabAt(nailPlate.x0, nailPlate.x1, (x, z) => plateBottom(x, z) + 0.08, plateBottom), 'nailVentral'));
-  add('onychodermal-band', d(slabAt(21.0, 21.8, (x, z) => midTop(x, z) + 0.012, (x, z) => midTop(x, z) - 0.02, (x) => plateHW(x) * 0.98, 28), 'nailBand'));
+  add('onychodermal-band', d(slabAt(22.1, 22.9, (x, z) => midTop(x, z) + 0.012, (x, z) => midTop(x, z) - 0.02, (x) => plateHW(x) * 0.98, 28), 'nailBand'));
 
   const ridges: BufferGeometry[] = [];
   for (let across = -0.88; across <= 0.89; across += 0.11) {
@@ -56,63 +43,36 @@ export function buildNail(): Parts {
       const u = lerp(7.8, 24.6, i / 15);
       const z = across * plateHW(u);
       const x = plateX(u, across);
-      return [x, plateTop(x, z) + 0.015, z];
+      return [x, plateTop(x, z) + 0.006, z];
     });
-    ridges.push(tube(pts, (u) => 0.004 + 0.008 * Math.sin(Math.PI * u), { n: 48, m: 8 }));
+    ridges.push(tube(pts, (u) => 0.003 + 0.005 * Math.sin(Math.PI * u), { n: 58, m: 8 }));
   }
   add('nail-ridges', d(merge(ridges), 'nailRidge'));
 
-  // --- кожа пальца с суставными складками и ногтевыми валиками
-  add(
-    'finger-skin',
-    d(
-      loft(
-        x0,
-        x1,
-        (x) => {
-          const s = fingerSec(0)(x);
-          const dorsalCrease = Math.exp(-((x + 2.8) ** 2) / 0.65) + 0.7 * Math.exp(-((x + 4.3) ** 2) / 0.55);
-          const palmarCrease = Math.exp(-((x + 1.5) ** 2) / 0.4);
-          return {
-            ...s,
-            mod: (a) => 1 - 0.022 * dorsalCrease * Math.max(0, Math.cos(a)) ** 2 - 0.025 * palmarCrease * Math.max(0, -Math.cos(a)) ** 2,
-          };
-        },
-        { cap0: 'flat', cap1: 'round', roundLen1: cap, n: 120, m: 54 },
-      ),
-      'fingerSkin',
-    ),
-  );
-
-  const skinAtFold = (x: number, z: number) => skinTopY(Math.min(x, 5.0), z);
-  const foldTop = (x: number, z: number) => lerp(skinAtFold(x, z) + 0.03, plateTop(x, z) + 0.17, smooth(5.0, 6.5, x));
-  const foldBot = (x: number, z: number) => lerp(skinAtFold(x, z) - 1.0, plateTop(x, z) + 0.04, smooth(4.6, 6.0, x));
-  add('proximal-fold', d(heightSlab({ x0: 0.6, x1: 6.5, zh: 5.7, top: foldTop, bot: (x, z) => Math.min(foldBot(x, z), foldTop(x, z) - 0.06), nx: 40, nz: 34 }), 'fold'));
-  add('eponychium', d(slabAt(5.7, 7.3, (x, z) => plateTop(x, z) + 0.075 * (1 - smooth(6.0, 7.3, x)) + 0.012, (x, z) => plateTop(x, z) + 0.012, 4.7, 30), 'epony'));
-  add('nail-cuticle', d(slabAt(6.9, 8.6, (x, z) => plateTop(x, z) + 0.045 + 0.008 * Math.sin(z * 5.2), (x, z) => plateTop(x, z) + 0.02, 4.5, 32), 'nailCuticle'));
-
-  const lat = (s: number) =>
-    loft(
-      1.2,
-      21.8,
-      (x) => {
-        const z = plateHW(x) + 0.47;
-        const top = plateTop(x, plateHW(x)) + 0.53 - 0.52 * smooth(17, 22, x);
-        const bot = skinTopY(x, z) - 0.72;
-        return { cy: (top + bot) / 2, ry: (top - bot) / 2, hw: 0.91, cz: s * z, p: 2.0 };
-      },
-      { cap0: 'round', cap1: 'round', roundLen0: 0.9, roundLen1: 0.9, n: 56, m: 24 },
-    );
-  add('lateral-folds', d(merge([lat(1), lat(-1)]), 'latFold'));
+  // Валик, боковые складки и отпечаток — части одной поверхности, а не накладные объёмы.
+  const surface = buildFingerSurface();
+  for (const [id, geometry] of Object.entries(surface)) add(id, d(geometry, 'fingerSkin', { open: true }));
+  const curvedRoot = (x: number, across: number) => x + proximalEdge(across * 4.65) - proximalEdge(0);
+  add('eponychium', d(heightSlab({
+    x0: 5.69, x1: 6.43, zh: 4.65, xAt: curvedRoot,
+    top: (x, z) => plateTop(x, z) + 0.11 * (1 - smooth(proximalEdge(z) - 0.5, proximalEdge(z) + 0.25, x)),
+    bot: (x, z) => plateTop(x, z) - 0.09, nx: 14, nz: 48,
+  }), 'epony'));
+  add('nail-cuticle', d(heightSlab({
+    x0: 6.28, x1: 6.94, zh: (x) => 4.6 - 0.65 * smooth(6.28, 6.94, x), xAt: curvedRoot,
+    top: (x, z) => plateTop(x, z) + 0.043 + 0.017 * fbm(x * 4, 0, z * 2.5, 2),
+    bot: (x, z) => plateTop(x, z) + 0.012, nx: 14, nz: 40,
+  }), 'nailCuticle'));
   add(
     'hyponychium',
     d(
       heightSlab({
-        x0: 21.0,
-        x1: 23.6,
-        zh: 4.7,
-        top: (x, z) => lerp(plateBottom(Math.min(x, 22), z) - 0.03, skinTopY(x, z) + 0.05, smooth(22.0, 23.6, x)),
-        bot: (x, z) => skinTopY(x, z) - 0.5,
+        x0: 22.28,
+        x1: 24.5,
+        zh: (x) => plateHW(x) - 0.5 - smooth(22.6, 25, x),
+        xAt: plateX,
+        top: (x, z) => Math.min(plateBottom(x, z) - 0.09, skinTopY(x, z) + 0.065),
+        bot: (x, z) => Math.min(plateBottom(x, z) - 0.35, skinTopY(x, z) - 0.34),
         nx: 18,
         nz: 26,
       }),
@@ -121,9 +81,9 @@ export function buildNail(): Parts {
   );
 
   // --- матрикс и ногтевое ложе с гребнями Генле
-  const bedTopY = (x: number, z: number) => plateBottom(Math.min(x, 22), z);
-  const matrixVentral = slabAt(0.9, lunulaEnd + 0.1, (x, z) => plateBottom(x, z) - 0.012, (x, z) => plateBottom(x, z) - 0.55, 4.7, 32);
-  const matrixDorsal = slabAt(1.4, 5.2, (x, z) => plateTop(x, z) + 0.2, (x, z) => plateTop(x, z) + 0.012, 4.6, 24);
+  const bedTopY = (x: number, z: number) => plateBottom(Math.min(x, bodyEnd), z);
+  const matrixVentral = slabAt(nailPlate.x0 - 0.08, lunulaEnd + 0.1, (x, z) => plateBottom(x, z) - 0.012, (x, z) => plateBottom(x, z) - lerp(0.42, 0.78, 1 - smooth(3.1, 8.9, x)), (x) => plateHW(x) - 0.23, 40);
+  const matrixDorsal = slabAt(nailPlate.x0 - 0.05, 4.1, (x, z) => plateTop(x, z) + 0.15, (x, z) => plateTop(x, z) + 0.015, 3.72, 24);
   add('germinal-matrix', d(merge([matrixVentral, matrixDorsal]), 'matrixNail'));
   add('sterile-matrix', d(slabAt(lunulaEnd + 0.1, bodyEnd, (x, z) => bedTopY(x, z) - 0.012, (x, z) => bedTopY(x, z) - 0.17, 4.9, 36), 'sterile'));
   add('bed-ridges', d(slabAt(lunulaEnd + 0.1, bodyEnd, (x, z) => bedTopY(x, z) - 0.15 + 0.07 * Math.cos(z * 4.8), (x, z) => bedTopY(x, z) - 0.33 + 0.05 * Math.cos(z * 4.8), 4.85, 56), 'bedRidge'));
@@ -217,7 +177,7 @@ export function buildNail(): Parts {
   );
 
   // --- мягкие ткани подушечки, фиброзные перегородки и папиллярные узоры (петля/завиток)
-  add('finger-pulp', d(loft(x0 - 0.02, x1 + 0.1, fingerSec(0.82), { cap0: 'flat', cap1: 'round', roundLen1: cap - 0.5, n: 100, m: 48 }), 'pulp'));
+  add('finger-pulp', d(loft(x0 + 0.06, x1 - 0.08, pulpSection, { cap0: 'flat', cap1: 'round', roundLen1: cap - 0.62, n: 118, m: 52 }), 'pulp'));
 
   const septa: BufferGeometry[] = [];
   for (let x = -10; x <= 20.1; x += 2.3) {
@@ -229,18 +189,6 @@ export function buildNail(): Parts {
     }));
   }
   add('fat-septa', d(merge(septa), 'septa'));
-
-  const whorl = Array.from({ length: 13 }, (_, ring) => {
-    const radius = (ring + 1) / 13;
-    const points: V3[] = Array.from({ length: 65 }, (_, i) => {
-      const angle = i * Math.PI / 32;
-      const x = 14.7 + 6.8 * radius * Math.cos(angle) - 0.8 * radius * Math.sin(angle) ** 2;
-      const z = 0.25 + 4.25 * radius * Math.sin(angle) + 0.55 * radius * Math.cos(angle);
-      return [x, skinBottomY(x, z) - 0.023, z];
-    });
-    return tube(points, 0.038, { n: 120, m: 8, cap0: null, cap1: null });
-  });
-  add('fingerprint', d(merge(whorl), 'fingerprint'));
 
   const coils: BufferGeometry[] = [];
   for (let i = 0; i < 12; i++) {

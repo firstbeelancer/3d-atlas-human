@@ -72,10 +72,8 @@ export type MatKey =
   | 'nailVentral'
   | 'nailBand'
   | 'nailRidge'
-  | 'fold'
   | 'epony'
   | 'nailCuticle'
-  | 'latFold'
   | 'hypo'
   | 'matrixNail'
   | 'sterile'
@@ -87,7 +85,6 @@ export type MatKey =
   | 'pulp'
   | 'septa'
   | 'fingerSkin'
-  | 'fingerprint'
   | 'eccrine'
   | 'pacShell'
   | 'pacCore'
@@ -101,6 +98,8 @@ export interface MeshDef {
   noPick?: boolean;
   /** Незамкнутая поверхность (чешуйки, листы): проверка замкнутости её пропускает. */
   open?: boolean;
+  /** Плоская поверхность, видимая на центральном продольном срезе. */
+  longitudinalFace?: boolean;
 }
 
 export type Parts = Record<string, MeshDef[]>;

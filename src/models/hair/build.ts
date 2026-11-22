@@ -2,6 +2,7 @@ import type { SceneId } from './anatomy';
 import { buildCycle, buildFollicle } from './buildFollicle';
 import { buildNail } from './buildNail';
 import { buildShaft } from './buildShaft';
+import { prepareLongitudinalSection } from './longitudinalSection';
 import type { MeshDef, Parts } from './types';
 
 export type { MatKey, MeshDef, Parts } from './types';
@@ -16,13 +17,13 @@ export interface SceneData {
 export function buildScene(scene: SceneId): SceneData {
   switch (scene) {
     case 'follicle':
-      return { parts: buildFollicle(), context: [] };
+      return { parts: prepareLongitudinalSection(buildFollicle()), context: [] };
     case 'shaft':
       return { parts: buildShaft(), context: [] };
     case 'cycle':
       return buildCycle();
     case 'nail':
-      return { parts: buildNail(), context: [] };
+      return { parts: prepareLongitudinalSection(buildNail()), context: [] };
   }
 }
 

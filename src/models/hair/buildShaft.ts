@@ -8,7 +8,7 @@ const d = (g: BufferGeometry, m: MatKey, o: Partial<MeshDef> = {}): MeshDef => (
 const rod = (xa: number, xb: number, r: number | ((u: number) => number), o: Parameters<typeof sweep>[2] = {}): BufferGeometry =>
   sweep(curveOf([[xa, 0, 0], [xb, 0, 0]]), typeof r === 'number' ? () => r : r, { n: Math.max(8, Math.round((xb - xa) * 5)), m: 36, cap0: 'flat', cap1: 'flat', ...o });
 
-export const FIBRE = { x0: -7, cuticleEnd: 2.6, cortexEnd: 9.5, macroEnd: 12.6, microEnd: 15.2, rCuticle: 2.06, rCortex: 1.62, rMedulla: 0.5 };
+export const FIBRE = { x0: -7, cuticleEnd: 2.6, cortexEnd: 9.5, macroEnd: 12.6, microEnd: 15.2, rCuticle: 1.85, rCortex: 1.62, rMedulla: 0.5 };
 
 /**
  * Волос под электронным микроскопом: ступенчатый срез высокого разрешения.
@@ -26,14 +26,16 @@ export function buildShaft(): Parts {
   // слои кутикулы: вложенные стержни; торцы смещены ступенями для читаемости колец
   add(
     's-cuticle-layers',
-    d(rod(x0, cuticleEnd, 2.06, { cap0: 'flat', cap1: 'flat' }), 'cuticleA'),
-    d(rod(x0 - 0.015, cuticleEnd - 0.01, 2.0, { cap0: 'flat', cap1: 'flat' }), 'cuticleB'),
-    d(rod(x0 - 0.03, cuticleEnd - 0.02, 1.9, { cap0: 'flat', cap1: 'flat' }), 'cuticleC'),
-    d(rod(x0 - 0.045, cuticleEnd - 0.03, 1.76, { cap0: 'flat', cap1: 'flat' }), 'cuticleD'),
+    d(rod(x0, cuticleEnd, FIBRE.rCuticle, { innerRadius: () => 1.819 }), 'cuticleA'),
+    d(rod(x0 - 0.035, cuticleEnd - 0.034, 1.819, { innerRadius: () => 1.776 }), 'cuticleB'),
+    d(rod(x0 - 0.069, cuticleEnd - 0.058, 1.776, { innerRadius: () => 1.707 }), 'cuticleC'),
+    d(rod(x0 - 0.101, cuticleEnd - 0.086, 1.707, { innerRadius: () => 1.663 }), 'cuticleD'),
   );
 
   // кора: центральное тело + рельефные 3D веретенообразные корковые клетки, выступающие на срезе
-  const corticalCells: BufferGeometry[] = [rod(x0 - 0.06, cortexEnd - 0.45, 1.62, { cap0: 'flat', cap1: 'flat', uvLen: 7, n: 64 })];
+  const corticalCells: BufferGeometry[] = [rod(x0 - 0.14, cortexEnd - 0.45, FIBRE.rCortex, {
+    innerRadius: () => FIBRE.rMedulla + 0.013, uvLen: 7, n: 64,
+  })];
   for (let ring = 0; ring < 2; ring++) {
     const rad = ring === 0 ? 1.38 : 0.96;
     const cnt = ring === 0 ? 18 : 12;
@@ -67,17 +69,17 @@ export function buildShaft(): Parts {
     for (let k = 0; k < perRing; k++) {
       const a0 = ((k + (ring % 2) * 0.5) / perRing) * Math.PI * 2;
       const wid = ((Math.PI * 2) / perRing) * 1.15;
-      const len = 0.52;
+      const len = lerp(0.42, 0.56, r());
       const rows = 7;
       const pos: number[] = [];
       const col: number[] = [];
       const idx: number[] = [];
       for (let i = 0; i <= rows; i++) {
         const s = i / rows;
-        const rr = 2.065 + 0.15 * s ** 1.55;
+        const rr = FIBRE.rCuticle + 0.005 + 0.066 * s ** 1.7;
         for (let j = 0; j <= sc; j++) {
           const t = j / sc - 0.5;
-          const edge = 1 - 0.52 * smoothEdge(Math.abs(t) * 2) * s;
+          const edge = 1 - 0.12 * smoothEdge(Math.abs(t) * 2) * s;
           const a = a0 + t * wid;
           const serration = s > 0.75 ? 0.025 * Math.sin(j * 3.1 + ring + k) : 0;
           const shrink = s > 0.8 ? Math.sqrt(Math.max(0, 1 - (Math.abs(t) * 2) ** 2 * 0.88)) : 1;

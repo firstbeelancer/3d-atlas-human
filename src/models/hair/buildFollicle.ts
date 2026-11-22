@@ -1,5 +1,6 @@
 import type { BufferGeometry } from 'three';
-import { ARRECTOR, AX, HAIR_UP, PAPILLA, R, SK, U, epiBottom, poreDepression } from './anatomy';
+import { ARRECTOR, AX, HAIR_UP, PAPILLA, R, SEBACEOUS_DUCT, SK, U, epiBottom, poreDepression } from './anatomy';
+import { buildScalp, scalpMargin } from './buildScalp';
 import { blob, curveOf, fbm, heightSlab, lerp, merge, rng, smooth, sweep, tube, type SweepOpt, type V3 } from './geometry';
 import type { MatKey, MeshDef, Parts } from './types';
 
@@ -62,8 +63,6 @@ export function skinSlabs(x0: number, x1: number, noPick = false, poreX = 4.0): 
   };
 }
 
-const BULB_END = 1.0;
-
 /** Блок кожи с косым фолликулом: все части сцены «Волос в коже». */
 export function buildFollicle(): Parts {
   const P: Parts = {};
@@ -74,19 +73,16 @@ export function buildFollicle(): Parts {
 
   // --- волос: стержень с рельефом чешуек кутикулы, кончик, корень и внутренности
   const scaleWob = (u: number, a: number) => 1 + 0.055 * Math.cos(2 * a) + 0.008 * Math.sin(u * 190 + Math.sin(a * 4) * 0.6);
-  const taper = (u: number) => 1 - 0.17 * smooth(0.1, 0.85, u) - 0.76 * smooth(0.85, 1, u);
+  const taper = (u: number) => 1 - 0.11 * smooth(0.18, 0.86, u) - 0.78 * smooth(0.86, 1, u);
   const shaftR = (u: number) => R.cuticle() * taper(u);
-  add('hair-shaft', d(hairUp(shaftR, 0, 0.85, { cap0: null, cap1: null, uvLen: 20, wob: scaleWob }), 'cuticleHair'));
-  add('hair-tip', d(hairUp(shaftR, 0.85, 1, { cap0: null, cap1: 'round', roundLen1: 0.05, uvLen: 4, wob: scaleWob }), 'cuticleHair'));
-  add('hair-root', d(along(R.cuticle, 0, U.rootEnd, { cap0: null, cap1: 'round', roundLen1: 0.3, uvLen: 14, wob: scaleWob }), 'cuticleHair'));
-  add(
-    'hair-cuticle',
-    d(hairUp((u) => 0.262 * taper(u), 0, 1, { cap0: null, cap1: 'round', roundLen1: 0.035, wob: scaleWob }), 'cuticleHair'),
-    d(along(() => 0.262, 0, U.rootEnd - 0.004, { cap0: null, cap1: 'round', roundLen1: 0.27, wob: scaleWob }), 'cuticleHair'),
-  );
+  const cortexR = (u: number) => R.cortex() * taper(u);
+  add('hair-shaft', d(hairUp(shaftR, 0.12, 0.87, { uvLen: 6.5, wob: scaleWob }), 'cuticleHair'));
+  add('hair-tip', d(hairUp(shaftR, 0.87, 1, { cap1: 'round', roundLen1: 0.04, uvLen: 1, wob: scaleWob }), 'cuticleHair'));
+  add('hair-root', d(along(R.cuticle, 0, U.rootEnd, { innerRadius: R.cortex, uvLen: 4.1, wob: scaleWob }), 'cuticleHair'));
+  add('hair-cuticle', d(hairUp(shaftR, 0, 0.12, { innerRadius: cortexR, uvLen: 1, wob: scaleWob }), 'cuticleHair'));
   add(
     'hair-cortex',
-    d(hairUp((u) => R.cortex() * taper(u), 0, 0.985, { cap0: null, cap1: 'round', roundLen1: 0.03, wob: scaleWob }), 'cortex'),
+    d(hairUp(cortexR, 0, 0.985, { cap0: null, cap1: 'round', roundLen1: 0.03, wob: scaleWob }), 'cortex'),
     d(along(() => R.cortex(), 0, U.rootEnd - 0.008, { cap0: null, cap1: 'round', roundLen1: 0.22 }), 'cortex'),
   );
   add(
@@ -97,11 +93,11 @@ export function buildFollicle(): Parts {
 
   // гранулы меланина в кортексе стержня и корня
   const grains: BufferGeometry[] = [];
-  for (let i = 0; i < 720; i++) {
+  for (let i = 0; i < 480; i++) {
     const inRoot = r() < 0.55;
     const u = inRoot ? lerp(0.42, 0.86, r()) : lerp(0.04, 0.84, r());
     const ang = r() * Math.PI * 2;
-    const rad = 0.08 + r() * 0.11;
+    const rad = 0.045 + r() * 0.073;
     const p: V3 = inRoot ? around(u, rad, ang) : (() => {
       const q = HAIR_UP.getPoint(u);
       const t = HAIR_UP.getTangent(u);
@@ -111,27 +107,34 @@ export function buildFollicle(): Parts {
       q.addScaledVector(n, taper(u) * rad * Math.sin(ang));
       return [q.x, q.y, q.z] as V3;
     })();
-    grains.push(blob(p, [0.02, 0.055, 0.02], { seg: 7, seed: i, amp: 0.2, rot: [0, 0, r() * 3] }));
+    grains.push(blob(p, [0.012, 0.028, 0.012], { seg: 7, seed: i, amp: 0.2, rot: [0, 0, r() * 3] }));
   }
   add('melanin', d(merge(grains), 'melaninG'));
 
-  // --- слои влагалищ: вложенные тела, каждое следующее лежит внутри предыдущего
-  add('irs-cuticle', d(along(R.irsCuticle, 0.31, U.irsEnd, { cap0: 'round', roundLen0: 0.25, cap1: 'round', roundLen1: 0.3 }), 'irsCuticle'));
-  add('huxley', d(along(R.huxley, 0.3, U.irsEnd, { cap0: 'round', roundLen0: 0.3, cap1: 'round', roundLen1: 0.4 }), 'huxley'));
-  add('henle', d(along(R.henle, 0.29, U.irsEnd, { cap0: 'round', roundLen0: 0.3, cap1: 'round', roundLen1: 0.5 }), 'henle'));
-  add('companion', d(along(R.companion, 0.28, U.irsEnd, { cap0: 'round', roundLen0: 0.3, cap1: 'round', roundLen1: 0.6 }), 'companion'));
-  add('ors', d(clampTop(along(R.ors, 0.1, 0.92, { cap0: 'round', roundLen0: 0.2, cap1: 'round', roundLen1: 1.1 })), 'ors'));
-  add('glassy', d(clampTop(along(R.glassy, 0, 0.99, { cap0: 'flat', cap1: 'round', roundLen1: 1.45 })), 'glassy'));
-  add('connective-sheath', d(clampTop(along(R.ct, 0, BULB_END, { cap0: 'flat', cap1: 'round', roundLen1: 1.7 })), 'ctSheath'));
-  add('infundibulum', d(clampTop(along(R.infundibulum, 0, 0.17, { cap0: 'flat', cap1: 'round', roundLen1: 0.12, m: 40 })), 'infund'));
-  add('isthmus', d(along((u) => R.ors(u) + 0.05, 0.15, U.bulgeA + 0.02, { cap0: 'round', roundLen0: 0.12, cap1: 'round', roundLen1: 0.12 }), 'isthmus'));
-  add(
-    'bulge',
-    d(along((u) => R.ors(u) + 0.045 + 0.11 * Math.sin(Math.PI * smooth(U.bulgeA, U.bulgeB, u)) ** 0.7, U.bulgeA, U.bulgeB, { cap0: 'round', roundLen0: 0.06, cap1: 'round', roundLen1: 0.06 }), 'bulge'),
-  );
-  add('hair-bulb', d(along(R.bulb, 0.78, BULB_END, { cap0: 'round', roundLen0: 0.3, cap1: 'round', roundLen1: 1.15, wob: (_, a) => 1 + 0.025 * Math.sin(a * 6) }), 'bulbCells'));
-  add('matrix', d(along(R.matrix, 0.85, BULB_END, { cap0: 'round', roundLen0: 0.3, cap1: 'round', roundLen1: 0.95 }), 'matrixCells'));
-  add('papilla', d(blob(PAPILLA.c, PAPILLA.r, { seg: 32, amp: 0.045, freq: 2.2, seed: 3 }), 'papilla'));
+  const wallWob = (u: number, a: number) =>
+    1 + (0.013 + 0.012 * u) * Math.cos(a * 3 - 4 * u) + 0.012 * Math.sin(17 * u + a * 2);
+  const wall = (outer: (u: number) => number, inner: (u: number) => number, u0: number, u1: number, material: MatKey) =>
+    d(clampTop(along(outer, u0, u1, { innerRadius: inner, m: 42, wob: wallWob })), material);
+  add('irs-cuticle', wall(R.irsCuticle, (u) => R.cuticle() + 0.055 * smooth(0.75, 0.9, u), 0.30, U.irsEnd, 'irsCuticle'));
+  add('huxley', wall(R.huxley, R.irsCuticle, 0.29, U.irsEnd, 'huxley'));
+  add('henle', wall(R.henle, R.huxley, 0.28, U.irsEnd, 'henle'));
+  add('companion', wall(R.companion, R.henle, 0.275, U.irsEnd, 'companion'));
+  add('ors', wall(R.ors, (u) => lerp(0.245, R.companion(u), smooth(0.24, 0.30, u)), 0.17, 0.97, 'ors'));
+  add('glassy', wall(R.glassy, R.ors, 0.17, 0.99, 'glassy'));
+  add('connective-sheath', wall(R.ct, R.glassy, 0.105, 1, 'ctSheath'));
+  add('infundibulum', wall(R.infundibulum, (u) => 0.36 - 0.125 * smooth(0, 0.17, u), 0, 0.172, 'infund'));
+  add('isthmus', wall((u) => R.ors(u) + 0.028, R.ors, 0.17, U.bulgeA + 0.01, 'isthmus'));
+  add('bulge', wall((u) => R.ct(u) + 0.036 + 0.098 * Math.sin(Math.PI * smooth(U.bulgeA, U.bulgeB, u)) ** 0.7, R.ct, U.bulgeA, U.bulgeB, 'bulge'));
+
+  const baseAxis = curveOf([[2.01, -5.98, 0], [1.84, -6.43, 0], [1.72, -7.07, 0], [1.67, -7.8, 0], [1.66, -8.48, 0]]);
+  const bulbR = (u: number) => 0.53 + 0.56 * smooth(0, 0.56, u) - 0.58 * smooth(0.68, 1, u);
+  const matrixR = (u: number) => bulbR(u) - 0.11 - 0.07 * (1 - smooth(0.15, 0.7, u));
+  const papillaR = (u: number) => 0.07 + 0.43 * smooth(0.22, 0.69, u) - 0.22 * smooth(0.72, 1, u);
+  add('hair-bulb', d(sweep(baseAxis, bulbR, { n: 88, m: 44, innerRadius: matrixR, wob: wallWob }), 'bulbCells'));
+  add('matrix', d(sweep(baseAxis, matrixR, { u0: 0.13, n: 82, m: 40, innerRadius: papillaR, wob: wallWob }), 'matrixCells'));
+  add('papilla', d(sweep(baseAxis, (u) => papillaR(u) - 0.011, {
+    u0: 0.28, n: 80, m: 40, cap0: 'round', cap1: 'round', roundLen0: 0.21, roundLen1: 0.29, wob: wallWob,
+  }), 'papilla'));
 
   // дендритные меланоциты в матриксе над сосочком
   const mel: BufferGeometry[] = [];
@@ -159,40 +162,46 @@ export function buildFollicle(): Parts {
   add('bulb-melanocytes', d(merge(mel), 'melanocyte'));
 
   // --- кожа
-  const sk = skinSlabs(SK.x0, SK.x1);
-  add('stratum-corneum', ...sk.corneum);
-  add('epidermis', ...sk.epidermis);
-  add('basal-layer', ...sk.basal);
-  add('papillary-dermis', ...sk.papillary);
-  add('reticular-dermis', ...sk.reticular);
-  add('hypodermis', ...sk.hypodermis);
+  const sk = buildScalp();
+  add('stratum-corneum', d(sk.corneum, 'corneum'));
+  add('epidermis', d(sk.epidermis, 'epidermis'));
+  add('basal-layer', d(sk.basal, 'basal'));
+  add('papillary-dermis', d(sk.papillary, 'dermisP'));
+  add('reticular-dermis', d(sk.reticular, 'dermisR'));
+  add('hypodermis', d(sk.hypodermis, 'hypodermis'));
 
   // плотные дольки адипоцитов в гиподерме
   const fat: BufferGeometry[] = [];
-  for (let i = 0; fat.length < 110 && i < 650; i++) {
-    const x = lerp(-8.4, 8.4, r());
-    const y = lerp(-9.1, -5.75, r());
-    const z = lerp(-4.5, 4.5, r());
-    const rad = lerp(0.36, 0.85, r());
-    if (nearAxis(x, y, z) < rad + 1.75 || Math.hypot(x - 7.6, y + 6.1, z + 1) < rad + 1.35) continue;
-    fat.push(blob([x, y, z], [rad * (0.9 + 0.2 * r()), rad * 0.84, rad * (0.9 + 0.2 * r())], { seg: 18, seed: i, amp: 0.09 }));
+  for (let i = 0; i < 35; i++) {
+    const cx = lerp(-7.5, 7.4, r());
+    const cy = lerp(-8.9, -6.06, r());
+    const cz = lerp(-3.3, 3.4, r());
+    if (nearAxis(cx, cy, cz) < 2.12 || scalpMargin(cx, cy, cz) > -0.29) continue;
+    for (let j = 0; j < 10; j++) {
+      const x = cx + lerp(-0.75, 0.75, r());
+      const y = cy + lerp(-0.57, 0.57, r());
+      const z = cz + lerp(-0.67, 0.67, r());
+      const rad = lerp(0.16, 0.43, r());
+      if (scalpMargin(x, y, z) > -0.17) continue;
+      fat.push(blob([x, y, z], [rad, rad * 0.79, rad * (0.81 + 0.26 * r())], { seg: 15, seed: i * 10 + j, amp: 0.14 }));
+    }
   }
   add('fat-lobules', d(merge(fat), 'fat'));
 
   // трёхмерная сеть коллагеновых волокон сетчатой дермы
   const col: BufferGeometry[] = [];
-  for (let i = 0; col.length < 96 && i < 520; i++) {
+  for (let i = 0; col.length < 66 && i < 410; i++) {
     const alongX = r() < 0.55;
     const y0 = lerp(-4.95, -2.15, r());
     const c: V3 = [lerp(-7.6, 7.6, r()), y0, lerp(-4.5, 4.5, r())];
-    const len = lerp(2.8, 5.2, r());
+    const len = lerp(1.5, 3.8, r());
     const pts: V3[] = Array.from({ length: 7 }, (_, k) => {
       const s = (k / 6 - 0.5) * len;
       const w = Math.sin(k * 1.6 + i) * 0.24;
       return (alongX ? [c[0] + s, y0 + w, c[2] + Math.cos(k + i) * 0.22] : [c[0] + Math.cos(k + i) * 0.22, y0 + w, c[2] + s]) as V3;
     });
-    if (pts.some((p) => nearAxis(p[0], p[1], p[2]) < 1.65)) continue;
-    col.push(tube(pts, lerp(0.055, 0.12, r()), { n: 34, m: 10, wob: (_, a) => 1 + 0.14 * Math.sin(a * 3 + i) }));
+    if (pts.some((p) => nearAxis(p[0], p[1], p[2]) < 1.36 || scalpMargin(...p) > -0.13)) continue;
+    col.push(tube(pts, lerp(0.023, 0.054, r()), { n: 34, m: 10, wob: (_, a) => 1 + 0.14 * Math.sin(a * 3 + i) }));
   }
   add('collagen', d(merge(col), 'collagen'));
 
@@ -204,9 +213,6 @@ export function buildFollicle(): Parts {
     [[0.2, -1.4, -0.6], [0.38, 0.34, 0.38]],
     [[0.35, -1.5, 0.7], [0.38, 0.32, 0.36]],
     [[-0.55, -1.45, 0.0], [0.34, 0.3, 0.34]],
-    [[6.35, -1.6, 0.0], [0.48, 0.4, 0.42]],
-    [[6.7, -1.45, -0.9], [0.36, 0.32, 0.36]],
-    [[6.0, -1.7, 0.8], [0.34, 0.3, 0.34]],
   ];
   const gl: BufferGeometry[] = [];
   glandCenters.forEach(([c, rr], i) => {
@@ -225,27 +231,23 @@ export function buildFollicle(): Parts {
     }
   });
   add('sebaceous-gland', d(merge(gl), 'gland'));
-  const ductL: V3[] = [[0.9, -1.5, 0], [1.7, -1.3, 0.05], [2.45, -1.12, 0.03], [3.0, -1.06, 0]];
-  const ductR: V3[] = [[6.3, -1.55, 0], [5.4, -1.3, 0.03], [4.7, -1.12, 0.02], [4.2, -1.04, 0]];
   const ductExtra: V3[] = [[1.35, -1.6, -0.8], [1.95, -1.4, -0.35], [2.5, -1.15, -0.05]];
   const ductExtraF: V3[] = [[1.55, -1.75, 0.8], [2.1, -1.45, 0.35], [2.6, -1.16, 0.06]];
-  add('sebaceous-duct', d(merge([tube(ductL, 0.17, { m: 16 }), tube(ductR, 0.15, { m: 16 }), tube(ductExtra, 0.12, { m: 14 }), tube(ductExtraF, 0.11, { m: 14 })]), 'duct'));
+  add('sebaceous-duct', d(merge([tube(SEBACEOUS_DUCT, 0.143, { m: 16 }), tube(ductExtra, 0.102, { m: 14 }), tube(ductExtraF, 0.096, { m: 14 })]), 'duct'));
 
   const drops: BufferGeometry[] = [];
   for (let i = 0; i < 24; i++) {
     const u = lerp(0.025, 0.14, r());
     const side = i % 2 ? 1 : -1;
-    const p = around(u, side * lerp(0.35, 0.52, r()) * (1 + 0.5 * funnelK(u)), r() * 0.9 - 0.45);
-    drops.push(blob(p, [0.065, 0.075, 0.065], { seg: 10 }));
+    const p = around(u, side * lerp(0.19, 0.27, r()), r() * 0.9 - 0.45);
+    drops.push(blob(p, [0.035, 0.049, 0.035], { seg: 10 }));
   }
   add(
     'sebum',
     d(
       merge([
-        tube([[0.9, -1.5, 0], [1.7, -1.3, 0.05], [2.45, -1.12, 0.03], [3.05, -1.06, 0]], 0.085, { m: 14 }),
-        tube([[6.3, -1.55, 0], [5.4, -1.3, 0.03], [4.7, -1.12, 0.02], [4.15, -1.05, 0]], 0.075, { m: 14 }),
-        blob([0.9, -1.55, 0], [0.26, 0.24, 0.26], { seg: 14, amp: 0.1, seed: 4 }),
-        blob([6.35, -1.6, 0], [0.2, 0.18, 0.2], { seg: 12, amp: 0.1, seed: 5 }),
+        tube(SEBACEOUS_DUCT, 0.07, { m: 14 }),
+        blob([1.0, -1.52, -0.13], [0.18, 0.19, 0.15], { seg: 14, amp: 0.1, seed: 4 }),
         ...drops,
       ]),
       'sebum',
@@ -393,8 +395,6 @@ export function buildFollicle(): Parts {
   add('merkel-discs', d(merge(mk), 'merkel'));
   return P;
 }
-
-const funnelK = (u: number): number => (u < 0.15 ? (1 - u / 0.15) ** 2 : 0);
 
 /* -------------------------------------------------------------------------- */
 /*                                 Цикл роста                                 */

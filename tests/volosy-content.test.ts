@@ -95,8 +95,23 @@ describe('hair and nail geometry', () => {
         expect(defs?.length, `${scene}/${id}`).toBeGreaterThan(0);
         for (const d of defs) {
           const pos = d.g.getAttribute('position');
-          expect(pos.count, `${id}`).toBeGreaterThan(8);
+          expect(pos.count, `${id}`).toBeGreaterThanOrEqual(d.longitudinalFace ? 3 : 9);
           for (let i = 0; i < pos.array.length; i++) if (!Number.isFinite(pos.array[i])) throw new Error(`${id}: NaN in positions`);
+        }
+      }
+      if (scene === 'nail') {
+        const skin = data.parts['finger-skin'][0].g.getAttribute('position');
+        for (const id of ['proximal-fold', 'lateral-folds', 'fingerprint']) {
+          expect(data.parts[id][0].g.getAttribute('position'), id).toBe(skin);
+          expect(data.parts[id][0].g.getIndex()?.count, id).toBeGreaterThan(200);
+        }
+        for (const id of ['distal-phalanx', 'germinal-matrix', 'nail-dorsal']) {
+          expect(data.parts[id].some((d) => d.longitudinalFace), id).toBe(true);
+        }
+      }
+      if (scene === 'follicle') {
+        for (const id of ['reticular-dermis', 'matrix', 'papilla']) {
+          expect(data.parts[id].some((d) => d.longitudinalFace), id).toBe(true);
         }
       }
     }

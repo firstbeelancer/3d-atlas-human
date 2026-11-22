@@ -8,7 +8,9 @@ import { getSection } from '../content/sections';
 import { systemColor } from '../content/systems';
 import { t } from '../i18n';
 import { useDocumentMeta } from '../lib/meta';
-import { Stage, type StageLegendItem, type StageMode } from '../three/Stage';
+import { getHormoneLegend } from '../models/hormone/chemistry';
+import { Stage, type StageMode } from '../three/Stage';
+import type { StageState } from '../three/types';
 import { SelectionProvider } from '../three/selection';
 import {
   Block,
@@ -28,17 +30,7 @@ const HORMONE_MODES: StageMode[] = [
   { id: 'surface', icon: 'inside', group: 'view' },
 ];
 
-const ATOMIC_LEGEND: readonly StageLegendItem[] = [
-  { label: 'hormone.legend.carbon', color: '#444c5e' },
-  { label: 'hormone.legend.nitrogen', color: '#3474e6' },
-  { label: 'hormone.legend.oxygen', color: '#e03e3e' },
-  { label: 'hormone.legend.iodine', color: '#8f3ad4' },
-];
-
-const PEPTIDE_LEGEND: readonly StageLegendItem[] = [
-  { label: 'hormone.legend.activeSite', color: '#f5b832' },
-  { label: 'hormone.legend.brake', color: '#2dc4b6' },
-];
+const BODY_PART_IDS = new Set(['body-source', 'body-targets', 'body-brake']);
 
 export function HormonePage() {
   const { hormone: slug = '' } = useParams();
@@ -69,14 +61,19 @@ export function HormonePage() {
     [content],
   );
 
+  const moleculeLegend = useMemo(
+    () => (meta ? getHormoneLegend(meta.slug, meta.accent, false) : []),
+    [meta],
+  );
+  const pathwayLegend = useMemo(
+    () => (meta ? getHormoneLegend(meta.slug, meta.accent, true) : []),
+    [meta],
+  );
+
   if (!meta) return <NotFoundPage />;
 
-  const legend =
-    meta.chemClass === 'iodothyronine'
-      ? ATOMIC_LEGEND
-      : meta.chemClass === 'peptide'
-        ? PEPTIDE_LEGEND
-        : ATOMIC_LEGEND.slice(0, 3);
+  const legend = (state: StageState, selected: string | null) =>
+    state.modes.pathway || (!!selected && BODY_PART_IDS.has(selected)) ? pathwayLegend : moleculeLegend;
 
   const siblingHormones = meta.relatedHormones
     .map(getHormone)

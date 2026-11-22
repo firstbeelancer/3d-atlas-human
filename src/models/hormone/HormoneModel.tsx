@@ -62,7 +62,11 @@ function CameraRig({ view, molSpan }: { view: 'molecule' | 'pathway'; molSpan: V
     if (view === 'pathway') {
       const target = new Vector3(...ENDOCRINE_TARGET);
       const eye = new Vector3(...ENDOCRINE_CAMERA);
-      if (width > 0 && width < 540) eye.set(1.45, 1.65, 8.2);
+      if (width > 0 && width < 540) {
+        eye.set(1.45, 1.65, 8.2);
+      } else if (aspect < 1.05) {
+        eye.sub(target).multiplyScalar(1.05 / Math.max(0.76, aspect)).add(target);
+      }
       return { target, eye };
     }
     const fitW = (molSpan.x + 1.8) / aspect;

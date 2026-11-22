@@ -4,7 +4,7 @@ import { loadHormoneContent } from '../src/content/hormones/loadHormone';
 import { ALL_HORMONE_CONTENT } from '../src/content/hormones/allHormones';
 import { getSection } from '../src/content/sections';
 import { search } from '../src/lib/search';
-import { getMoleculeSpec, MOLECULE_SLUGS } from '../src/models/hormone/chemistry';
+import { CPK_COLORS, getHormoneLegend, getMoleculeSpec, MOLECULE_SLUGS } from '../src/models/hormone/chemistry';
 import { HORMONE_PATHWAYS, ORGAN_NODES } from '../src/models/hormone/pathwayData';
 
 describe('hormones sub-pages catalog & 3D chemistry', () => {
@@ -91,5 +91,47 @@ describe('hormones sub-pages catalog & 3D chemistry', () => {
     expect(search('серотонин')[0].slug).toBe('gormony/serotonin');
     expect(search('эндорфин')[0].slug).toBe('gormony/endorfin');
     expect(search('мелатонин')[0].slug).toBe('gormony/melatonin');
+  });
+
+  it('documents every visible element (including hydrogen) and pathway role in the legend for all 18 hormones', () => {
+    for (const h of HORMONES) {
+      const mol = getMoleculeSpec(h.slug);
+      const molLegend = getHormoneLegend(h.slug, h.accent, false);
+      const pathLegend = getHormoneLegend(h.slug, h.accent, true);
+
+      expect(pathLegend.map((x) => x.label)).toEqual([
+        'hormone.legend.source',
+        'hormone.legend.targets',
+        'hormone.legend.brake',
+      ]);
+
+      if (mol.kind === 'atomic') {
+        const presentElements = new Set(mol.atoms.map((a) => a.el));
+        expect(presentElements.has('H'), `${h.slug} must have H atoms`).toBe(true);
+        const legendColors = new Set(molLegend.map((item) => item.color));
+        for (const el of presentElements) {
+          expect(legendColors.has(CPK_COLORS[el]), `${h.slug} legend missing ${el}`).toBe(true);
+        }
+        expect(molLegend, `${h.slug} legend should have exact count of present elements`).toHaveLength(presentElements.size);
+        expect(molLegend.some((item) => item.label === 'hormone.legend.hydrogen'), h.slug).toBe(true);
+      } else {
+        expect(molLegend.length, h.slug).toBe(3);
+      }
+    }
+
+    // Проверка точной стехиометрии (включая все атомы водорода H) для 6 аминов и тироксина
+    const expectedCounts: Record<string, Partial<Record<string, number>>> = {
+      adrenalin: { C: 9, H: 13, N: 1, O: 3 },
+      noradrenalin: { C: 8, H: 11, N: 1, O: 3 },
+      dofamin: { C: 8, H: 11, N: 1, O: 2 },
+      serotonin: { C: 10, H: 12, N: 2, O: 1 },
+      melatonin: { C: 13, H: 16, N: 2, O: 2 },
+      tiroksin: { C: 15, H: 11, I: 4, N: 1, O: 4 },
+    };
+    for (const [slug, expected] of Object.entries(expectedCounts)) {
+      const counts: Record<string, number> = {};
+      for (const a of getMoleculeSpec(slug).atoms) counts[a.el] = (counts[a.el] ?? 0) + 1;
+      expect(counts, slug).toEqual(expected);
+    }
   });
 });

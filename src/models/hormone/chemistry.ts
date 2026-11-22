@@ -1,3 +1,4 @@
+import type { MessageKey } from '../../i18n';
 import type { V3 } from '../body/geo';
 
 /*
@@ -143,6 +144,17 @@ function addBenzene(
   return ids;
 }
 
+/** Ставит атом водорода (H) радиально наружу от центра наклонённого бензольного кольца. */
+function addRingH(m: MolBuilder, atomIdx: number, center: V3, partId: string, dist = 1.04) {
+  const p = m.atoms[atomIdx].pos;
+  const dx = p[0] - center[0];
+  const dy = p[1] - center[1];
+  const dz = p[2] - center[2];
+  const len = Math.hypot(dx, dy, dz) || 1;
+  const h = m.add('H', [p[0] + (dx / len) * dist, p[1] + (dy / len) * dist, p[2] + (dz / len) * dist], partId);
+  m.bond(atomIdx, h, 1, partId);
+}
+
 /** Добавляет катехольное кольцо (бензол + две орто-гидроксильные группы -OH) для катехоламинов. */
 function buildCatecholamine(mode: 'adrenalin' | 'noradrenalin' | 'dofamin'): MoleculeSpec {
   const m = new MolBuilder();
@@ -208,8 +220,8 @@ function buildCatecholamine(mode: 'adrenalin' | 'noradrenalin' | 'dofamin'): Mol
   }
 
   return m.build({
-    'mol-core': [-2.6, 1.85, 0.4],
-    'mol-active': [1.15, 1.55, 0.85],
+    'mol-core': [-2.05, 2.30, 0.4],
+    'mol-active': [1.05, 0.95, 0.85],
     'mol-tail': [3.95, -0.95, -0.5],
   });
 }
@@ -292,10 +304,14 @@ function buildThyroxine(): MoleculeSpec {
   m.bond(outer[0], oBridge, 1, 'mol-core');
   m.bond(oBridge, inner[3], 1, 'mol-core');
 
-  // 4'-OH группа на внешнем кольце
+  // 4'-OH группа на внешнем кольце и 4 ароматических атома водорода на свободных позициях колец
   const o4p = m.add('O', [-5.35, 0.85, 0.85], 'mol-core');
   m.bond(outer[3], o4p, 1, 'mol-core');
   m.bond(o4p, m.add('H', [-5.95, 0.22, 1.25], 'mol-core'), 1, 'mol-core');
+  addRingH(m, outer[1], [-2.85, 0.55, 0.35], 'mol-core');
+  addRingH(m, outer[5], [-2.85, 0.55, 0.35], 'mol-core');
+  addRingH(m, inner[1], [1.45, -0.35, -0.25], 'mol-core');
+  addRingH(m, inner[5], [1.45, -0.35, -0.25], 'mol-core');
 
   // 4 характерных крупных атома ЙОДА (I) в положениях 3', 5', 3, 5 — главная особенность тироксина!
   const i1 = m.add('I', [-3.98, 2.86, 1.18], 'mol-active');
@@ -323,6 +339,9 @@ function buildThyroxine(): MoleculeSpec {
   m.bond(o2, m.add('H', [8.06, 0.94, -0.02], 'mol-tail'), 1, 'mol-tail');
   m.bond(n, m.add('H', [5.14, 2.58, -0.18], 'mol-tail'), 1, 'mol-tail');
   m.bond(n, m.add('H', [3.66, 2.08, -0.56], 'mol-tail'), 1, 'mol-tail');
+  m.bond(cb, m.add('H', [4.12, -1.50, -0.12], 'mol-tail'), 1, 'mol-tail');
+  m.bond(cb, m.add('H', [4.14, -0.58, -1.62], 'mol-tail'), 1, 'mol-tail');
+  m.bond(ca, m.add('H', [4.76, 0.62, 1.08], 'mol-tail'), 1, 'mol-tail');
 
   return m.build({
     'mol-core': [-1.0, -0.75, 0.65],
@@ -388,6 +407,7 @@ function buildSteroid(kind: 'kortizol' | 'aldosteron' | 'testosteron' | 'estroge
     m.bond(c[9], c19, 1, 'mol-core');
     m.bond(c19, m.add('H', [-2.82, 0.02, -2.06], 'mol-core'), 1, 'mol-core');
     m.bond(c19, m.add('H', [-1.14, -0.14, -2.02], 'mol-core'), 1, 'mol-core');
+    m.bond(c19, m.add('H', [-1.86, 1.38, -1.84], 'mol-core'), 1, 'mol-core');
   }
 
   // угловая группа C18 на C13 (метил, а у альдостерона — знаменитая альдегидная группа -CHO!)
@@ -401,6 +421,7 @@ function buildSteroid(kind: 'kortizol' | 'aldosteron' | 'testosteron' | 'estroge
   } else {
     m.bond(c18, m.add('H', [1.02, 2.04, -2.16], 'mol-core'), 1, 'mol-core');
     m.bond(c18, m.add('H', [2.70, 2.10, -2.04], 'mol-core'), 1, 'mol-core');
+    m.bond(c18, m.add('H', [1.74, 3.52, -1.80], 'mol-core'), 1, 'mol-core');
   }
 
   // группа при C3 на кольце A: фенольный -OH у эстрадиола, кетон =O у остальных
@@ -432,6 +453,8 @@ function buildSteroid(kind: 'kortizol' | 'aldosteron' | 'testosteron' | 'estroge
     m.bond(c20, o20, 2, 'mol-tail');
     m.bond(c20, c21, 1, 'mol-tail');
     m.bond(c21, o21, 1, 'mol-tail');
+    m.bond(c21, m.add('H', [5.78, 3.16, -0.20], 'mol-tail'), 1, 'mol-tail');
+    m.bond(c21, m.add('H', [5.28, 3.06, -1.84], 'mol-tail'), 1, 'mol-tail');
     m.bond(o21, m.add('H', [6.76, 4.70, -1.62], 'mol-tail'), 1, 'mol-tail');
     if (kind === 'kortizol') {
       // 17α-гидроксильная группа (отличает глюкокортикоид кортизол)
@@ -781,3 +804,66 @@ export function getMoleculeSpec(slug: string): MoleculeSpec {
 }
 
 export const MOLECULE_SLUGS = Object.keys(BUILDERS);
+
+const ELEMENT_ORDER: readonly ElementKey[] = ['C', 'H', 'N', 'O', 'S', 'I'];
+
+const ELEMENT_LABELS: Record<ElementKey, MessageKey> = {
+  C: 'hormone.legend.carbon',
+  H: 'hormone.legend.hydrogen',
+  N: 'hormone.legend.nitrogen',
+  O: 'hormone.legend.oxygen',
+  S: 'hormone.legend.sulfur',
+  I: 'hormone.legend.iodine',
+};
+
+export interface HormoneLegendItem {
+  label: MessageKey;
+  color: string;
+}
+
+/**
+ * Точная легенда цветов для 3D-сцены конкретного гормона:
+ * - в режиме «Путь в теле» — источник, органы-мишени и контур торможения;
+ * - для атомных молекул — строго те элементы (C, H, N, O, S, I), что есть в 3D-модели;
+ * - для пептидов и белков — точные цвета цепей, активного центра / S—S и петель.
+ */
+export function getHormoneLegend(slug: string, accent: string, isPathway: boolean): HormoneLegendItem[] {
+  if (isPathway) {
+    return [
+      { label: 'hormone.legend.source', color: '#f5b832' },
+      { label: 'hormone.legend.targets', color: accent },
+      { label: 'hormone.legend.brake', color: '#2dc4b6' },
+    ];
+  }
+  const spec = getMoleculeSpec(slug);
+  if (spec.kind === 'atomic') {
+    const present = new Set(spec.atoms.map((a) => a.el));
+    return ELEMENT_ORDER.filter((el) => present.has(el)).map((el) => ({
+      label: ELEMENT_LABELS[el],
+      color: CPK_COLORS[el],
+    }));
+  }
+  if (slug === 'insulin') {
+    return [
+      { label: 'hormone.legend.chainA', color: '#2ea888' },
+      { label: 'hormone.legend.chainB', color: '#e06458' },
+      { label: 'hormone.legend.activeSite', color: '#f2c428' },
+    ];
+  }
+  if (slug === 'paratgormon') {
+    return [
+      { label: 'hormone.legend.activeSite', color: '#e6aa28' },
+      { label: 'hormone.legend.hinge', color: '#d4be86' },
+      { label: 'hormone.legend.tail', color: '#8ca8ba' },
+    ];
+  }
+  const colorOf = (partId: string, fallback: string) =>
+    spec.ribbons.find((r) => r.partId === partId)?.color ??
+    spec.markers.find((m) => m.partId === partId)?.color ??
+    fallback;
+  return [
+    { label: 'hormone.legend.backbone', color: colorOf('mol-core', accent) },
+    { label: 'hormone.legend.activeSite', color: colorOf('mol-active', '#f5b832') },
+    { label: 'hormone.legend.tail', color: colorOf('mol-tail', '#58b8cc') },
+  ];
+}

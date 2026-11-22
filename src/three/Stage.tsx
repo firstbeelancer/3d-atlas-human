@@ -378,7 +378,10 @@ function ToolButton({
       aria-pressed={pressed}
       title={label}
       className={`flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[14px] font-medium transition-colors ${
-        strong ? 'bg-ink text-stone hover:opacity-90' : 'text-ink hover:bg-wash aria-pressed:bg-wash'
+        // включённый режим (разрез, подписи) заметен сразу: обводка и подложка цвета раздела
+        strong
+          ? 'bg-ink text-stone hover:opacity-90'
+          : 'text-ink hover:bg-wash aria-pressed:bg-[color-mix(in_srgb,var(--accent)_24%,transparent)] aria-pressed:shadow-[inset_0_0_0_1.5px_var(--accent)]'
       }`}
     >
       {children}

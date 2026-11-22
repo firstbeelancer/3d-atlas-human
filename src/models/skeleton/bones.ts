@@ -5,6 +5,7 @@ import {
   strip, subtract, torus, triangle, union, type Sdf, type V3,
 } from './sdf';
 import { knobbyProfile, sweep } from './sweep';
+import { handDigits, JOINT_GAP, WRIST } from './hand';
 import { buildMandible, buildSkull } from './skull';
 import { RIB_END_Y, RIB_Y, STERNAL_Y, STERNUM, spineZ, sternumZ } from './anatomy';
 
@@ -219,8 +220,7 @@ function ulnaField(): Sdf {
 
 /** Кисть: 8 костей запястья, 5 пястных, 14 фаланг. Ладонь вперёд, большой палец наружу. */
 function handGeometry(): BufferGeometry {
-  const W = [2.0, 8.38, -0.15] as V3;
-  const P = (x: number, y: number, z: number): V3 => off(W, [x, y, z]);
+  const P = (x: number, y: number, z: number): V3 => off(WRIST, [x, y, z]);
   const parts: BufferGeometry[] = [];
   // запястье: проксимальный и дистальный ряды
   // кости запястья плотно уложены в два ряда и упираются в лучевую кость
@@ -242,36 +242,18 @@ function handGeometry(): BufferGeometry {
     }),
   );
 
-  const fingers = [
-    { x: 0.15, meta: 0.66, prox: 0.42, mid: 0.25, dist: 0.18, r: 0.042 },
-    { x: 0.04, meta: 0.64, prox: 0.45, mid: 0.29, dist: 0.19, r: 0.043 },
-    { x: -0.07, meta: 0.58, prox: 0.42, mid: 0.27, dist: 0.19, r: 0.04 },
-    { x: -0.17, meta: 0.52, prox: 0.34, mid: 0.2, dist: 0.17, r: 0.036 },
-  ];
-  for (const f of fingers) {
-    const base = P(f.x * 0.75, -0.25, 0.0);
-    const spread = f.x * 0.22;
-    let cur = base;
-    const segs = [f.meta, f.prox, f.mid, f.dist];
-    const radii = [f.r, f.r * 0.92, f.r * 0.78, f.r * 0.66];
-    segs.forEach((len, i) => {
-      const curl = 0.1 + i * 0.12; // лёгкий изгиб пальцев вперёд
-      const dir = new Vector3(spread, -1, Math.sin(curl) * 0.5).normalize();
-      const next: V3 = [cur[0] + dir.x * len, cur[1] + dir.y * len, cur[2] + dir.z * len];
-      parts.push(stick(cur, next, radii[i], 10, 10, i === 3 ? 1.25 : 1.45));
-      cur = [next[0] + dir.x * 0.025, next[1] + dir.y * 0.025, next[2] + dir.z * 0.025];
-    });
+  // пястные кости и фаланги — по общей раскладке кисти (кожа, нервы и сосуды идут по ней же)
+  for (const { points, radii } of handDigits()) {
+    const last = points.length - 2;
+    for (let i = 0; i <= last; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      const d = new Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
+      const gap = i < last ? JOINT_GAP : 0;
+      const end: V3 = [b[0] - d.x * gap, b[1] - d.y * gap, b[2] - d.z * gap];
+      parts.push(stick(a, end, radii[i], 10, 10, i === last ? 1.25 : 1.45));
+    }
   }
-  // большой палец: смотрит наружу и немного вперёд
-  let cur = P(0.23, -0.2, 0.07);
-  const thumb = [0.36, 0.27, 0.2];
-  const tr = [0.048, 0.042, 0.034];
-  thumb.forEach((len, i) => {
-    const dir = new Vector3(0.3 - i * 0.07, -1, 0.42 + i * 0.08).normalize();
-    const next: V3 = [cur[0] + dir.x * len, cur[1] + dir.y * len, cur[2] + dir.z * len];
-    parts.push(stick(cur, next, tr[i], 10, 10, i === 2 ? 1.25 : 1.45));
-    cur = [next[0] + dir.x * 0.025, next[1] + dir.y * 0.025, next[2] + dir.z * 0.025];
-  });
   return merge(parts);
 }
 

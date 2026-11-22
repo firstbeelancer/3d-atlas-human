@@ -146,8 +146,8 @@ const norm = (v: V3): V3 => {
   const l = Math.hypot(...v) || 1;
   return [v[0] / l, v[1] / l, v[2] / l];
 };
-/** Палец направлен вверх с небольшим наклоном, чтобы лучше был заметен контур подушечки. */
-export const NAIL_ROT = Math.PI * 0.43;
+/** Палец стоит прямо, кончиком вверх: с наклоном продольный срез выглядел перекошенным. */
+export const NAIL_ROT = Math.PI * 0.5;
 export const nailWorld = ([x, y, z]: V3): V3 => [
   x * Math.cos(NAIL_ROT) - y * Math.sin(NAIL_ROT),
   x * Math.sin(NAIL_ROT) + y * Math.cos(NAIL_ROT),

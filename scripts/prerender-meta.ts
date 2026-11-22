@@ -37,7 +37,8 @@ function withMeta(template: string, page: Page, siteUrl: string): string {
 }
 
 const p = (text: string) => `<p>${escape(text)}</p>`;
-const wrap = (inner: string) => `<main class="mx-auto max-w-[1320px] px-4 py-12">${inner}</main>`;
+// класс prerender прячет текст визуально до запуска приложения (стиль в index.html), поисковики его читают
+const wrap = (inner: string) => `<main class="prerender">${inner}</main>`;
 
 function homeBody(): string {
   const items = SECTIONS.filter((s) => s.ready)

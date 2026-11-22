@@ -83,15 +83,17 @@ function spinalCord(): BufferGeometry {
 function earField(): Sdf {
   // ухо прилегает к голове (поверхность головы на этом уровне около x = 0,72)
   const C: V3 = [0.74, 16.08, -0.2];
+  // завиток начинается ножкой спереди над козелком, огибает верх, идёт по заднему краю и уходит в мочку;
+  // противозавиток повторяет его изнутри. Открытая сторона раковины — спереди, у козелка.
   const rim: V3[] = [];
   const anti: V3[] = [];
   for (let i = 0; i <= 18; i++) {
     const th = 0.3 * Math.PI + (i / 18) * 1.65 * Math.PI;
-    rim.push([C[0] + 0.045, C[1] + 0.02 + 0.33 * Math.sin(th), C[2] - 0.19 * Math.cos(th) - 0.02]);
+    rim.push([C[0] + 0.045, C[1] + 0.02 + 0.33 * Math.sin(th), C[2] + 0.19 * Math.cos(th) - 0.02]);
   }
   for (let i = 0; i <= 12; i++) {
     const th = 0.5 * Math.PI + (i / 12) * 1.3 * Math.PI;
-    anti.push([C[0] + 0.05, C[1] + 0.05 + 0.2 * Math.sin(th), C[2] - 0.1 * Math.cos(th) - 0.03]);
+    anti.push([C[0] + 0.05, C[1] + 0.05 + 0.2 * Math.sin(th), C[2] + 0.1 * Math.cos(th) - 0.03]);
   }
   const chain = (pts: V3[], r0: number, r1: number): Sdf => {
     const parts: Sdf[] = [];

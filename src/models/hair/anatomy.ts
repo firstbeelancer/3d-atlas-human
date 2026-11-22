@@ -150,6 +150,16 @@ export function cutPlane(scene: SceneId, kind: CutKind, t: number): { n: V3; c: 
 
 export const FING = { x0: -14, x1: 22, cap: 3.1, tipX: 25.1 };
 
+/**
+  Скругление кончика пальца в плане (если смотреть на ноготь): палец шириной около 14 мм
+  сходится к кончику дугой длиной около 6 мм, а не обрубается торцом. Профиль сбоку задаёт FING.cap.
+*/
+const TIP_ROUND = 6.2;
+export const tipWidth = (x: number): number => {
+  const t = Math.min(1, Math.max(0, (x - (FING.tipX - TIP_ROUND)) / TIP_ROUND));
+  return Math.pow(1 - t ** 2.2, 1 / 2.2);
+};
+
 export const nailPlate = {
   x0: 2.6,
   x1: 25.9,

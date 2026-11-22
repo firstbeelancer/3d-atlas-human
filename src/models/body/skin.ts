@@ -1,6 +1,8 @@
-import type { BufferGeometry } from 'three';
+import { BufferGeometry, Float32BufferAttribute } from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { capsule, meshSdf, smooth, smoothSubtract, sphere, union, type Sdf, type V3 } from '../skeleton/sdf';
 import { above, E, Er, eTube, loft, mirrored } from './sdfx';
+import { handDigits } from '../skeleton/hand';
 
 /*
   Кожа — «стеклянная» оболочка тела: одно гладкое поле расстояний (голова с чертами лица, шея, торс,
@@ -23,38 +25,7 @@ export function armPoint(p: V3, pivot: V3 = SHOULDER, a = ARM_ABDUCTION): V3 {
 
 /** Цепочки суставов пальцев кисти (те же, что у костей кисти), в системе кисти до отведения. */
 export function fingerChains(): V3[][] {
-  const W: V3 = [2.0, 8.38, -0.15];
-  const P = (x: number, y: number, z: number): V3 => [W[0] + x, W[1] + y, W[2] + z];
-  const chains: V3[][] = [];
-  const fingers = [
-    { x: 0.15, segs: [0.66, 0.42, 0.25, 0.18] },
-    { x: 0.04, segs: [0.64, 0.45, 0.29, 0.19] },
-    { x: -0.07, segs: [0.58, 0.42, 0.27, 0.19] },
-    { x: -0.17, segs: [0.52, 0.34, 0.2, 0.17] },
-  ];
-  for (const f of fingers) {
-    let cur = P(f.x * 0.75, -0.25, 0);
-    const spread = f.x * 0.22;
-    const pts: V3[] = [cur];
-    f.segs.forEach((len, i) => {
-      const curl = 0.1 + i * 0.12;
-      const dz = Math.sin(curl) * 0.5;
-      const l = Math.hypot(spread, 1, dz);
-      cur = [cur[0] + (spread / l) * len, cur[1] - (1 / l) * len, cur[2] + (dz / l) * len];
-      pts.push(cur);
-    });
-    chains.push(pts);
-  }
-  let cur = P(0.23, -0.2, 0.07);
-  const thumb: V3[] = [cur];
-  [0.36, 0.27, 0.2].forEach((len, i) => {
-    const d: V3 = [0.3 - i * 0.07, -1, 0.42 + i * 0.08];
-    const l = Math.hypot(...d);
-    cur = [cur[0] + (d[0] / l) * len, cur[1] + (d[1] / l) * len, cur[2] + (d[2] / l) * len];
-    thumb.push(cur);
-  });
-  chains.push(thumb);
-  return chains;
+  return handDigits().map((d) => d.points);
 }
 
 function chainTube(pts: V3[], r0: number, r1: number): Sdf {
@@ -144,12 +115,33 @@ function arm(): Sdf {
     [0.47, 0.46, 0.28],
     [0.45, 0.42, 0.2],
   );
-  const palm = eTube([a([2.0, 8.5, -0.15]), a([2.1, 7.7, -0.1])], [0.28, 0.4], [0.2, 0.17]);
-  const fingers = fingerChains().map((c, i) => {
-    const thumb = i === 4;
-    return chainTube(c.map(a), thumb ? 0.1 : 0.088, thumb ? 0.065 : 0.058);
-  });
-  const hand = smooth(0.05, palm, ...fingers);
+  // ладонь лежит над пястными костями и кончается у костяшек; большой палец растёт из возвышения,
+  // а с указательным его связывает тонкая межпальцевая складка, а не сплошная «лопата»
+  const palm = eTube(
+    [a([1.99, 8.46, -0.15]), a([2.0, 7.98, -0.12]), a([1.99, 7.56, -0.11])],
+    [0.25, 0.3, 0.28],
+    [0.15, 0.15, 0.12],
+  );
+  const chains = fingerChains();
+  const [thumbBase, thumbMcp] = chains[4];
+  const indexMcp = chains[0][1];
+  // возвышение большого пальца: от середины ладони к его пястно-фаланговому суставу
+  const thenar = smooth(
+    0.06,
+    capsule(a([thumbBase[0] - 0.1, thumbBase[1] - 0.04, thumbBase[2] - 0.03]), a(thumbMcp), 0.13, 0.08),
+    capsule(a([thumbBase[0] - 0.12, thumbBase[1] - 0.22, thumbBase[2] - 0.02]), a(thumbMcp), 0.1, 0.07),
+  );
+  const web = capsule(a(thumbMcp), a([indexMcp[0] + 0.02, indexMcp[1] + 0.12, indexMcp[2] + 0.02]), 0.045, 0.05);
+  // кожа подушечки чуть длиннее кости: кончик фаланги не выглядывает наружу
+  const tube = (c: V3[], r0: number, r1: number) => {
+    const [p, q] = [c[c.length - 2], c[c.length - 1]];
+    const d = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) || 1;
+    const tip: V3 = [q[0] + ((q[0] - p[0]) / d) * 0.03, q[1] + ((q[1] - p[1]) / d) * 0.03, q[2] + ((q[2] - p[2]) / d) * 0.03];
+    return chainTube([...c.slice(0, -1), tip].map(a), r0, r1);
+  };
+  const fingers = chains.slice(0, 4).map((c) => tube(c, 0.088, 0.064));
+  const thumb = tube(chains[4], 0.095, 0.07);
+  const hand = smooth(0.04, smooth(0.09, palm, thenar, web, thumb), ...fingers);
   return smooth(0.22, deltoid, upper, biceps, fore, hand);
 }
 
@@ -197,7 +189,87 @@ export function skinField(): Sdf {
   return above(mirrored(half), 0.0);
 }
 
-/** Сетка кожи; ячейка 0,05 дм = 5 мм. */
+/** Мелкая сетка кистей: пальцы тоньше двух ячеек основной сетки и иначе рвутся или слипаются перемычками. */
+const HAND_CELL = 0.028;
+/** Шов между сетками — поперёк предплечья, выше запястья (в системе руки до отведения). */
+const HAND_SEAM_Y = 8.9;
+
+/** Знаковое расстояние до плоскости шва: меньше нуля — кисть. У туловища и ног всегда больше нуля. */
+function seamSide(x: number, y: number, z: number): number {
+  const [lx, ly] = armPoint([Math.abs(x), y, z], SHOULDER, -ARM_ABDUCTION);
+  return lx > 1.5 ? ly - HAND_SEAM_Y : 1;
+}
+
+/**
+ * Обрезает сетку ровно по плоскости шва (треугольники на границе делятся), так что края сетки тела
+ * и сетки кисти совпадают без щели и без нахлёста.
+ */
+function clipAtSeam(g: BufferGeometry, hand: boolean): BufferGeometry {
+  const pos = g.getAttribute('position');
+  const nor = g.getAttribute('normal');
+  const index = g.getIndex()!;
+  const outP = Array.from(pos.array as Float32Array);
+  const outN = Array.from(nor.array as Float32Array);
+  const sign = hand ? -1 : 1;
+  const d = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) d[i] = sign * seamSide(pos.getX(i), pos.getY(i), pos.getZ(i));
+  const kept: number[] = [];
+  // точка на ребре a–b, где оно пересекает шов (новая вершина в конце буфера)
+  const cut = (a: number, b: number): number => {
+    const t = d[a] / (d[a] - d[b]);
+    for (let c = 0; c < 3; c++) {
+      outP.push(outP[a * 3 + c] + (outP[b * 3 + c] - outP[a * 3 + c]) * t);
+      outN.push(outN[a * 3 + c] + (outN[b * 3 + c] - outN[a * 3 + c]) * t);
+    }
+    return outP.length / 3 - 1;
+  };
+  for (let t = 0; t < index.count; t += 3) {
+    const tri = [index.getX(t), index.getX(t + 1), index.getX(t + 2)];
+    const inside = tri.map((v) => d[v] >= 0);
+    if (inside.every(Boolean)) {
+      kept.push(...tri);
+      continue;
+    }
+    if (!inside.some(Boolean)) continue;
+    // Сазерленд — Ходжмен для одной плоскости
+    const poly: number[] = [];
+    for (let k = 0; k < 3; k++) {
+      const a = tri[k];
+      const b = tri[(k + 1) % 3];
+      if (inside[k]) poly.push(a);
+      if (inside[k] !== inside[(k + 1) % 3]) poly.push(cut(a, b));
+    }
+    for (let k = 1; k + 1 < poly.length; k++) kept.push(poly[0], poly[k], poly[k + 1]);
+  }
+  const out = new BufferGeometry();
+  out.setAttribute('position', new Float32BufferAttribute(outP, 3));
+  out.setAttribute('normal', new Float32BufferAttribute(outN, 3));
+  out.setIndex(kept);
+  return out;
+}
+
+/** Сетка кожи: тело — ячейка 6 мм, кисти — около 3 мм, сшиты посередине предплечья. */
 export function skinGeometry(cell = 0.06): BufferGeometry {
-  return meshSdf(skinField(), { min: [-3.75, -0.05, -1.75], max: [3.75, 17.75, 2.15], cell });
+  const field = skinField();
+  const body = clipAtSeam(meshSdf(field, { min: [-3.75, -0.05, -1.75], max: [3.75, 17.75, 2.15], cell }), false);
+  // рамка кисти в системе руки, повёрнутая вместе с рукой
+  const corners: V3[] = [];
+  for (const x of [1.5, 2.85]) for (const y of [6.1, HAND_SEAM_Y + 0.15]) corners.push(armPoint([x, y, 0]));
+  const xs = corners.map((c) => c[0]);
+  const ys = corners.map((c) => c[1]);
+  const box = { min: Math.min(...xs), max: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  const hands = [1, -1].map((side) =>
+    clipAtSeam(
+      meshSdf(field, {
+        min: [side > 0 ? box.min : -box.max, box.y0, -0.75],
+        max: [side > 0 ? box.max : -box.min, box.y1, 0.85],
+        cell: HAND_CELL,
+      }),
+      true,
+    ),
+  );
+  const merged = mergeGeometries([body, ...hands], false);
+  if (!merged) throw new Error('skin merge failed');
+  merged.computeBoundingSphere();
+  return merged;
 }

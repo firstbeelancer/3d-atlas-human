@@ -1,18 +1,19 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Vector3 } from 'three';
-import { FING, fingerBottom, fingerHW, fingerTop, nailPlate, plateBottom, plateHW, plateX } from './anatomy';
+import { FING, fingerBottom, fingerHW, fingerTop, nailPlate, plateBottom, plateHW, plateX, tipWidth } from './anatomy';
 import { clamp, fbm, lerp, ringsToGeometry, smooth, type RGB } from './geometry';
 
 const P = 2.35;
 const bell = (x: number, center: number, width: number) => Math.exp(-(((x - center) / width) ** 2));
 const tipFactor = (x: number) => Math.sqrt(1 - clamp((x - FING.x1) / FING.cap) ** 2);
-const centerZ = (x: number) => 0.44 * smooth(0, FING.tipX, x);
-export const proximalEdge = (z: number) => 6.25 + 0.039 * z * z + 0.04 * z;
+// палец симметричен относительно оси ногтя: прежний боковой увод кончика читался как перекос
+const centerZ = (_x: number) => 0;
+export const proximalEdge = (z: number) => 6.25 + 0.039 * z * z;
 
 function outline(x: number) {
   const top = fingerTop(x);
   const bottom = fingerBottom(x);
   const taper = tipFactor(x);
-  return { cy: (top + bottom) / 2, ry: ((top - bottom) / 2) * taper, hw: fingerHW(x) * taper };
+  return { cy: (top + bottom) / 2, ry: ((top - bottom) / 2) * taper, hw: fingerHW(x) * Math.min(taper, tipWidth(x)) };
 }
 
 function baseHeight(x: number, z: number, side: 1 | -1) {

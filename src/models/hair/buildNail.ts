@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three';
-import { FING, boneBottom, boneHW, boneTop, fingerBottom, fingerHW, nailPlate, plateBottom, plateHW, plateTop, plateX } from './anatomy';
+import { FING, boneBottom, boneHW, boneTop, fingerBottom, fingerHW, nailPlate, plateBottom, plateHW, plateTop, plateX, tipWidth } from './anatomy';
 import { blob, fbm, heightSlab, lerp, loft, merge, rng, smooth, tube, type V3 } from './geometry';
 import { buildFingerSurface, colorPlate, proximalEdge, skinBottomY, skinTopY } from './nailSurface';
 import type { MatKey, MeshDef, Parts } from './types';
@@ -9,7 +9,7 @@ const d = (g: BufferGeometry, m: MatKey, o: Partial<MeshDef> = {}): MeshDef => (
 const pulpSection = (x: number) => {
   const top = 0.9 + 0.3 * smooth(8.0, 20.5, x);
   const bottom = fingerBottom(x) + 0.61;
-  return { cy: (top + bottom) / 2, ry: (top - bottom) / 2, hw: fingerHW(x) - 0.84 };
+  return { cy: (top + bottom) / 2, ry: (top - bottom) / 2, hw: Math.max(0.3, fingerHW(x) * tipWidth(x) - 0.84) };
 };
 
 /** Кончик пальца: ногтевой аппарат, кость с мыщелками и бугристостью, сухожилия, сосуды и нервы. */

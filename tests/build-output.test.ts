@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SECTIONS } from '../src/content/sections';
+import { HORMONES } from '../src/content/hormones';
 // @ts-expect-error — plain ESM script without type declarations
 import { findEmoji } from '../scripts/check-no-emoji.mjs';
 
@@ -48,7 +49,13 @@ describe.skipIf(!built)('build output', () => {
     }
     const hormones = readFileSync(join(DIST, 'razdel', 'gormony', 'index.html'), 'utf8');
     expect(hormones).toContain('<title>Гормоны — 3D-атлас человека</title>');
+    expect(hormones).toContain('href="/razdel/gormony/adrenalin"');
     expect(hormones).not.toContain('noindex');
+    for (const h of ['adrenalin', 'serotonin', 'endorfin']) {
+      const page = readFileSync(join(DIST, 'razdel', 'gormony', h, 'index.html'), 'utf8');
+      expect(page, h).toContain('Гормоны — 3D-атлас человека</title>');
+      expect(page, h).not.toContain('noindex');
+    }
     expect(heart).not.toContain('noindex');
   });
 
@@ -59,10 +66,13 @@ describe.skipIf(!built)('build output', () => {
 
   it('lists home, about and all sections in the sitemap', () => {
     const xml = readFileSync(join(DIST, 'sitemap.xml'), 'utf8');
-    expect(xml.match(/<loc>/g)).toHaveLength(SECTIONS.filter((s) => s.ready).length + 2);
+    expect(xml.match(/<loc>/g)).toHaveLength(SECTIONS.filter((s) => s.ready).length + HORMONES.length + 2);
     const soonSlug = SECTIONS.find((s) => !s.ready)?.slug;
     if (soonSlug) expect(xml).not.toContain(`/razdel/${soonSlug}`);
     expect(xml).toContain('/razdel/gormony');
+    expect(xml).toContain('/razdel/gormony/adrenalin');
+    expect(xml).toContain('/razdel/gormony/serotonin');
+    expect(xml).toContain('/razdel/gormony/endorfin');
     expect(xml).toContain('/razdel/selezenka');
     expect(readFileSync(join(DIST, 'robots.txt'), 'utf8')).toContain('Sitemap:');
   });

@@ -130,7 +130,7 @@ export function HormonePage() {
               </div>
               <h1
                 className={`m-0 mt-2 break-words font-extrabold leading-[0.94] tracking-[-0.05em] ${
-                  meta.title.length > 14 ? 'text-[clamp(36px,5.4vw,72px)]' : 'text-[clamp(48px,7.6vw,96px)]'
+                  meta.title.length > 10 ? 'text-[clamp(36px,4.9vw,68px)]' : 'text-[clamp(48px,7.6vw,96px)]'
                 }`}
               >
                 {meta.title}

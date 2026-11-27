@@ -133,5 +133,32 @@ describe('hormones sub-pages catalog & 3D chemistry', () => {
       for (const a of getMoleculeSpec(slug).atoms) counts[a.el] = (counts[a.el] ?? 0) + 1;
       expect(counts, slug).toEqual(expected);
     }
+
+    // Проверка биологически активной (R)-стереохимии у адреналина и норадреналина (L-эпинефрин / L-норэпинефрин)
+    const sub = (a: [number, number, number], b: [number, number, number]): [number, number, number] => [
+      a[0] - b[0],
+      a[1] - b[1],
+      a[2] - b[2],
+    ];
+    const cross = (a: [number, number, number], b: [number, number, number]): [number, number, number] => [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ];
+    const dot = (a: [number, number, number], b: [number, number, number]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+    for (const slug of ['adrenalin', 'noradrenalin']) {
+      const spec = getMoleculeSpec(slug);
+      const cb = spec.atoms.find((a) => a.partId === 'mol-active' && a.el === 'C')!;
+      const nbs = spec.bonds
+        .filter((b) => b.a === cb.id || b.b === cb.id)
+        .map((b) => spec.atoms[b.a === cb.id ? b.b : b.a]);
+      const o = nbs.find((a) => a.el === 'O')!;
+      const h = nbs.find((a) => a.el === 'H')!;
+      const ca = nbs.find((a) => a.partId === 'mol-tail' && a.el === 'C')!;
+      const ringC = nbs.find((a) => a.partId === 'mol-core' && a.el === 'C')!;
+      const vol = dot(cross(sub(sub(o.pos, cb.pos), sub(h.pos, cb.pos)), sub(sub(ca.pos, cb.pos), sub(h.pos, cb.pos))), sub(sub(ringC.pos, cb.pos), sub(h.pos, cb.pos)));
+      expect(vol, `${slug} must be (R)-enantiomer`).toBeLessThan(0);
+    }
   });
 });

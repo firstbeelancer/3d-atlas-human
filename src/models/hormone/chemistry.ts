@@ -144,149 +144,265 @@ function addBenzene(
   return ids;
 }
 
-/** Ставит атом водорода (H) радиально наружу от центра наклонённого бензольного кольца. */
-function addRingH(m: MolBuilder, atomIdx: number, center: V3, partId: string, dist = 1.04) {
+/** Ставит заместитель радиально наружу от центра наклонённого бензольного кольца. */
+function addRingSub(m: MolBuilder, atomIdx: number, center: V3, el: ElementKey, partId: string, dist: number): number {
   const p = m.atoms[atomIdx].pos;
   const dx = p[0] - center[0];
   const dy = p[1] - center[1];
   const dz = p[2] - center[2];
   const len = Math.hypot(dx, dy, dz) || 1;
-  const h = m.add('H', [p[0] + (dx / len) * dist, p[1] + (dy / len) * dist, p[2] + (dz / len) * dist], partId);
-  m.bond(atomIdx, h, 1, partId);
+  const id = m.add(el, [p[0] + (dx / len) * dist, p[1] + (dy / len) * dist, p[2] + (dz / len) * dist], partId);
+  m.bond(atomIdx, id, 1, partId);
+  return id;
 }
 
-/** Добавляет катехольное кольцо (бензол + две орто-гидроксильные группы -OH) для катехоламинов. */
+function addRingH(m: MolBuilder, atomIdx: number, center: V3, partId: string, dist = 1.08) {
+  addRingSub(m, atomIdx, center, 'H', partId, dist);
+}
+
+/** Вычисляет два единичных тетраэдрических луча (~109.5°) от узла `c`, уже связанного с `a` и `b`. */
+function tetraRays(a: V3, b: V3, c: V3): [V3, V3] {
+  const u1x = a[0] - c[0], u1y = a[1] - c[1], u1z = a[2] - c[2];
+  const l1 = Math.hypot(u1x, u1y, u1z) || 1;
+  const n1x = u1x / l1, n1y = u1y / l1, n1z = u1z / l1;
+
+  const u2x = b[0] - c[0], u2y = b[1] - c[1], u2z = b[2] - c[2];
+  const l2 = Math.hypot(u2x, u2y, u2z) || 1;
+  const n2x = u2x / l2, n2y = u2y / l2, n2z = u2z / l2;
+
+  let bx = -(n1x + n2x), by = -(n1y + n2y), bz = -(n1z + n2z);
+  const bl = Math.hypot(bx, by, bz) || 1;
+  bx /= bl; by /= bl; bz /= bl;
+
+  let nx = n1y * n2z - n1z * n2y;
+  let ny = n1z * n2x - n1x * n2z;
+  let nz = n1x * n2y - n1y * n2x;
+  const nl = Math.hypot(nx, ny, nz) || 1;
+  nx /= nl; ny /= nl; nz /= nl;
+
+  const cs = Math.cos((54.735 * Math.PI) / 180);
+  const sn = Math.sin((54.735 * Math.PI) / 180);
+  return [
+    [bx * cs + nx * sn, by * cs + ny * sn, bz * cs + nz * sn],
+    [bx * cs - nx * sn, by * cs - ny * sn, bz * cs - nz * sn],
+  ];
+}
+
+function stepPos(base: V3, dir: V3, dist: number): V3 {
+  return [base[0] + dir[0] * dist, base[1] + dir[1] * dist, base[2] + dir[2] * dist];
+}
+
+/** Присоединяет 3 тетраэдрических атома H (-CH3) к углероду `cIdx`, связанному с `parentIdx`. */
+function addMethylH(m: MolBuilder, parentIdx: number, cIdx: number, partId: string, phase = 0.4) {
+  const p = m.atoms[parentIdx].pos;
+  const c = m.atoms[cIdx].pos;
+  const ax = c[0] - p[0], ay = c[1] - p[1], az = c[2] - p[2];
+  const al = Math.hypot(ax, ay, az) || 1;
+  const dx = ax / al, dy = ay / al, dz = az / al;
+  const ref: V3 = Math.abs(dy) < 0.85 ? [0, 1, 0] : [1, 0, 0];
+  let ux = dy * ref[2] - dz * ref[1];
+  let uy = dz * ref[0] - dx * ref[2];
+  let uz = dx * ref[1] - dy * ref[0];
+  const ul = Math.hypot(ux, uy, uz) || 1;
+  ux /= ul; uy /= ul; uz /= ul;
+  const vx = dy * uz - dz * uy;
+  const vy = dz * ux - dx * uz;
+  const vz = dx * uy - dy * ux;
+  const fwd = 0.3338; // cos(70.5°)
+  const rad = 0.9426; // sin(70.5°)
+  for (let i = 0; i < 3; i++) {
+    const ang = phase + (i * Math.PI * 2) / 3;
+    const cs = Math.cos(ang) * rad;
+    const sn = Math.sin(ang) * rad;
+    const dir: V3 = [dx * fwd + ux * cs + vx * sn, dy * fwd + uy * cs + vy * sn, dz * fwd + uz * cs + vz * sn];
+    m.bond(cIdx, m.add('H', stepPos(c, dir, 1.09), partId), 1, partId);
+  }
+}
+
+/**
+ * Строит 3D-геометрию катехоламинов (дофамин, (R)-норадреналин, (R)-адреналин)
+ * с точными длинами связей (Å), тетраэдрическими углами 109.5° и биологически активной (R)-хиральностью.
+ */
 function buildCatecholamine(mode: 'adrenalin' | 'noradrenalin' | 'dofamin'): MoleculeSpec {
   const m = new MolBuilder();
-  const ring = addBenzene(m, -1.65, 0, 0, 1.38, 'mol-core', 0.08, 0.06);
-  // атомы H на свободных позициях бензольного кольца
-  const hPos: [number, V3][] = [
-    [1, [-0.95, 2.08, 0.14]],
-    [5, [-0.95, -2.08, -0.14]],
-    [4, [-3.02, -2.08, -0.14]],
-  ];
-  for (const [idx, p] of hPos) {
-    const h = m.add('H', p, 'mol-core');
-    m.bond(ring[idx], h, 1, 'mol-core');
-  }
-  // две гидроксильные группы (-OH) при C3 и C4 (отличительная черта катехоламинов!)
-  const o3 = m.add('O', [-3.02, 2.25, 0.18], 'mol-core');
-  const h3 = m.add('H', [-3.82, 2.55, 0.44], 'mol-core');
-  m.bond(ring[2], o3, 1, 'mol-core');
-  m.bond(o3, h3, 1, 'mol-core');
+  const center: V3 = [-1.75, 0, 0];
+  const ring = addBenzene(m, center[0], center[1], center[2], 1.39, 'mol-core', 0.06, 0.08);
+  // 3 атома H на свободных позициях бензольного кольца под точным углом 120°
+  addRingH(m, ring[1], center, 'mol-core');
+  addRingH(m, ring[4], center, 'mol-core');
+  addRingH(m, ring[5], center, 'mol-core');
 
-  const o4 = m.add('O', [-4.32, 0.04, 0.12], 'mol-core');
-  const h4 = m.add('H', [-4.86, -0.68, 0.36], 'mol-core');
-  m.bond(ring[3], o4, 1, 'mol-core');
-  m.bond(o4, h4, 1, 'mol-core');
+  // две орто-гидроксильные группы (-OH) при C3 и C4 (катехольное кольцо)
+  const o3 = addRingSub(m, ring[2], center, 'O', 'mol-core', 1.37);
+  const o3p = m.atoms[o3].pos;
+  m.bond(o3, m.add('H', [o3p[0] - 0.86, o3p[1] + 0.34, o3p[2] + 0.30], 'mol-core'), 1, 'mol-core');
 
-  // боковая этиловая цепь C_beta — C_alpha
-  const cb = m.add('C', [1.05, 0.08, 0.16], 'mol-active');
+  const o4 = addRingSub(m, ring[3], center, 'O', 'mol-core', 1.37);
+  const o4p = m.atoms[o4].pos;
+  m.bond(o4, m.add('H', [o4p[0] - 0.56, o4p[1] - 0.74, o4p[2] + 0.28], 'mol-core'), 1, 'mol-core');
+
+  // боковая цепь C_beta — C_alpha — N в естественной зигзаг-конформации
+  const r0p = m.atoms[ring[0]].pos;
+  const cbPos: V3 = [r0p[0] + 1.50, r0p[1] + 0.04, r0p[2] - 0.11];
+  const cb = m.add('C', cbPos, 'mol-active');
   m.bond(ring[0], cb, 1, 'mol-active');
+
+  const caPos: V3 = [cbPos[0] + 0.94, cbPos[1] - 0.98, cbPos[2] + 0.66];
+  const ca = m.add('C', caPos, 'mol-tail');
+
+  // два точных тетраэдрических луча от C_beta (rayUp смотрит вверх-вперёд -> даёт (R)-конфигурацию!)
+  const [rayUp, rayBack] = tetraRays(r0p, caPos, cbPos);
   if (mode === 'dofamin') {
-    const hb1 = m.add('H', [1.18, 0.96, 0.72], 'mol-active');
-    const hb2 = m.add('H', [1.22, -0.78, 0.76], 'mol-active');
-    m.bond(cb, hb1, 1, 'mol-active');
-    m.bond(cb, hb2, 1, 'mol-active');
+    // у дофамина на C_beta два атома водорода (-CH2-), без гидроксила!
+    m.bond(cb, m.add('H', stepPos(cbPos, rayUp, 1.09), 'mol-active'), 1, 'mol-active');
+    m.bond(cb, m.add('H', stepPos(cbPos, rayBack, 1.09), 'mol-active'), 1, 'mol-active');
   } else {
-    // хиральная бета-гидроксильная группа -OH (у адреналина и норадреналина)
-    const ob = m.add('O', [1.25, 1.38, 0.68], 'mol-active');
-    const hob = m.add('H', [2.02, 1.66, 0.96], 'mol-active');
-    const hb = m.add('H', [1.14, -0.74, 0.84], 'mol-active');
+    // природный биологически активный (R)-изомер: хиральная бета-OH группа открыто смотрит вверх-вперёд!
+    const obPos = stepPos(cbPos, rayUp, 1.43);
+    const ob = m.add('O', obPos, 'mol-active');
+    const hob = m.add('H', [obPos[0] + 0.80, obPos[1] + 0.42, obPos[2] + 0.36], 'mol-active');
+    const hb = m.add('H', stepPos(cbPos, rayBack, 1.09), 'mol-active');
     m.bond(cb, ob, 1, 'mol-active');
     m.bond(ob, hob, 1, 'mol-active');
     m.bond(cb, hb, 1, 'mol-active');
   }
 
-  const ca = m.add('C', [2.20, -0.26, -0.80], 'mol-tail');
   m.bond(cb, ca, 1, 'mol-tail');
-  m.bond(ca, m.add('H', [2.16, -1.28, -1.16], 'mol-tail'), 1, 'mol-tail');
-  m.bond(ca, m.add('H', [2.08, 0.42, -1.62], 'mol-tail'), 1, 'mol-tail');
 
-  // аминогруппа (-NH2 у дофамина/норадреналина или -NH-CH3 у адреналина!)
-  const n = m.add('N', [3.50, 0.06, -0.22], 'mol-tail');
+  // синий атом азота аминогруппы (зигзаг вверх-вправо от C_alpha)
+  const nPos: V3 = [caPos[0] + 1.34, caPos[1] + 0.56, caPos[2] - 0.22];
+  const n = m.add('N', nPos, 'mol-tail');
   m.bond(ca, n, 1, 'mol-tail');
-  m.bond(n, m.add('H', [3.62, 1.02, -0.02], 'mol-tail'), 1, 'mol-tail');
+
+  const [caH1, caH2] = tetraRays(cbPos, nPos, caPos);
+  m.bond(ca, m.add('H', stepPos(caPos, caH1, 1.09), 'mol-tail'), 1, 'mol-tail');
+  m.bond(ca, m.add('H', stepPos(caPos, caH2, 1.09), 'mol-tail'), 1, 'mol-tail');
 
   if (mode === 'adrenalin') {
-    // метильная группа -CH3 отличает адреналин от норадреналина и даёт мощное сродство к бета-2 рецепторам!
-    const cm = m.add('C', [4.62, -0.45, -1.00], 'mol-tail');
+    // N-метильный хвост (-NH-CH3) — второе главное отличие адреналина от дофамина и норадреналина!
+    const cmPos: V3 = [nPos[0] + 1.12, nPos[1] - 0.86, nPos[2] + 0.40];
+    const cm = m.add('C', cmPos, 'mol-tail');
     m.bond(n, cm, 1, 'mol-tail');
-    m.bond(cm, m.add('H', [5.52, -0.18, -0.50], 'mol-tail'), 1, 'mol-tail');
-    m.bond(cm, m.add('H', [4.58, -1.50, -1.10], 'mol-tail'), 1, 'mol-tail');
-    m.bond(cm, m.add('H', [4.60, 0.02, -1.96], 'mol-tail'), 1, 'mol-tail');
+    const [nhRay] = tetraRays(caPos, cmPos, nPos);
+    m.bond(n, m.add('H', stepPos(nPos, nhRay, 1.01), 'mol-tail'), 1, 'mol-tail');
+    addMethylH(m, n, cm, 'mol-tail', 0.3);
   } else {
-    m.bond(n, m.add('H', [4.26, -0.32, -0.78], 'mol-tail'), 1, 'mol-tail');
+    // первичная аминогруппа (-NH2) у дофамина и норадреналина под тетраэдрическим углом ~109.5°
+    const dx = nPos[0] - caPos[0], dy = nPos[1] - caPos[1], dz = nPos[2] - caPos[2];
+    const dl = Math.hypot(dx, dy, dz) || 1;
+    const ax = dx / dl, ay = dy / dl, az = dz / dl;
+    const ref: V3 = [0, 0, 1];
+    let ux = ay * ref[2] - az * ref[1], uy = az * ref[0] - ax * ref[2], uz = ax * ref[1] - ay * ref[0];
+    const ul = Math.hypot(ux, uy, uz) || 1;
+    ux /= ul; uy /= ul; uz /= ul;
+    const vx = ay * uz - az * uy, vy = az * ux - ax * uz, vz = ax * uy - ay * ux;
+    const fwd = 0.3338, rad = 0.9426;
+    for (const ang of [0.95, 3.05]) {
+      const cs = Math.cos(ang) * rad, sn = Math.sin(ang) * rad;
+      const dir: V3 = [ax * fwd + ux * cs + vx * sn, ay * fwd + uy * cs + vy * sn, az * fwd + uz * cs + vz * sn];
+      m.bond(n, m.add('H', stepPos(nPos, dir, 1.01), 'mol-tail'), 1, 'mol-tail');
+    }
   }
 
   return m.build({
-    'mol-core': [-2.05, 2.30, 0.4],
-    'mol-active': [1.05, 0.95, 0.85],
-    'mol-tail': [3.95, -0.95, -0.5],
+    'mol-core': [-3.30, 2.70, 0.25],
+    'mol-active': mode === 'dofamin' ? [0.65, 1.35, 0.45] : [1.05, 2.05, 0.65],
+    'mol-tail': mode === 'adrenalin' ? [4.75, -1.95, 0.45] : [3.75, -1.55, 0.35],
   });
 }
 
-/** Индольное бициклическое ядро (бензол + пиррол с N) для серотонина и мелатонина. */
+/** Индольное бициклическое ядро (бензол + правильный планарный пиррол с N) для серотонина и мелатонина. */
 function buildIndoleamine(mode: 'serotonin' | 'melatonin'): MoleculeSpec {
   const m = new MolBuilder();
-  const ring = addBenzene(m, -1.95, 0, 0, 1.38, 'mol-core', 0.06, 0.05);
-  // конденсированное пятичленное пиррольное кольцо справа от ребра ring[0]—ring[5]
-  const c3 = m.add('C', [0.68, 0.92, 0.08], 'mol-core');
-  const c2 = m.add('C', [1.46, -0.22, -0.04], 'mol-core');
-  const n1 = m.add('N', [0.64, -1.36, -0.14], 'mol-core');
+  const cx = -1.95, cy = 0, cz = 0, r = 1.38, tiltX = 0.06, tiltY = 0.05;
+  const ring = addBenzene(m, cx, cy, cz, r, 'mol-core', tiltX, tiltY);
+  const csX = Math.cos(tiltX), snX = Math.sin(tiltX);
+  const csY = Math.cos(tiltY), snY = Math.sin(tiltY);
+  const toWorld = (lx: number, ly: number, lz = 0): V3 => {
+    const y1 = ly * csX - lz * snX;
+    const z1 = ly * snX + lz * csX;
+    const x2 = lx * csY + z1 * snY;
+    const z2 = -lx * snY + z1 * csY;
+    return [cx + x2, cy + y1, cz + z2];
+  };
+  // правильный пятиугольник пиррола, точно пристыкованный к ребру ring[0](r,0) — ring[5](0.5r, -0.866r)
+  const p0x = r, p0y = 0;
+  const p5x = 0.5 * r, p5y = -0.8660254 * r;
+  const aTop = (-12 * Math.PI) / 180;
+  const aBot = (-48 * Math.PI) / 180;
+  const c3x = p0x + Math.cos(aTop) * r, c3y = p0y + Math.sin(aTop) * r;
+  const n1x = p5x + Math.cos(aBot) * r, n1y = p5y + Math.sin(aBot) * r;
+  // противоположная вершина C2 на расстоянии r от C3 и N1
+  const midX = 0.5 * (p0x + p5x), midY = 0.5 * (p0y + p5y);
+  const c2x = midX + 0.8660254 * 1.5388418 * r;
+  const c2y = midY - 0.5 * 1.5388418 * r;
+  const pyrCx = midX + 0.8660254 * 0.688191 * r;
+  const pyrCy = midY - 0.5 * 0.688191 * r;
+
+  const c3 = m.add('C', toWorld(c3x, c3y), 'mol-core');
+  const c2 = m.add('C', toWorld(c2x, c2y), 'mol-core');
+  const n1 = m.add('N', toWorld(n1x, n1y), 'mol-core');
   m.bond(ring[0], c3, 1, 'mol-core');
   m.bond(c3, c2, 2, 'mol-core');
   m.bond(c2, n1, 1, 'mol-core');
   m.bond(n1, ring[5], 1, 'mol-core');
-  m.bond(n1, m.add('H', [0.92, -2.30, -0.24], 'mol-core'), 1, 'mol-core');
-  m.bond(c2, m.add('H', [2.52, -0.24, -0.06], 'mol-core'), 1, 'mol-core');
-  m.bond(ring[1], m.add('H', [-1.22, 2.08, 0.14], 'mol-core'), 1, 'mol-core');
-  m.bond(ring[3], m.add('H', [-4.30, 0.04, 0.12], 'mol-core'), 1, 'mol-core');
-  m.bond(ring[4], m.add('H', [-3.30, -2.08, -0.12], 'mol-core'), 1, 'mol-core');
+
+  const pyrCenter = toWorld(pyrCx, pyrCy);
+  addRingSub(m, n1, pyrCenter, 'H', 'mol-core', 1.01);
+  addRingSub(m, c2, pyrCenter, 'H', 'mol-core', 1.08);
+  addRingH(m, ring[1], [cx, cy, cz], 'mol-core');
+  addRingH(m, ring[3], [cx, cy, cz], 'mol-core');
+  addRingH(m, ring[4], [cx, cy, cz], 'mol-core');
 
   // 5-гидроксигруппа (-OH у серотонина) или 5-метоксигруппа (-OCH3 у мелатонина!)
-  const o5 = m.add('O', [-3.36, 2.22, 0.22], 'mol-active');
-  m.bond(ring[2], o5, 1, 'mol-active');
+  const o5 = addRingSub(m, ring[2], [cx, cy, cz], 'O', 'mol-active', 1.37);
+  const o5p = m.atoms[o5].pos;
   if (mode === 'serotonin') {
-    m.bond(o5, m.add('H', [-4.22, 2.48, 0.44], 'mol-active'), 1, 'mol-active');
+    m.bond(o5, m.add('H', [o5p[0] - 0.86, o5p[1] + 0.34, o5p[2] + 0.30], 'mol-active'), 1, 'mol-active');
   } else {
-    const cme = m.add('C', [-4.58, 2.42, 0.88], 'mol-active');
+    const cme = m.add('C', [o5p[0] - 1.24, o5p[1] + 0.32, o5p[2] + 0.62], 'mol-active');
     m.bond(o5, cme, 1, 'mol-active');
-    m.bond(cme, m.add('H', [-5.30, 2.84, 0.24], 'mol-active'), 1, 'mol-active');
-    m.bond(cme, m.add('H', [-4.94, 1.48, 1.24], 'mol-active'), 1, 'mol-active');
-    m.bond(cme, m.add('H', [-4.44, 3.10, 1.70], 'mol-active'), 1, 'mol-active');
+    addMethylH(m, o5, cme, 'mol-active', 0.2);
   }
 
-  // боковая этиламиновая цепь от C3
-  const cb = m.add('C', [1.34, 2.24, 0.36], 'mol-tail');
-  const ca = m.add('C', [2.72, 2.28, -0.26], 'mol-tail');
-  const nt = m.add('N', [3.46, 3.46, 0.18], 'mol-tail');
+  // боковая этиламиновая цепь от C3 (вверх-вправо от индола)
+  const c3p = m.atoms[c3].pos;
+  const cbPos: V3 = [c3p[0] + 0.68, c3p[1] + 1.32, c3p[2] + 0.22];
+  const cb = m.add('C', cbPos, 'mol-tail');
+  const caPos: V3 = [cbPos[0] + 1.36, cbPos[1] + 0.14, cbPos[2] - 0.66];
+  const ca = m.add('C', caPos, 'mol-tail');
+  const ntPos: V3 = [caPos[0] + 0.78, caPos[1] + 1.18, caPos[2] + 0.42];
+  const nt = m.add('N', ntPos, 'mol-tail');
   m.bond(c3, cb, 1, 'mol-tail');
   m.bond(cb, ca, 1, 'mol-tail');
   m.bond(ca, nt, 1, 'mol-tail');
-  m.bond(cb, m.add('H', [1.44, 2.38, 1.42], 'mol-tail'), 1, 'mol-tail');
-  m.bond(cb, m.add('H', [0.74, 3.04, -0.02], 'mol-tail'), 1, 'mol-tail');
-  m.bond(ca, m.add('H', [3.26, 1.40, 0.04], 'mol-tail'), 1, 'mol-tail');
-  m.bond(ca, m.add('H', [2.64, 2.22, -1.32], 'mol-tail'), 1, 'mol-tail');
-  m.bond(nt, m.add('H', [3.02, 4.32, -0.06], 'mol-tail'), 1, 'mol-tail');
+  const [cbH1, cbH2] = tetraRays(c3p, caPos, cbPos);
+  m.bond(cb, m.add('H', stepPos(cbPos, cbH1, 1.09), 'mol-tail'), 1, 'mol-tail');
+  m.bond(cb, m.add('H', stepPos(cbPos, cbH2, 1.09), 'mol-tail'), 1, 'mol-tail');
+  const [caH1, caH2] = tetraRays(cbPos, ntPos, caPos);
+  m.bond(ca, m.add('H', stepPos(caPos, caH1, 1.09), 'mol-tail'), 1, 'mol-tail');
+  m.bond(ca, m.add('H', stepPos(caPos, caH2, 1.09), 'mol-tail'), 1, 'mol-tail');
 
   if (mode === 'serotonin') {
-    m.bond(nt, m.add('H', [4.42, 3.44, -0.10], 'mol-tail'), 1, 'mol-tail');
+    m.bond(nt, m.add('H', [ntPos[0] - 0.42, ntPos[1] + 0.88, ntPos[2] - 0.26], 'mol-tail'), 1, 'mol-tail');
+    m.bond(nt, m.add('H', [ntPos[0] + 0.96, ntPos[1] - 0.04, ntPos[2] - 0.30], 'mol-tail'), 1, 'mol-tail');
   } else {
     // N-ацетильная группа (-CO-CH3) — ключевой признак мелатонина!
-    const cCarb = m.add('C', [4.70, 3.44, 0.72], 'mol-tail');
-    const oCarb = m.add('O', [5.26, 2.40, 0.96], 'mol-tail');
-    const cMet = m.add('C', [5.38, 4.74, 1.04], 'mol-tail');
+    const cCarbPos: V3 = [ntPos[0] + 1.24, ntPos[1] - 0.04, ntPos[2] + 0.56];
+    const cCarb = m.add('C', cCarbPos, 'mol-tail');
+    const oCarb = m.add('O', [cCarbPos[0] + 0.58, cCarbPos[1] - 1.04, cCarbPos[2] + 0.24], 'mol-tail');
+    const cMetPos: V3 = [cCarbPos[0] + 0.72, cCarbPos[1] + 1.28, cCarbPos[2] + 0.36];
+    const cMet = m.add('C', cMetPos, 'mol-tail');
+    const [nhRay] = tetraRays(caPos, cCarbPos, ntPos);
+    m.bond(nt, m.add('H', stepPos(ntPos, nhRay, 1.01), 'mol-tail'), 1, 'mol-tail');
     m.bond(nt, cCarb, 1, 'mol-tail');
     m.bond(cCarb, oCarb, 2, 'mol-tail');
     m.bond(cCarb, cMet, 1, 'mol-tail');
-    m.bond(cMet, m.add('H', [6.36, 4.60, 1.44], 'mol-tail'), 1, 'mol-tail');
-    m.bond(cMet, m.add('H', [5.46, 5.34, 0.16], 'mol-tail'), 1, 'mol-tail');
-    m.bond(cMet, m.add('H', [4.80, 5.26, 1.78], 'mol-tail'), 1, 'mol-tail');
+    addMethylH(m, cCarb, cMet, 'mol-tail', 0.5);
   }
 
   return m.build({
-    'mol-core': [-1.4, -1.65, 0.25],
+    'mol-core': [-1.4, -1.95, 0.25],
     'mol-active': [-3.85, 2.45, 0.6],
     'mol-tail': [3.85, 3.65, 0.55],
   });
@@ -295,58 +411,69 @@ function buildIndoleamine(mode: 'serotonin' | 'melatonin'): MoleculeSpec {
 /** Тироксин (T4): два повёрнутых фенильных кольца через эфирный кислород + 4 крупных фиолетовых атома йода! */
 function buildThyroxine(): MoleculeSpec {
   const m = new MolBuilder();
+  const outerC: V3 = [-3.36, 0.35, 0.25];
+  const innerC: V3 = [1.84, -0.25, -0.18];
   // внешнее кольцо (несёт 4'-OH и атомы йода 3', 5')
-  const outer = addBenzene(m, -2.85, 0.55, 0.35, 1.36, 'mol-core', 0.35, 0.55);
+  const outer = addBenzene(m, outerC[0], outerC[1], outerC[2], 1.38, 'mol-core', 0.28, 0.42);
   // внутреннее кольцо (несёт аланиновый хвост и атомы йода 3, 5)
-  const inner = addBenzene(m, 1.45, -0.35, -0.25, 1.36, 'mol-core', -0.25, -0.38);
-  // эфирный кислород-мостик между двумя кольцами под углом ~120°
-  const oBridge = m.add('O', [-0.72, 0.35, 0.12], 'mol-core');
+  const inner = addBenzene(m, innerC[0], innerC[1], innerC[2], 1.38, 'mol-core', -0.22, -0.34);
+  // эфирный кислород-мостик между двумя кольцами под углом ~118°
+  const pOut0 = m.atoms[outer[0]].pos;
+  const pIn3 = m.atoms[inner[3]].pos;
+  const oBridge = m.add(
+    'O',
+    [(pOut0[0] + pIn3[0]) * 0.5, (pOut0[1] + pIn3[1]) * 0.5 + 0.52, (pOut0[2] + pIn3[2]) * 0.5 + 0.08],
+    'mol-core',
+  );
   m.bond(outer[0], oBridge, 1, 'mol-core');
   m.bond(oBridge, inner[3], 1, 'mol-core');
 
   // 4'-OH группа на внешнем кольце и 4 ароматических атома водорода на свободных позициях колец
-  const o4p = m.add('O', [-5.35, 0.85, 0.85], 'mol-core');
-  m.bond(outer[3], o4p, 1, 'mol-core');
-  m.bond(o4p, m.add('H', [-5.95, 0.22, 1.25], 'mol-core'), 1, 'mol-core');
-  addRingH(m, outer[1], [-2.85, 0.55, 0.35], 'mol-core');
-  addRingH(m, outer[5], [-2.85, 0.55, 0.35], 'mol-core');
-  addRingH(m, inner[1], [1.45, -0.35, -0.25], 'mol-core');
-  addRingH(m, inner[5], [1.45, -0.35, -0.25], 'mol-core');
+  const o4p = addRingSub(m, outer[3], outerC, 'O', 'mol-core', 1.37);
+  const o4pp = m.atoms[o4p].pos;
+  m.bond(o4p, m.add('H', [o4pp[0] - 0.60, o4pp[1] - 0.64, o4pp[2] + 0.42], 'mol-core'), 1, 'mol-core');
+  addRingH(m, outer[1], outerC, 'mol-core');
+  addRingH(m, outer[5], outerC, 'mol-core');
+  addRingH(m, inner[1], innerC, 'mol-core');
+  addRingH(m, inner[5], innerC, 'mol-core');
 
-  // 4 характерных крупных атома ЙОДА (I) в положениях 3', 5', 3, 5 — главная особенность тироксина!
-  const i1 = m.add('I', [-3.98, 2.86, 1.18], 'mol-active');
-  const i2 = m.add('I', [-3.82, -1.78, -0.38], 'mol-active');
-  const i3 = m.add('I', [0.32, 1.98, -1.02], 'mol-active');
-  const i4 = m.add('I', [0.46, -2.68, 0.52], 'mol-active');
-  m.bond(outer[2], i1, 1, 'mol-active');
-  m.bond(outer[4], i2, 1, 'mol-active');
-  m.bond(inner[2], i3, 1, 'mol-active');
-  m.bond(inner[4], i4, 1, 'mol-active');
+  // 4 характерных крупных атома ЙОДА (I) радиально на точной длине C–I = 2.08 Å в положениях 3', 5', 3, 5!
+  addRingSub(m, outer[2], outerC, 'I', 'mol-active', 2.08);
+  addRingSub(m, outer[4], outerC, 'I', 'mol-active', 2.08);
+  addRingSub(m, inner[2], innerC, 'I', 'mol-active', 2.08);
+  addRingSub(m, inner[4], innerC, 'I', 'mol-active', 2.08);
 
-  // аланиновая аминокислотная цепь (-CH2-CH(NH2)-COOH) справа
-  const cb = m.add('C', [3.95, -0.56, -0.58], 'mol-tail');
-  const ca = m.add('C', [4.88, 0.55, 0.02], 'mol-tail');
-  const n = m.add('N', [4.62, 1.84, -0.60], 'mol-tail');
-  const cAcid = m.add('C', [6.32, 0.18, -0.18], 'mol-tail');
-  const o1 = m.add('O', [6.76, -0.92, -0.52], 'mol-tail');
-  const o2 = m.add('O', [7.14, 1.22, 0.08], 'mol-tail');
+  // аланиновая аминокислотная цепь L-тироксина ((S)-конфигурация у C_alpha) справа
+  const pIn0 = m.atoms[inner[0]].pos;
+  const cbPos: V3 = [pIn0[0] + 1.44, pIn0[1] - 0.24, pIn0[2] + 0.42];
+  const cb = m.add('C', cbPos, 'mol-tail');
+  const caPos: V3 = [cbPos[0] + 0.94, cbPos[1] + 1.08, cbPos[2] + 0.56];
+  const ca = m.add('C', caPos, 'mol-tail');
+  const nPos: V3 = [caPos[0] - 0.26, caPos[1] + 1.30, caPos[2] - 0.62];
+  const n = m.add('N', nPos, 'mol-tail');
+  const cAcidPos: V3 = [caPos[0] + 1.44, caPos[1] - 0.36, caPos[2] - 0.22];
+  const cAcid = m.add('C', cAcidPos, 'mol-tail');
+  const o1 = m.add('O', [cAcidPos[0] + 0.44, cAcidPos[1] - 1.10, cAcidPos[2] - 0.34], 'mol-tail');
+  const o2Pos: V3 = [cAcidPos[0] + 0.82, cAcidPos[1] + 1.04, cAcidPos[2] + 0.26];
+  const o2 = m.add('O', o2Pos, 'mol-tail');
   m.bond(inner[0], cb, 1, 'mol-tail');
   m.bond(cb, ca, 1, 'mol-tail');
   m.bond(ca, n, 1, 'mol-tail');
   m.bond(ca, cAcid, 1, 'mol-tail');
   m.bond(cAcid, o1, 2, 'mol-tail');
   m.bond(cAcid, o2, 1, 'mol-tail');
-  m.bond(o2, m.add('H', [8.06, 0.94, -0.02], 'mol-tail'), 1, 'mol-tail');
-  m.bond(n, m.add('H', [5.14, 2.58, -0.18], 'mol-tail'), 1, 'mol-tail');
-  m.bond(n, m.add('H', [3.66, 2.08, -0.56], 'mol-tail'), 1, 'mol-tail');
-  m.bond(cb, m.add('H', [4.12, -1.50, -0.12], 'mol-tail'), 1, 'mol-tail');
-  m.bond(cb, m.add('H', [4.14, -0.58, -1.62], 'mol-tail'), 1, 'mol-tail');
-  m.bond(ca, m.add('H', [4.76, 0.62, 1.08], 'mol-tail'), 1, 'mol-tail');
+  m.bond(o2, m.add('H', [o2Pos[0] + 0.92, o2Pos[1] - 0.28, o2Pos[2] - 0.10], 'mol-tail'), 1, 'mol-tail');
+  m.bond(n, m.add('H', [nPos[0] + 0.52, nPos[1] + 0.74, nPos[2] + 0.42], 'mol-tail'), 1, 'mol-tail');
+  m.bond(n, m.add('H', [nPos[0] - 0.94, nPos[1] + 0.28, nPos[2] + 0.08], 'mol-tail'), 1, 'mol-tail');
+  const [cbH1, cbH2] = tetraRays(pIn0, caPos, cbPos);
+  m.bond(cb, m.add('H', stepPos(cbPos, cbH1, 1.09), 'mol-tail'), 1, 'mol-tail');
+  m.bond(cb, m.add('H', stepPos(cbPos, cbH2, 1.09), 'mol-tail'), 1, 'mol-tail');
+  m.bond(ca, m.add('H', [caPos[0] - 0.12, caPos[1] + 0.08, caPos[2] + 1.08], 'mol-tail'), 1, 'mol-tail');
 
   return m.build({
-    'mol-core': [-1.0, -0.75, 0.65],
-    'mol-active': [-3.95, 2.95, 1.25],
-    'mol-tail': [5.45, 1.55, 0.35],
+    'mol-core': [-1.0, -0.85, 0.65],
+    'mol-active': [-4.45, 3.25, 1.35],
+    'mol-tail': [5.85, 1.65, 0.55],
   });
 }
 
